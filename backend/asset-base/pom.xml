@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent><groupId>com.asset</groupId><artifactId>asset-parent</artifactId><version>1.0.0-SNAPSHOT</version><relativePath>../asset-parent/pom.xml</relativePath></parent>
+
+    <artifactId>asset-base</artifactId>
+    <description>基础数据服务 - 项目/楼栋/楼层/商铺/品牌/商家管理</description>
+
+    <dependencies>
+        <dependency><groupId>com.asset</groupId><artifactId>asset-common</artifactId></dependency>
+        <dependency><groupId>com.asset</groupId><artifactId>asset-common-security</artifactId></dependency>
+        <dependency><groupId>com.asset</groupId><artifactId>asset-common-mybatis</artifactId></dependency>
+        <dependency><groupId>com.asset</groupId><artifactId>asset-common-redis</artifactId></dependency>
+        <dependency><groupId>com.asset</groupId><artifactId>asset-common-log</artifactId></dependency>
+
+        <!-- Spring Cloud Alibaba -->
+        <dependency><groupId>com.alibaba.cloud</groupId><artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId></dependency>
+        <dependency><groupId>com.alibaba.cloud</groupId><artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId></dependency>
+
+        <!-- DB -->
+        <dependency><groupId>com.mysql</groupId><artifactId>mysql-connector-j</artifactId><scope>runtime</scope></dependency>
+        <dependency><groupId>org.flywaydb</groupId><artifactId>flyway-mysql</artifactId></dependency>
+
+        <!-- Test -->
+        <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin><groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring-boot.version}</version>
+                <executions><execution><goals><goal>repackage</goal></goals></execution></executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -1,0 +1,44 @@
+server:
+  port: 9000
+
+spring:
+  application:
+    name: asset-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_ADDR:localhost:8848}
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: asset-base
+          uri: lb://asset-base
+          predicates: [Path=/api/base/**]
+          filters: [StripPrefix=2]
+        - id: asset-investment
+          uri: lb://asset-investment
+          predicates: [Path=/api/investment/**]
+          filters: [StripPrefix=2]
+        - id: asset-operation
+          uri: lb://asset-operation
+          predicates: [Path=/api/operation/**]
+          filters: [StripPrefix=2]
+        - id: asset-finance
+          uri: lb://asset-finance
+          predicates: [Path=/api/finance/**]
+          filters: [StripPrefix=2]
+        - id: asset-report
+          uri: lb://asset-report
+          predicates: [Path=/api/report/**]
+          filters: [StripPrefix=2]
+        - id: asset-system
+          uri: lb://asset-system
+          predicates: [Path=/api/system/**]
+          filters: [StripPrefix=2]
+        - id: asset-gis
+          uri: lb://asset-gis
+          predicates: [Path=/api/gis/**]
+          filters: [StripPrefix=2]

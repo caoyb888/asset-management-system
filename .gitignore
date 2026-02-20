@@ -1,0 +1,36 @@
+# Java
+target/
+*.class
+*.jar
+*.log
+.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.project
+.classpath
+.settings/
+
+# Node
+node_modules/
+dist/
+.pnpm-store/
+
+# Docker
+docker-compose.override.yml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env.local
+.env.*.local
+*.env
+
+# Test
+playwright-report/
+test-results/
+coverage/

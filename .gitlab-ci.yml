@@ -1,0 +1,165 @@
+# ====================================================================
+# 资产管理系统 - GitLab CI/CD 流水线
+# 阶段: 检查 → 测试 → API文档 → 构建 → 部署
+# ====================================================================
+
+stages:
+  - check
+  - test
+  - api-docs
+  - build
+  - deploy
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+  DOCKER_REGISTRY: "registry.cn-hangzhou.aliyuncs.com/asset-system"
+
+cache:
+  key: "${CI_COMMIT_REF_SLUG}"
+  paths:
+    - .m2/repository
+    - asset-ui/node_modules
+    - asset-ui/.pnpm-store
+
+# -------------------- 代码检查 --------------------
+backend-lint:
+  stage: check
+  image: eclipse-temurin:21-jdk
+  script:
+    - mvn checkstyle:check spotbugs:check -q
+  only:
+    changes:
+      - "asset-*/**/*.java"
+      - "pom.xml"
+
+frontend-lint:
+  stage: check
+  image: node:20-alpine
+  script:
+    - cd asset-ui && pnpm install --frozen-lockfile && pnpm lint && pnpm type-check
+  only:
+    changes:
+      - "asset-ui/**"
+
+# -------------------- 单元测试 --------------------
+backend-test:
+  stage: test
+  image: eclipse-temurin:21-jdk
+  services:
+    - mysql:8.0
+    - redis:7-alpine
+  variables:
+    MYSQL_ROOT_PASSWORD: test123
+    MYSQL_DATABASE: asset_test
+  script:
+    - mvn test -pl asset-common,asset-common-security,asset-common-mybatis,asset-system -q
+  artifacts:
+    reports:
+      junit: "**/target/surefire-reports/TEST-*.xml"
+
+frontend-test:
+  stage: test
+  image: node:20-alpine
+  script:
+    - cd asset-ui && pnpm install --frozen-lockfile && pnpm test:unit
+  only:
+    changes:
+      - "asset-ui/src/**"
+
+# -------------------- API文档生成 --------------------
+api-docs-generate:
+  stage: api-docs
+  image: eclipse-temurin:21-jdk
+  script:
+    # 启动gateway获取聚合API文档
+    - mvn spring-boot:run -pl asset-gateway -Dspring-boot.run.profiles=ci &
+    - sleep 30
+    - curl -f http://localhost:9000/v3/api-docs > api-docs.json
+    # 检测破坏性变更
+    - npx oasdiff breaking api-docs-prev.json api-docs.json || echo "WARNING: Breaking API changes detected"
+    - cp api-docs.json api-docs-prev.json
+  artifacts:
+    paths:
+      - api-docs.json
+      - api-docs-prev.json
+  only:
+    changes:
+      - "asset-*/src/main/java/**/controller/**"
+
+api-client-generate:
+  stage: api-docs
+  image: node:20-alpine
+  needs: ["api-docs-generate"]
+  script:
+    - cd asset-ui
+    - npx @openapitools/openapi-generator-cli generate -i ../api-docs.json -g typescript-axios -o src/api/generated --additional-properties=supportsES6=true
+  artifacts:
+    paths:
+      - asset-ui/src/api/generated/
+
+# -------------------- E2E测试 --------------------
+e2e-test:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.49.1-jammy
+  needs: ["frontend-test"]
+  script:
+    - cd asset-ui && pnpm install --frozen-lockfile && npx playwright test
+  artifacts:
+    when: always
+    paths:
+      - asset-ui/playwright-report/
+  only:
+    refs:
+      - develop
+      - main
+
+# -------------------- 构建镜像 --------------------
+build-backend:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  script:
+    - mvn package -DskipTests -q
+    - |
+      for svc in asset-base asset-investment asset-operation asset-finance asset-report asset-system asset-gis asset-workflow asset-message asset-file asset-payment asset-gateway; do
+        docker build -t $DOCKER_REGISTRY/$svc:$CI_COMMIT_SHORT_SHA ./$svc
+        docker push $DOCKER_REGISTRY/$svc:$CI_COMMIT_SHORT_SHA
+      done
+  only:
+    refs:
+      - main
+
+build-frontend:
+  stage: build
+  image: node:20-alpine
+  script:
+    - cd asset-ui && pnpm install --frozen-lockfile && pnpm build
+    - docker build -t $DOCKER_REGISTRY/asset-ui:$CI_COMMIT_SHORT_SHA ./asset-ui
+    - docker push $DOCKER_REGISTRY/asset-ui:$CI_COMMIT_SHORT_SHA
+  only:
+    refs:
+      - main
+
+# -------------------- 部署 --------------------
+deploy-dev:
+  stage: deploy
+  script:
+    - cd deploy && docker compose pull && docker compose up -d
+  environment:
+    name: development
+  only:
+    refs:
+      - develop
+
+deploy-prod:
+  stage: deploy
+  script:
+    - kubectl set image deployment/asset-gateway asset-gateway=$DOCKER_REGISTRY/asset-gateway:$CI_COMMIT_SHORT_SHA -n asset-prod
+    # ... 其他服务同理
+  environment:
+    name: production
+  when: manual
+  only:
+    refs:
+      - main

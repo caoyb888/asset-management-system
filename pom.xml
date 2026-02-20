@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.asset</groupId>
+    <artifactId>asset-management-system</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>资产管理系统</name>
+    <description>企业级资产管理系统 - Spring Boot + Vue3 + UniApp</description>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.6</version>
+        <relativePath/>
+    </parent>
+
+    <modules>
+        <!-- 公共模块 -->
+        <module>asset-common</module>
+        <module>asset-common-security</module>
+        <module>asset-common-mybatis</module>
+        <module>asset-common-redis</module>
+        <module>asset-common-log</module>
+        <!-- Feign API 模块 -->
+        <module>asset-api-base</module>
+        <module>asset-api-system</module>
+        <!-- 业务微服务 -->
+        <module>asset-base</module>
+        <module>asset-investment</module>
+        <module>asset-operation</module>
+        <module>asset-finance</module>
+        <module>asset-report</module>
+        <module>asset-system</module>
+        <module>asset-gis</module>
+        <module>asset-workflow</module>
+        <module>asset-message</module>
+        <module>asset-file</module>
+        <module>asset-payment</module>
+        <module>asset-gateway</module>
+    </modules>
+
+    <properties>
+        <java.version>21</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Spring Cloud -->
+        <spring-cloud.version>2023.0.3</spring-cloud.version>
+        <spring-cloud-alibaba.version>2023.0.1.2</spring-cloud-alibaba.version>
+        <!-- 数据库 & ORM -->
+        <mybatis-plus.version>3.5.9</mybatis-plus.version>
+        <druid.version>1.2.23</druid.version>
+        <shardingsphere.version>5.5.1</shardingsphere.version>
+        <flyway.version>10.21.0</flyway.version>
+        <!-- 工作流 -->
+        <flowable.version>7.1.0</flowable.version>
+        <!-- 安全 & 国密 -->
+        <sa-token.version>1.39.0</sa-token.version>
+        <bouncycastle.version>1.78.1</bouncycastle.version>
+        <!-- API文档 -->
+        <springdoc.version>2.6.0</springdoc.version>
+        <!-- 工具库 -->
+        <hutool.version>5.8.32</hutool.version>
+        <mapstruct.version>1.6.3</mapstruct.version>
+        <easyexcel.version>4.0.3</easyexcel.version>
+        <!-- 中间件客户端 -->
+        <redisson.version>3.37.0</redisson.version>
+        <rocketmq-spring.version>2.3.1</rocketmq-spring.version>
+        <minio.version>8.5.13</minio.version>
+        <xxl-job.version>2.4.2</xxl-job.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Spring Cloud BOM -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+                <version>${spring-cloud-alibaba.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- MyBatis-Plus -->
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+                <version>${mybatis-plus.version}</version>
+            </dependency>
+            <!-- Druid 连接池 -->
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>druid-spring-boot-3-starter</artifactId>
+                <version>${druid.version}</version>
+            </dependency>
+            <!-- Flowable 工作流 -->
+            <dependency>
+                <groupId>org.flowable</groupId>
+                <artifactId>flowable-spring-boot-starter</artifactId>
+                <version>${flowable.version}</version>
+            </dependency>
+            <!-- SpringDoc OpenAPI -->
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc.version}</version>
+            </dependency>
+            <!-- Hutool 工具库 -->
+            <dependency>
+                <groupId>cn.hutool</groupId>
+                <artifactId>hutool-all</artifactId>
+                <version>${hutool.version}</version>
+            </dependency>
+            <!-- MapStruct 对象映射 -->
+            <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct</artifactId>
+                <version>${mapstruct.version}</version>
+            </dependency>
+            <!-- EasyExcel -->
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>easyexcel</artifactId>
+                <version>${easyexcel.version}</version>
+            </dependency>
+            <!-- Redisson -->
+            <dependency>
+                <groupId>org.redisson</groupId>
+                <artifactId>redisson-spring-boot-starter</artifactId>
+                <version>${redisson.version}</version>
+            </dependency>
+            <!-- MinIO -->
+            <dependency>
+                <groupId>io.minio</groupId>
+                <artifactId>minio</artifactId>
+                <version>${minio.version}</version>
+            </dependency>
+            <!-- XXL-Job -->
+            <dependency>
+                <groupId>com.xuxueli</groupId>
+                <artifactId>xxl-job-core</artifactId>
+                <version>${xxl-job.version}</version>
+            </dependency>
+            <!-- 国密 BouncyCastle -->
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcprov-jdk18on</artifactId>
+                <version>${bouncycastle.version}</version>
+            </dependency>
+            <!-- Flyway 数据库迁移 -->
+            <dependency>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-mysql</artifactId>
+                <version>${flyway.version}</version>
+            </dependency>
+
+            <!-- 内部模块 -->
+            <dependency><groupId>com.asset</groupId><artifactId>asset-common</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>com.asset</groupId><artifactId>asset-common-security</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>com.asset</groupId><artifactId>asset-common-mybatis</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>com.asset</groupId><artifactId>asset-common-redis</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>com.asset</groupId><artifactId>asset-common-log</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>com.asset</groupId><artifactId>asset-api-base</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>com.asset</groupId><artifactId>asset-api-system</artifactId><version>${project.version}</version></dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <configuration>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+                        <annotationProcessorPaths>
+                            <path><groupId>org.projectlombok</groupId><artifactId>lombok</artifactId><version>${lombok.version}</version></path>
+                            <path><groupId>org.mapstruct</groupId><artifactId>mapstruct-processor</artifactId><version>${mapstruct.version}</version></path>
+                        </annotationProcessorPaths>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
+    <repositories>
+        <repository>
+            <id>aliyun</id>
+            <url>https://maven.aliyun.com/repository/public</url>
+        </repository>
+    </repositories>
+</project>

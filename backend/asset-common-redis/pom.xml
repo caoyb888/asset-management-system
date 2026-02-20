@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent><groupId>com.asset</groupId><artifactId>asset-parent</artifactId><version>1.0.0-SNAPSHOT</version><relativePath>../asset-parent/pom.xml</relativePath></parent>
+    <artifactId>asset-common-redis</artifactId>
+    <description>缓存通用配置 - Redis序列化 + 分布式锁 + 字典缓存</description>
+    <dependencies>
+        <dependency><groupId>com.asset</groupId><artifactId>asset-common</artifactId></dependency>
+        <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-data-redis</artifactId></dependency>
+    </dependencies>
+</project>
