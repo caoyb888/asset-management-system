@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.asset.base.mapper.BizFloorMapper">
+
+    <!-- 楼层列表 VO ResultMap -->
+    <resultMap id="FloorVOMap" type="com.asset.base.model.vo.FloorVO">
+        <id     column="id"             property="id"/>
+        <result column="project_id"     property="projectId"/>
+        <result column="building_id"    property="buildingId"/>
+        <result column="building_name"  property="buildingName"/>
+        <result column="floor_code"     property="floorCode"/>
+        <result column="floor_name"     property="floorName"/>
+        <result column="status"         property="status"/>
+        <result column="building_area"  property="buildingArea"/>
+        <result column="operating_area" property="operatingArea"/>
+        <result column="remark"         property="remark"/>
+        <result column="image_url"      property="imageUrl"/>
+        <result column="created_at"     property="createdAt"/>
+        <result column="updated_at"     property="updatedAt"/>
+    </resultMap>
+
+    <select id="selectPageWithCond" resultMap="FloorVOMap">
+        SELECT
+            f.id,
+            f.project_id,
+            f.building_id,
+            b.building_name,
+            f.floor_code,
+            f.floor_name,
+            f.status,
+            f.building_area,
+            f.operating_area,
+            f.remark,
+            f.image_url,
+            f.created_at,
+            f.updated_at
+        FROM biz_floor f
+        LEFT JOIN biz_building b ON f.building_id = b.id
+        WHERE f.is_deleted = 0
+        <if test="q.buildingId != null">
+            AND f.building_id = #{q.buildingId}
+        </if>
+        <if test="q.projectId != null">
+            AND f.project_id = #{q.projectId}
+        </if>
+        <if test="q.floorName != null and q.floorName != ''">
+            AND f.floor_name LIKE CONCAT('%', #{q.floorName}, '%')
+        </if>
+        <if test="q.floorCode != null and q.floorCode != ''">
+            AND f.floor_code LIKE CONCAT('%', #{q.floorCode}, '%')
+        </if>
+        <if test="q.status != null">
+            AND f.status = #{q.status}
+        </if>
+        ORDER BY f.floor_code ASC, f.created_at ASC
+    </select>
+
+</mapper>

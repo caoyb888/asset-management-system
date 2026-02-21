@@ -1,0 +1,55 @@
+# ============================================================
+# 集成测试专用配置
+# 禁用 Nacos 注册/配置中心，使用本地 MySQL，跳过 Redis 自动配置
+# ============================================================
+
+spring:
+  cloud:
+    nacos:
+      discovery:
+        enabled: false
+      config:
+        enabled: false
+        import-check:
+          enabled: false
+
+  # 使用 HikariCP 连接真实 MySQL（不依赖 Druid 配置）
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/asset_db?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: root123
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 5
+      connection-timeout: 10000
+
+  # Redis 保留配置（懒连接，测试流程不实际使用）
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0
+
+  # 禁用 Spring Security 自动配置（测试中已通过 addFilters=false 绕过）
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration
+
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: isDeleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+logging:
+  level:
+    com.asset: debug
+    org.springframework.test: info

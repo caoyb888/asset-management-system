@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.asset.base.mapper.BizShopMapper">
+
+    <!-- 商铺列表 VO ResultMap（含三表 JOIN） -->
+    <resultMap id="ShopVOMap" type="com.asset.base.model.vo.ShopVO">
+        <id     column="id"                 property="id"/>
+        <result column="project_id"         property="projectId"/>
+        <result column="project_name"       property="projectName"/>
+        <result column="building_id"        property="buildingId"/>
+        <result column="building_name"      property="buildingName"/>
+        <result column="floor_id"           property="floorId"/>
+        <result column="floor_name"         property="floorName"/>
+        <result column="shop_code"          property="shopCode"/>
+        <result column="shop_type"          property="shopType"/>
+        <result column="rent_area"          property="rentArea"/>
+        <result column="measured_area"      property="measuredArea"/>
+        <result column="building_area"      property="buildingArea"/>
+        <result column="operating_area"     property="operatingArea"/>
+        <result column="shop_status"        property="shopStatus"/>
+        <result column="count_leasing_rate" property="countLeasingRate"/>
+        <result column="count_rental_rate"  property="countRentalRate"/>
+        <result column="count_opening_rate" property="countOpeningRate"/>
+        <result column="signed_format"      property="signedFormat"/>
+        <result column="planned_format"     property="plannedFormat"/>
+        <result column="owner_name"         property="ownerName"/>
+        <result column="owner_contact"      property="ownerContact"/>
+        <result column="owner_phone"        property="ownerPhone"/>
+        <result column="created_at"         property="createdAt"/>
+        <result column="updated_at"         property="updatedAt"/>
+    </resultMap>
+
+    <select id="selectPageWithCond" resultMap="ShopVOMap">
+        SELECT
+            s.id,
+            s.project_id,
+            p.project_name,
+            s.building_id,
+            b.building_name,
+            s.floor_id,
+            f.floor_name,
+            s.shop_code,
+            s.shop_type,
+            s.rent_area,
+            s.measured_area,
+            s.building_area,
+            s.operating_area,
+            s.shop_status,
+            s.count_leasing_rate,
+            s.count_rental_rate,
+            s.count_opening_rate,
+            s.signed_format,
+            s.planned_format,
+            s.owner_name,
+            s.owner_contact,
+            s.owner_phone,
+            s.created_at,
+            s.updated_at
+        FROM biz_shop s
+        LEFT JOIN biz_project  p ON s.project_id  = p.id
+        LEFT JOIN biz_building b ON s.building_id = b.id
+        LEFT JOIN biz_floor    f ON s.floor_id    = f.id
+        WHERE s.is_deleted = 0
+        <if test="q.projectId != null">
+            AND s.project_id = #{q.projectId}
+        </if>
+        <if test="q.buildingId != null">
+            AND s.building_id = #{q.buildingId}
+        </if>
+        <if test="q.floorId != null">
+            AND s.floor_id = #{q.floorId}
+        </if>
+        <if test="q.shopCode != null and q.shopCode != ''">
+            AND s.shop_code LIKE CONCAT('%', #{q.shopCode}, '%')
+        </if>
+        <if test="q.shopStatus != null">
+            AND s.shop_status = #{q.shopStatus}
+        </if>
+        <if test="q.shopType != null">
+            AND s.shop_type = #{q.shopType}
+        </if>
+        <if test="q.signedFormat != null and q.signedFormat != ''">
+            AND s.signed_format LIKE CONCAT('%', #{q.signedFormat}, '%')
+        </if>
+        ORDER BY s.shop_code ASC
+    </select>
+
+</mapper>

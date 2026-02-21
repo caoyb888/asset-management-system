@@ -6,6 +6,11 @@
     <artifactId>asset-common</artifactId>
     <description>公共工具/实体/常量/异常</description>
     <dependencies>
+        <!-- Spring Web：GlobalExceptionHandler 依赖 @RestControllerAdvice / @ExceptionHandler -->
+        <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-web</artifactId></dependency>
+        <!-- MyBatis-Plus：BaseEntity 依赖 @TableLogic / @TableField -->
+        <dependency><groupId>com.baomidou</groupId><artifactId>mybatis-plus-spring-boot3-starter</artifactId></dependency>
+        <!-- 工具 -->
         <dependency><groupId>cn.hutool</groupId><artifactId>hutool-all</artifactId></dependency>
         <dependency><groupId>org.projectlombok</groupId><artifactId>lombok</artifactId><optional>true</optional></dependency>
         <dependency><groupId>org.mapstruct</groupId><artifactId>mapstruct</artifactId></dependency>

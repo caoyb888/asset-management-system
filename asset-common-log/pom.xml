@@ -7,6 +7,8 @@
     <description>操作日志框架 - AOP + 注解 + 异步写入</description>
     <dependencies>
         <dependency><groupId>com.asset</groupId><artifactId>asset-common</artifactId></dependency>
+        <!-- OperLogAspect 使用 SecurityUtil 获取当前用户 -->
+        <dependency><groupId>com.asset</groupId><artifactId>asset-common-security</artifactId></dependency>
         <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-aop</artifactId></dependency>
         <dependency><groupId>org.projectlombok</groupId><artifactId>lombok</artifactId><optional>true</optional></dependency>
     </dependencies>

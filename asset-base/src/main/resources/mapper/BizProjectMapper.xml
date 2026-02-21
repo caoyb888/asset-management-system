@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.asset.base.mapper.BizProjectMapper">
+
+    <!-- 项目列表 VO ResultMap（含 JOIN 字段） -->
+    <resultMap id="ProjectVOMap" type="com.asset.base.model.vo.ProjectVO">
+        <id     column="id"               property="id"/>
+        <result column="project_code"     property="projectCode"/>
+        <result column="project_name"     property="projectName"/>
+        <result column="company_id"       property="companyId"/>
+        <result column="company_name"     property="companyName"/>
+        <result column="province"         property="province"/>
+        <result column="city"             property="city"/>
+        <result column="address"          property="address"/>
+        <result column="property_type"    property="propertyType"/>
+        <result column="business_type"    property="businessType"/>
+        <result column="building_area"    property="buildingArea"/>
+        <result column="operating_area"   property="operatingArea"/>
+        <result column="operation_status" property="operationStatus"/>
+        <result column="opening_date"     property="openingDate"/>
+        <result column="manager_id"       property="managerId"/>
+        <result column="manager_name"     property="managerName"/>
+        <result column="created_at"       property="createdAt"/>
+        <result column="updated_at"       property="updatedAt"/>
+        <!-- JSON 字段由 typeHandler 处理，此处不重复映射 -->
+    </resultMap>
+
+    <!--
+        分页查询：LEFT JOIN sys_company、sys_user 获取冗余字段
+        MyBatis-Plus 分页插件自动注入 LIMIT；is_deleted = 0 已由 @TableLogic 在 WHERE 中过滤，
+        但自定义 SQL 需手动加 is_deleted = 0。
+    -->
+    <select id="selectPageWithCond" resultMap="ProjectVOMap">
+        SELECT
+            p.id,
+            p.project_code,
+            p.project_name,
+            p.company_id,
+            c.company_name,
+            p.province,
+            p.city,
+            p.address,
+            p.property_type,
+            p.business_type,
+            p.building_area,
+            p.operating_area,
+            p.operation_status,
+            p.opening_date,
+            p.manager_id,
+            u.real_name AS manager_name,
+            p.created_at,
+            p.updated_at
+        FROM biz_project p
+        LEFT JOIN sys_company c ON p.company_id = c.id
+        LEFT JOIN sys_user    u ON p.manager_id = u.id
+        WHERE p.is_deleted = 0
+        <if test="q.projectName != null and q.projectName != ''">
+            AND p.project_name LIKE CONCAT('%', #{q.projectName}, '%')
+        </if>
+        <if test="q.projectCode != null and q.projectCode != ''">
+            AND p.project_code LIKE CONCAT('%', #{q.projectCode}, '%')
+        </if>
+        <if test="q.operationStatus != null">
+            AND p.operation_status = #{q.operationStatus}
+        </if>
+        <if test="q.province != null and q.province != ''">
+            AND p.province = #{q.province}
+        </if>
+        <if test="q.city != null and q.city != ''">
+            AND p.city = #{q.city}
+        </if>
+        <if test="q.companyId != null">
+            AND p.company_id = #{q.companyId}
+        </if>
+        ORDER BY p.created_at DESC
+    </select>
+
+</mapper>

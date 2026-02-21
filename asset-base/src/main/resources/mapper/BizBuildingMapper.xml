@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.asset.base.mapper.BizBuildingMapper">
+
+    <!-- 楼栋列表 VO ResultMap（含 JOIN 字段） -->
+    <resultMap id="BuildingVOMap" type="com.asset.base.model.vo.BuildingVO">
+        <id     column="id"             property="id"/>
+        <result column="project_id"     property="projectId"/>
+        <result column="project_name"   property="projectName"/>
+        <result column="building_code"  property="buildingCode"/>
+        <result column="building_name"  property="buildingName"/>
+        <result column="status"         property="status"/>
+        <result column="building_area"  property="buildingArea"/>
+        <result column="operating_area" property="operatingArea"/>
+        <result column="above_floors"   property="aboveFloors"/>
+        <result column="below_floors"   property="belowFloors"/>
+        <result column="image_url"      property="imageUrl"/>
+        <result column="created_at"     property="createdAt"/>
+        <result column="updated_at"     property="updatedAt"/>
+    </resultMap>
+
+    <!--
+        分页查询：LEFT JOIN biz_project 获取项目名称
+        自定义 SQL 需手动过滤 is_deleted = 0
+    -->
+    <select id="selectPageWithCond" resultMap="BuildingVOMap">
+        SELECT
+            b.id,
+            b.project_id,
+            p.project_name,
+            b.building_code,
+            b.building_name,
+            b.status,
+            b.building_area,
+            b.operating_area,
+            b.above_floors,
+            b.below_floors,
+            b.image_url,
+            b.created_at,
+            b.updated_at
+        FROM biz_building b
+        LEFT JOIN biz_project p ON b.project_id = p.id
+        WHERE b.is_deleted = 0
+        <if test="q.projectId != null">
+            AND b.project_id = #{q.projectId}
+        </if>
+        <if test="q.buildingName != null and q.buildingName != ''">
+            AND b.building_name LIKE CONCAT('%', #{q.buildingName}, '%')
+        </if>
+        <if test="q.buildingCode != null and q.buildingCode != ''">
+            AND b.building_code LIKE CONCAT('%', #{q.buildingCode}, '%')
+        </if>
+        <if test="q.status != null">
+            AND b.status = #{q.status}
+        </if>
+        ORDER BY b.created_at DESC
+    </select>
+
+</mapper>
