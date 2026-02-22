@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.asset.base.mapper.BizMerchantMapper">
+
+    <!-- 商家列表 VO ResultMap（JOIN 项目名称） -->
+    <resultMap id="MerchantVOMap" type="com.asset.base.model.vo.MerchantVO">
+        <id     column="id"               property="id"/>
+        <result column="project_id"       property="projectId"/>
+        <result column="project_name"     property="projectName"/>
+        <result column="merchant_code"    property="merchantCode"/>
+        <result column="merchant_name"    property="merchantName"/>
+        <result column="merchant_attr"    property="merchantAttr"/>
+        <result column="merchant_nature"  property="merchantNature"/>
+        <result column="format_type"      property="formatType"/>
+        <result column="natural_person"   property="naturalPerson"/>
+        <result column="id_card"          property="idCard"/>
+        <result column="address"          property="address"/>
+        <result column="phone"            property="phone"/>
+        <result column="merchant_level"   property="merchantLevel"/>
+        <result column="audit_status"     property="auditStatus"/>
+        <result column="created_at"       property="createdAt"/>
+        <result column="updated_at"       property="updatedAt"/>
+    </resultMap>
+
+    <select id="selectPageWithCond" resultMap="MerchantVOMap">
+        SELECT
+            m.id,
+            m.project_id,
+            p.project_name,
+            m.merchant_code,
+            m.merchant_name,
+            m.merchant_attr,
+            m.merchant_nature,
+            m.format_type,
+            m.natural_person,
+            m.id_card,
+            m.address,
+            m.phone,
+            m.merchant_level,
+            m.audit_status,
+            m.created_at,
+            m.updated_at
+        FROM biz_merchant m
+        LEFT JOIN biz_project p ON m.project_id = p.id
+        WHERE m.is_deleted = 0
+        <if test="q.projectId != null">
+            AND m.project_id = #{q.projectId}
+        </if>
+        <if test="q.merchantName != null and q.merchantName != ''">
+            AND m.merchant_name LIKE CONCAT('%', #{q.merchantName}, '%')
+        </if>
+        <if test="q.merchantAttr != null">
+            AND m.merchant_attr = #{q.merchantAttr}
+        </if>
+        <if test="q.merchantNature != null">
+            AND m.merchant_nature = #{q.merchantNature}
+        </if>
+        <if test="q.formatType != null and q.formatType != ''">
+            AND m.format_type LIKE CONCAT('%', #{q.formatType}, '%')
+        </if>
+        <if test="q.merchantLevel != null">
+            AND m.merchant_level = #{q.merchantLevel}
+        </if>
+        <if test="q.auditStatus != null">
+            AND m.audit_status = #{q.auditStatus}
+        </if>
+        ORDER BY m.created_at DESC
+    </select>
+
+</mapper>

@@ -1,11 +1,13 @@
 package com.asset.base.controller;
 
+import com.asset.base.entity.BizProject;
 import com.asset.base.model.dto.ProjectQuery;
 import com.asset.base.model.dto.ProjectSaveDTO;
 import com.asset.base.model.vo.ProjectVO;
 import com.asset.base.service.BizProjectService;
 import com.asset.common.log.annotation.OperLog;
 import com.asset.common.model.R;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -13,6 +15,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 项目管理 Controller
@@ -42,6 +46,18 @@ public class BizProjectController {
     @OperLog(module = "项目管理", action = "分页查询", type = OperLog.OperType.QUERY)
     public R<IPage<ProjectVO>> page(ProjectQuery query) {
         return R.ok(projectService.pageProject(query));
+    }
+
+    @Operation(summary = "获取项目下拉列表")
+    @GetMapping("/list")
+    public R<List<BizProject>> list() {
+        List<BizProject> list = projectService.list(
+                new LambdaQueryWrapper<BizProject>()
+                        .eq(BizProject::getIsDeleted, 0)
+                        .select(BizProject::getId, BizProject::getProjectName, BizProject::getProjectCode)
+                        .orderByAsc(BizProject::getId)
+        );
+        return R.ok(list);
     }
 
     @Operation(summary = "查询项目详情")

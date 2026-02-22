@@ -56,9 +56,9 @@ export interface ShopSaveDTO {
   buildingArea?: number | null
   operatingArea?: number | null
   shopStatus?: number | null
-  countLeasingRate?: number | null
-  countRentalRate?: number | null
-  countOpeningRate?: number | null
+  countLeasingRate?: number
+  countRentalRate?: number
+  countOpeningRate?: number
   signedFormat?: string
   plannedFormat?: string
   ownerName?: string

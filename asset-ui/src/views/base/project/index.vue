@@ -328,7 +328,7 @@ const OPERATION_STATUS_OPTIONS = [
 ]
 
 function statusTagType(status: number | null) {
-  return { 0: 'info', 1: 'success', 2: 'danger' }[status ?? -1] ?? 'info'
+  return ({ 0: 'info', 1: 'success', 2: 'danger' }[status ?? -1] ?? 'info') as 'success' | 'info' | 'danger'
 }
 
 // ─────────── 列表 ───────────

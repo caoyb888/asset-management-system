@@ -53,6 +53,18 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/base/shop/index.vue'),
         meta: { title: '商铺管理', icon: 'Shop' },
       },
+      {
+        path: 'base/brands',
+        name: 'BaseBrand',
+        component: () => import('@/views/base/brand/index.vue'),
+        meta: { title: '品牌管理', icon: 'Star' },
+      },
+      {
+        path: 'base/merchants',
+        name: 'BaseMerchant',
+        component: () => import('@/views/base/merchant/index.vue'),
+        meta: { title: '商家管理', icon: 'User' },
+      },
     ],
   },
   {

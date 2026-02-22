@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.asset.base.mapper.BizBrandMapper">
+
+    <!-- 品牌列表 VO ResultMap -->
+    <resultMap id="BrandVOMap" type="com.asset.base.model.vo.BrandVO">
+        <id     column="id"                   property="id"/>
+        <result column="brand_code"           property="brandCode"/>
+        <result column="brand_name_cn"        property="brandNameCn"/>
+        <result column="brand_name_en"        property="brandNameEn"/>
+        <result column="format_type"          property="formatType"/>
+        <result column="brand_level"          property="brandLevel"/>
+        <result column="cooperation_type"     property="cooperationType"/>
+        <result column="business_nature"      property="businessNature"/>
+        <result column="chain_type"           property="chainType"/>
+        <result column="project_stage"        property="projectStage"/>
+        <result column="group_name"           property="groupName"/>
+        <result column="hq_address"           property="hqAddress"/>
+        <result column="main_cities"          property="mainCities"/>
+        <result column="website"              property="website"/>
+        <result column="phone"                property="phone"/>
+        <result column="brand_type"           property="brandType"/>
+        <result column="avg_rent"             property="avgRent"/>
+        <result column="min_customer_price"   property="minCustomerPrice"/>
+        <result column="brand_intro"          property="brandIntro"/>
+        <result column="created_at"           property="createdAt"/>
+        <result column="updated_at"           property="updatedAt"/>
+    </resultMap>
+
+    <select id="selectPageWithCond" resultMap="BrandVOMap">
+        SELECT
+            b.id,
+            b.brand_code,
+            b.brand_name_cn,
+            b.brand_name_en,
+            b.format_type,
+            b.brand_level,
+            b.cooperation_type,
+            b.business_nature,
+            b.chain_type,
+            b.project_stage,
+            b.group_name,
+            b.hq_address,
+            b.main_cities,
+            b.website,
+            b.phone,
+            b.brand_type,
+            b.avg_rent,
+            b.min_customer_price,
+            b.brand_intro,
+            b.created_at,
+            b.updated_at
+        FROM biz_brand b
+        WHERE b.is_deleted = 0
+        <if test="q.brandNameCn != null and q.brandNameCn != ''">
+            AND b.brand_name_cn LIKE CONCAT('%', #{q.brandNameCn}, '%')
+        </if>
+        <if test="q.formatType != null and q.formatType != ''">
+            AND b.format_type LIKE CONCAT('%', #{q.formatType}, '%')
+        </if>
+        <if test="q.brandLevel != null">
+            AND b.brand_level = #{q.brandLevel}
+        </if>
+        <if test="q.cooperationType != null">
+            AND b.cooperation_type = #{q.cooperationType}
+        </if>
+        <if test="q.businessNature != null">
+            AND b.business_nature = #{q.businessNature}
+        </if>
+        <if test="q.brandType != null">
+            AND b.brand_type = #{q.brandType}
+        </if>
+        ORDER BY b.created_at DESC
+    </select>
+
+</mapper>

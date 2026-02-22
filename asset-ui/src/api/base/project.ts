@@ -71,6 +71,11 @@ export interface PageResult<T> {
 
 // ─────────────────────────── API ───────────────────────────
 
+/** 获取项目下拉列表（用于下拉选择） */
+export function getProjectList() {
+  return request.get<Array<{ id: number; projectName: string; projectCode: string }>, Array<{ id: number; projectName: string; projectCode: string }>>('/base/projects/list')
+}
+
 /** 分页查询项目列表 */
 export function getProjectPage(params: ProjectQuery) {
   return request.get<PageResult<ProjectVO>, PageResult<ProjectVO>>(

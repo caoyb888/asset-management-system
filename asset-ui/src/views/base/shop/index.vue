@@ -399,7 +399,7 @@ const SHOP_STATUS_OPTIONS = [
 ]
 
 function shopStatusTagType(status: number) {
-  return ({ 0: 'info', 1: 'success', 2: 'warning', 3: 'danger' } as Record<number, string>)[status] ?? 'info'
+  return (({ 0: 'info', 1: 'success', 2: 'warning', 3: 'danger' } as Record<number, string>)[status] ?? 'info') as 'success' | 'warning' | 'info' | 'danger'
 }
 
 // ─────────── 联动下拉选项 ───────────

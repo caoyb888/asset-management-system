@@ -42,6 +42,14 @@
             <el-icon><Shop /></el-icon>
             <template #title>商铺管理</template>
           </el-menu-item>
+          <el-menu-item index="/base/brands">
+            <el-icon><Star /></el-icon>
+            <template #title>品牌管理</template>
+          </el-menu-item>
+          <el-menu-item index="/base/merchants">
+            <el-icon><User /></el-icon>
+            <template #title>商家管理</template>
+          </el-menu-item>
         </el-sub-menu>
       </el-menu>
     </el-aside>
@@ -94,7 +102,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop } from '@element-plus/icons-vue'
+import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop, Star, User } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/modules/user'
 import { useAppStore } from '@/store/modules/app'
 
