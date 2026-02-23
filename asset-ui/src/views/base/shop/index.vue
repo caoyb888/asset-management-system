@@ -83,6 +83,7 @@
     <el-card shadow="never" class="table-card">
       <div class="toolbar">
         <el-button type="primary" :icon="Plus" @click="handleAdd">新增商铺</el-button>
+        <el-button type="success" @click="openMergeDialog">合并商铺</el-button>
       </div>
 
       <el-table v-loading="loading" :data="tableData" border stripe row-key="id" style="width: 100%">
@@ -116,9 +117,11 @@
         <el-table-column prop="signedFormat" label="签约业态" width="120" show-overflow-tooltip />
         <el-table-column prop="ownerName" label="业主名称" width="110" show-overflow-tooltip />
         <el-table-column prop="createdAt" label="创建时间" width="160" align="center" />
-        <el-table-column label="操作" width="150" align="center" fixed="right">
+        <el-table-column label="操作" width="220" align="center" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
+            <el-divider direction="vertical" />
+            <el-button link type="warning" size="small" @click="openSplitDialog(row)">拆分</el-button>
             <el-divider direction="vertical" />
             <el-popconfirm
               title="确认删除该商铺？"
@@ -367,6 +370,69 @@
         </el-button>
       </template>
     </el-dialog>
+    <!-- 拆分商铺 Dialog -->
+    <el-dialog v-model="splitDialogVisible" title="拆分商铺" width="600px" :close-on-click-modal="false" destroy-on-close>
+      <div class="split-source" style="margin-bottom: 12px">
+        <el-descriptions :column="3" border size="small">
+          <el-descriptions-item label="铺位号">{{ splitSourceShop?.shopCode }}</el-descriptions-item>
+          <el-descriptions-item label="计租面积(㎡)">{{ splitSourceShop?.rentArea ?? '-' }}</el-descriptions-item>
+          <el-descriptions-item label="签约业态">{{ splitSourceShop?.signedFormat || '-' }}</el-descriptions-item>
+        </el-descriptions>
+      </div>
+      <div class="split-sub-list">
+        <div v-for="(sub, idx) in splitSubShops" :key="idx" class="split-sub-item">
+          <el-card shadow="never" size="small" style="margin-bottom: 8px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <span style="font-weight:500">子商铺 {{ idx + 1 }}</span>
+              <el-button v-if="splitSubShops.length > 2" link type="danger" size="small" @click="removeSplitSub(idx)">删除</el-button>
+            </div>
+            <el-row :gutter="12">
+              <el-col :span="8">
+                <el-form-item label="铺位号" :required="true">
+                  <el-input v-model="sub.shopCode" placeholder="铺位号" size="small" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="计租面积">
+                  <el-input-number v-model="sub.rentArea" :min="0" :precision="2" size="small" style="width:100%" controls-position="right" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="业态">
+                  <el-input v-model="sub.plannedFormat" placeholder="业态" size="small" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </el-card>
+        </div>
+      </div>
+      <el-button style="width:100%;margin-bottom:8px" @click="addSplitSub">+ 添加子商铺</el-button>
+      <template #footer>
+        <el-button @click="splitDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="splitSaving" @click="handleSplit">确认拆分</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 合并商铺 Dialog -->
+    <el-dialog v-model="mergeDialogVisible" title="合并商铺" width="520px" :close-on-click-modal="false" destroy-on-close>
+      <el-form ref="mergeFormRef" :model="mergeForm" :rules="mergeFormRules" label-width="100px">
+        <el-form-item label="选择商铺" prop="shopIds">
+          <el-select v-model="mergeForm.shopIds" multiple placeholder="请选择要合并的商铺（至少2个）" style="width:100%" filterable>
+            <el-option v-for="shop in tableData" :key="shop.id" :label="`${shop.shopCode}(${shop.buildingName}/${shop.floorName})`" :value="shop.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="合并后铺位号" prop="targetShopCode">
+          <el-input v-model="mergeForm.targetShopCode" placeholder="合并后的铺位号" maxlength="50" />
+        </el-form-item>
+        <el-form-item label="合并后业态">
+          <el-input v-model="mergeForm.targetFormat" placeholder="合并后的业态" maxlength="100" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="mergeDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="mergeSaving" @click="handleMerge">确认合并</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -379,6 +445,8 @@ import {
   createShop,
   updateShop,
   deleteShop,
+  splitShop,
+  mergeShop,
   type ShopVO,
   type ShopQuery,
   type ShopSaveDTO,
@@ -628,6 +696,93 @@ async function handleDelete(id: number) {
   } catch {
     // 错误已由 Axios 拦截器统一处理
   }
+}
+
+// ─────────── 拆分商铺 ───────────
+const splitDialogVisible = ref(false)
+const splitSaving = ref(false)
+const splitSourceShop = ref<ShopVO | null>(null)
+
+interface SplitSubShop {
+  shopCode: string
+  rentArea: number | null
+  plannedFormat: string
+}
+
+const splitSubShops = ref<SplitSubShop[]>([])
+
+function openSplitDialog(row: ShopVO) {
+  splitSourceShop.value = row
+  splitSubShops.value = [
+    { shopCode: '', rentArea: null, plannedFormat: '' },
+    { shopCode: '', rentArea: null, plannedFormat: '' },
+  ]
+  splitDialogVisible.value = true
+}
+
+function addSplitSub() {
+  splitSubShops.value.push({ shopCode: '', rentArea: null, plannedFormat: '' })
+}
+
+function removeSplitSub(idx: number) {
+  splitSubShops.value.splice(idx, 1)
+}
+
+async function handleSplit() {
+  if (!splitSourceShop.value) return
+  if (splitSubShops.value.length < 2) {
+    ElMessage.warning('至少需要拆分成2个子商铺')
+    return
+  }
+  if (splitSubShops.value.some(s => !s.shopCode.trim())) {
+    ElMessage.warning('子商铺铺位号不能为空')
+    return
+  }
+  splitSaving.value = true
+  try {
+    await splitShop({
+      sourceShopId: splitSourceShop.value.id,
+      subShops: splitSubShops.value.map(s => ({
+        shopCode: s.shopCode,
+        rentArea: s.rentArea,
+        plannedFormat: s.plannedFormat || undefined,
+      })),
+    })
+    ElMessage.success('拆分成功')
+    splitDialogVisible.value = false
+    fetchList()
+  } finally { splitSaving.value = false }
+}
+
+// ─────────── 合并商铺 ───────────
+const mergeDialogVisible = ref(false)
+const mergeSaving = ref(false)
+const mergeFormRef = ref<FormInstance>()
+const mergeForm = reactive({ shopIds: [] as number[], targetShopCode: '', targetFormat: '' })
+const mergeFormRules: FormRules = {
+  shopIds:         [{ required: true, type: 'array', min: 2, message: '至少选择2个商铺', trigger: 'change' }],
+  targetShopCode:  [{ required: true, message: '合并后铺位号不能为空', trigger: 'blur' }],
+}
+
+function openMergeDialog() {
+  Object.assign(mergeForm, { shopIds: [], targetShopCode: '', targetFormat: '' })
+  mergeDialogVisible.value = true
+}
+
+async function handleMerge() {
+  const valid = await mergeFormRef.value?.validate().catch(() => false)
+  if (!valid) return
+  mergeSaving.value = true
+  try {
+    await mergeShop({
+      shopIds: mergeForm.shopIds,
+      targetShopCode: mergeForm.targetShopCode,
+      targetFormat: mergeForm.targetFormat || undefined,
+    })
+    ElMessage.success('合并成功')
+    mergeDialogVisible.value = false
+    fetchList()
+  } finally { mergeSaving.value = false }
 }
 </script>
 

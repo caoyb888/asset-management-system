@@ -1,7 +1,9 @@
 package com.asset.base.controller;
 
+import com.asset.base.model.dto.ShopMergeDTO;
 import com.asset.base.model.dto.ShopQuery;
 import com.asset.base.model.dto.ShopSaveDTO;
+import com.asset.base.model.dto.ShopSplitDTO;
 import com.asset.base.model.vo.ShopVO;
 import com.asset.base.service.BizShopService;
 import com.asset.common.log.annotation.OperLog;
@@ -71,6 +73,22 @@ public class BizShopController {
     public R<Void> delete(
             @Parameter(description = "商铺ID") @PathVariable Long id) {
         shopService.deleteShop(id);
+        return R.ok(null);
+    }
+
+    @Operation(summary = "拆分商铺")
+    @PostMapping("/split")
+    @OperLog(module = "商铺管理", action = "拆分", type = OperLog.OperType.UPDATE)
+    public R<Void> split(@Valid @RequestBody ShopSplitDTO dto) {
+        shopService.splitShop(dto);
+        return R.ok(null);
+    }
+
+    @Operation(summary = "合并商铺")
+    @PostMapping("/merge")
+    @OperLog(module = "商铺管理", action = "合并", type = OperLog.OperType.UPDATE)
+    public R<Void> merge(@Valid @RequestBody ShopMergeDTO dto) {
+        shopService.mergeShop(dto);
         return R.ok(null);
     }
 }

@@ -9,11 +9,13 @@ spring:
       min-idle: 5
       max-active: 20
 
+  flyway:
+    enabled: false
+
   data:
     redis:
       host: ${REDIS_HOST:127.0.0.1}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASS:}
       database: 0
 
 logging:

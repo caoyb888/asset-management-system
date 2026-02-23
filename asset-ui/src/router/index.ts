@@ -65,6 +65,18 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/base/merchant/index.vue'),
         meta: { title: '商家管理', icon: 'User' },
       },
+      {
+        path: 'base/notices',
+        name: 'BaseNotice',
+        component: () => import('@/views/base/notice/index.vue'),
+        meta: { title: '通知公告', icon: 'Bell' },
+      },
+      {
+        path: 'base/news',
+        name: 'BaseNews',
+        component: () => import('@/views/base/news/index.vue'),
+        meta: { title: '新闻资讯', icon: 'Document' },
+      },
     ],
   },
   {

@@ -103,3 +103,78 @@ export function updateProject(id: number, data: ProjectSaveDTO) {
 export function deleteProject(id: number) {
   return request.delete<void, void>(`/base/projects/${id}`)
 }
+
+// ─────────────────────────── 合同甲方 ───────────────────────────
+
+export interface ProjectContractVO {
+  id?: number
+  partyAName?: string
+  partyAAbbr?: string
+  partyAAddress?: string
+  partyAPhone?: string
+  businessLicense?: string
+  legalRepresentative?: string
+  email?: string
+}
+
+export function getProjectContract(id: number) {
+  return request.get<ProjectContractVO, ProjectContractVO>(`/base/projects/${id}/contracts`)
+}
+
+export function saveProjectContract(id: number, data: ProjectContractVO) {
+  return request.put<void, void>(`/base/projects/${id}/contracts`, data)
+}
+
+// ─────────────────────────── 财务联系人 ───────────────────────────
+
+export interface ProjectFinanceContactVO {
+  id: number
+  contactName: string
+  phone?: string
+  email?: string
+  creditCode?: string
+  sealType?: string
+  sealDesc?: string
+}
+
+export function getProjectFinanceContacts(id: number) {
+  return request.get<ProjectFinanceContactVO[], ProjectFinanceContactVO[]>(`/base/projects/${id}/finance-contacts`)
+}
+
+export function addProjectFinanceContact(id: number, data: Omit<ProjectFinanceContactVO, 'id'>) {
+  return request.post<number, number>(`/base/projects/${id}/finance-contacts`, data)
+}
+
+export function updateProjectFinanceContact(id: number, cid: number, data: Omit<ProjectFinanceContactVO, 'id'>) {
+  return request.put<void, void>(`/base/projects/${id}/finance-contacts/${cid}`, data)
+}
+
+export function deleteProjectFinanceContact(id: number, cid: number) {
+  return request.delete<void, void>(`/base/projects/${id}/finance-contacts/${cid}`)
+}
+
+// ─────────────────────────── 银行账号 ───────────────────────────
+
+export interface ProjectBankVO {
+  id: number
+  bankName: string
+  bankAccount: string
+  accountName: string
+  isDefault: number
+}
+
+export function getProjectBanks(id: number) {
+  return request.get<ProjectBankVO[], ProjectBankVO[]>(`/base/projects/${id}/banks`)
+}
+
+export function addProjectBank(id: number, data: Omit<ProjectBankVO, 'id'>) {
+  return request.post<number, number>(`/base/projects/${id}/banks`, data)
+}
+
+export function updateProjectBank(id: number, bid: number, data: Omit<ProjectBankVO, 'id'>) {
+  return request.put<void, void>(`/base/projects/${id}/banks/${bid}`, data)
+}
+
+export function deleteProjectBank(id: number, bid: number) {
+  return request.delete<void, void>(`/base/projects/${id}/banks/${bid}`)
+}

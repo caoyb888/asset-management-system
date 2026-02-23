@@ -105,3 +105,47 @@ export function updateBrand(id: number, data: BrandSaveDTO) {
 export function deleteBrand(id: number) {
   return request.delete<void, void>(`/base/brands/${id}`)
 }
+
+// ─────────────────────────── 品牌联系人 ───────────────────────────
+
+export interface BrandContactDTO {
+  contactName: string
+  phone?: string
+  email?: string
+  position?: string
+  isPrimary?: number
+}
+
+/** 查询品牌联系人列表 */
+export function getBrandContacts(brandId: number) {
+  return request.get<BrandContactVO[], BrandContactVO[]>(`/base/brands/${brandId}/contacts`)
+}
+
+/** 新增品牌联系人 */
+export function addBrandContact(brandId: number, data: BrandContactDTO) {
+  return request.post<number, number>(`/base/brands/${brandId}/contacts`, data)
+}
+
+/** 编辑品牌联系人 */
+export function updateBrandContact(brandId: number, cid: number, data: BrandContactDTO) {
+  return request.put<void, void>(`/base/brands/${brandId}/contacts/${cid}`, data)
+}
+
+/** 删除品牌联系人 */
+export function deleteBrandContact(brandId: number, cid: number) {
+  return request.delete<void, void>(`/base/brands/${brandId}/contacts/${cid}`)
+}
+
+// ─────────────────────────── Excel 导入 ───────────────────────────
+
+/** 批量导入品牌（Excel） */
+export function importBrands(file: File) {
+  const fd = new FormData()
+  fd.append('file', file)
+  return request.post<{ successCount: number; failCount: number; errors: string[] }, any>('/base/brands/import', fd)
+}
+
+/** 下载品牌导入模板 */
+export function downloadBrandTemplate() {
+  return request.get('/base/brands/template', { responseType: 'blob' })
+}

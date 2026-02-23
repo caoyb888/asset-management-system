@@ -95,3 +95,37 @@ export function updateShop(id: number, data: ShopSaveDTO) {
 export function deleteShop(id: number) {
   return request.delete<void, void>(`/base/shops/${id}`)
 }
+
+// ─────────────────────────── 拆分/合并 ───────────────────────────
+
+export interface ShopSplitDTO {
+  /** 原商铺ID */
+  sourceShopId: number
+  /** 拆分后的子商铺列表 */
+  subShops: Array<{
+    shopCode: string
+    rentArea?: number | null
+    buildingArea?: number | null
+    operatingArea?: number | null
+    plannedFormat?: string
+  }>
+}
+
+export interface ShopMergeDTO {
+  /** 待合并的商铺ID列表（至少2个） */
+  shopIds: number[]
+  /** 合并后的目标商铺编号 */
+  targetShopCode: string
+  /** 合并后的业态 */
+  targetFormat?: string
+}
+
+/** 拆分商铺 */
+export function splitShop(data: ShopSplitDTO) {
+  return request.post<void, void>('/base/shops/split', data)
+}
+
+/** 合并商铺 */
+export function mergeShop(data: ShopMergeDTO) {
+  return request.post<void, void>('/base/shops/merge', data)
+}

@@ -1,9 +1,10 @@
 package com.asset.base.model.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 /**
- * 商家联系人 DTO（嵌入 MerchantSaveDTO）
+ * 商家联系人 DTO（嵌入 MerchantSaveDTO 或独立 CRUD 使用）
  */
 @Data
 public class MerchantContactDTO {
@@ -11,7 +12,8 @@ public class MerchantContactDTO {
     /** 联系人ID（编辑时传入，新增时为空） */
     private Long id;
 
-    /** 联系人姓名 */
+    /** 联系人姓名（必填） */
+    @NotBlank(message = "联系人姓名不能为空")
     private String contactName;
 
     /** 电话 */

@@ -483,7 +483,7 @@ CREATE TABLE IF NOT EXISTS biz_notice (
     status         TINYINT DEFAULT 0          COMMENT '状态: 0草稿 1已发布 2下架',
     scheduled_time DATETIME                   COMMENT '定时发送时间',
     publish_time   DATETIME                   COMMENT '实际发布时间',
-    create_by      BIGINT UNSIGNED            COMMENT '创建人ID',
+    created_by     BIGINT UNSIGNED            COMMENT '创建人ID',
     is_deleted     TINYINT DEFAULT 0          COMMENT '逻辑删除',
     created_at     DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_by     BIGINT UNSIGNED            COMMENT '更新人ID',
@@ -492,7 +492,7 @@ CREATE TABLE IF NOT EXISTS biz_notice (
     INDEX idx_notice_type    (notice_type),
     INDEX idx_status         (status),
     INDEX idx_scheduled_time (scheduled_time),
-    INDEX idx_create_by      (create_by),
+    INDEX idx_created_by     (created_by),
     INDEX idx_is_deleted     (is_deleted)
     -- 注: 超过5000条后建议改用 Elasticsearch 全文搜索
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='通知公告表';
@@ -520,7 +520,7 @@ CREATE TABLE IF NOT EXISTS biz_news (
     category     TINYINT                 COMMENT '分类: 1新闻 2政策 3招商 4服务指南',
     status       TINYINT DEFAULT 0       COMMENT '状态: 0草稿 1上架 2下架',
     publish_time DATETIME                COMMENT '发布时间',
-    create_by    BIGINT UNSIGNED         COMMENT '创建人ID',
+    created_by   BIGINT UNSIGNED         COMMENT '创建人ID',
     is_deleted   TINYINT DEFAULT 0       COMMENT '逻辑删除',
     created_at   DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_by   BIGINT UNSIGNED         COMMENT '更新人ID',
@@ -529,7 +529,7 @@ CREATE TABLE IF NOT EXISTS biz_news (
     INDEX idx_category     (category),
     INDEX idx_status       (status),
     INDEX idx_publish_time (publish_time),
-    INDEX idx_create_by    (create_by),
+    INDEX idx_created_by   (created_by),
     INDEX idx_is_deleted   (is_deleted)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='新闻资讯表';
 

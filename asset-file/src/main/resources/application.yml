@@ -6,6 +6,10 @@ spring:
     name: asset-file
   profiles:
     active: dev
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
   cloud:
     nacos:
       discovery:
@@ -26,3 +30,9 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+# 文件上传配置
+asset:
+  file:
+    upload-dir: /opt/asset-uploads
+    access-url-prefix: /file

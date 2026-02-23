@@ -2,7 +2,11 @@ package com.asset.base.service.impl;
 
 import com.asset.base.converter.BuildingConverter;
 import com.asset.base.entity.BizBuilding;
+import com.asset.base.entity.BizFloor;
+import com.asset.base.entity.BizShop;
 import com.asset.base.mapper.BizBuildingMapper;
+import com.asset.base.mapper.BizFloorMapper;
+import com.asset.base.mapper.BizShopMapper;
 import com.asset.base.model.dto.BuildingQuery;
 import com.asset.base.model.dto.BuildingSaveDTO;
 import com.asset.base.model.vo.BuildingVO;
@@ -13,6 +17,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +33,12 @@ public class BizBuildingServiceImpl
         implements BizBuildingService {
 
     private final BuildingConverter converter;
+
+    @Autowired
+    private BizFloorMapper floorMapper;
+
+    @Autowired
+    private BizShopMapper shopMapper;
 
     private static final Map<Integer, String> STATUS_MAP = Map.of(
             0, "停用", 1, "启用");
@@ -99,6 +110,23 @@ public class BizBuildingServiceImpl
         if (existing == null || existing.getIsDeleted() == 1) {
             throw new BizException("楼栋不存在或已删除");
         }
+
+        // 检查是否有关联楼层
+        long floorCount = floorMapper.selectCount(new LambdaQueryWrapper<BizFloor>()
+                .eq(BizFloor::getBuildingId, id)
+                .eq(BizFloor::getIsDeleted, 0));
+        if (floorCount > 0) {
+            throw new BizException("该楼栋下存在 " + floorCount + " 个楼层，无法删除");
+        }
+
+        // 检查是否有关联商铺
+        long shopCount = shopMapper.selectCount(new LambdaQueryWrapper<BizShop>()
+                .eq(BizShop::getBuildingId, id)
+                .eq(BizShop::getIsDeleted, 0));
+        if (shopCount > 0) {
+            throw new BizException("该楼栋下存在 " + shopCount + " 个商铺，无法删除");
+        }
+
         removeById(id);
     }
 

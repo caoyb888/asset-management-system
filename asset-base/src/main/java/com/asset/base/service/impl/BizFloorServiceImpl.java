@@ -2,7 +2,9 @@ package com.asset.base.service.impl;
 
 import com.asset.base.converter.FloorConverter;
 import com.asset.base.entity.BizFloor;
+import com.asset.base.entity.BizShop;
 import com.asset.base.mapper.BizFloorMapper;
+import com.asset.base.mapper.BizShopMapper;
 import com.asset.base.model.dto.FloorQuery;
 import com.asset.base.model.dto.FloorSaveDTO;
 import com.asset.base.model.vo.FloorVO;
@@ -13,6 +15,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +31,9 @@ public class BizFloorServiceImpl
         implements BizFloorService {
 
     private final FloorConverter converter;
+
+    @Autowired
+    private BizShopMapper shopMapper;
 
     private static final Map<Integer, String> STATUS_MAP = Map.of(
             0, "停用", 1, "启用");
@@ -98,6 +104,15 @@ public class BizFloorServiceImpl
         if (existing == null || existing.getIsDeleted() == 1) {
             throw new BizException("楼层不存在或已删除");
         }
+
+        // 检查是否有关联商铺
+        long shopCount = shopMapper.selectCount(new LambdaQueryWrapper<BizShop>()
+                .eq(BizShop::getFloorId, id)
+                .eq(BizShop::getIsDeleted, 0));
+        if (shopCount > 0) {
+            throw new BizException("该楼层下存在 " + shopCount + " 个商铺，无法删除");
+        }
+
         removeById(id);
     }
 

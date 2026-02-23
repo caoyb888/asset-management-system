@@ -15,4 +15,6 @@ public class MerchantContactVO {
     private String email;
     private String position;
     private Integer isPrimary;
+    /** 是否主要联系人描述（Service 层填充：0→"否" 1→"是"） */
+    private String isPrimaryDesc;
 }

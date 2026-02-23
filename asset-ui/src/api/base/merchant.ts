@@ -117,3 +117,141 @@ export function updateMerchant(id: number, data: MerchantSaveDTO) {
 export function deleteMerchant(id: number) {
   return request.delete<void, void>(`/base/merchants/${id}`)
 }
+
+// ─────────────────────────── 子资源类型定义 ───────────────────────────
+
+export interface MerchantCreditVO {
+  id: number
+  merchantId: number
+  recordType: number
+  recordTypeName: string
+  content: string
+  recordDate: string
+  attachmentUrl?: string
+  createdAt: string
+}
+
+export interface AttachmentVO {
+  id: number
+  merchantId: number
+  fileName: string
+  fileUrl: string
+  fileType?: string
+  fileSize?: number
+  uploadBy?: number
+  createdAt: string
+}
+
+// ─────────────────────────── 商家联系人 ───────────────────────────
+
+export interface MerchantContactDTO {
+  contactName: string
+  phone?: string
+  email?: string
+  position?: string
+  isPrimary?: number
+}
+
+export function getMerchantContacts(id: number) {
+  return request.get<MerchantContactVO[], MerchantContactVO[]>(`/base/merchants/${id}/contacts`)
+}
+
+export function addMerchantContact(id: number, data: MerchantContactDTO) {
+  return request.post<number, number>(`/base/merchants/${id}/contacts`, data)
+}
+
+export function updateMerchantContact(id: number, cid: number, data: MerchantContactDTO) {
+  return request.put<void, void>(`/base/merchants/${id}/contacts/${cid}`, data)
+}
+
+export function deleteMerchantContact(id: number, cid: number) {
+  return request.delete<void, void>(`/base/merchants/${id}/contacts/${cid}`)
+}
+
+// ─────────────────────────── 商家诚信记录 ───────────────────────────
+
+export interface CreditSaveDTO {
+  recordType: number
+  content: string
+  recordDate: string
+  attachmentUrl?: string
+}
+
+export function getMerchantCredits(id: number) {
+  return request.get<MerchantCreditVO[], MerchantCreditVO[]>(`/base/merchants/${id}/credits`)
+}
+
+export function addMerchantCredit(id: number, data: CreditSaveDTO) {
+  return request.post<number, number>(`/base/merchants/${id}/credits`, data)
+}
+
+export function deleteMerchantCredit(id: number, rid: number) {
+  return request.delete<void, void>(`/base/merchants/${id}/credits/${rid}`)
+}
+
+// ─────────────────────────── 商家开票信息 ───────────────────────────
+
+export interface InvoiceSaveDTO {
+  invoiceTitle: string
+  taxNumber?: string
+  bankName?: string
+  bankAccount?: string
+  address?: string
+  phone?: string
+  isDefault?: number
+}
+
+export function getMerchantInvoices(id: number) {
+  return request.get<MerchantInvoiceVO[], MerchantInvoiceVO[]>(`/base/merchants/${id}/invoices`)
+}
+
+export function addMerchantInvoice(id: number, data: InvoiceSaveDTO) {
+  return request.post<number, number>(`/base/merchants/${id}/invoices`, data)
+}
+
+export function updateMerchantInvoice(id: number, iid: number, data: InvoiceSaveDTO) {
+  return request.put<void, void>(`/base/merchants/${id}/invoices/${iid}`, data)
+}
+
+export function deleteMerchantInvoice(id: number, iid: number) {
+  return request.delete<void, void>(`/base/merchants/${id}/invoices/${iid}`)
+}
+
+// ─────────────────────────── 商家附件 ───────────────────────────
+
+export interface AttachmentSaveDTO {
+  fileName: string
+  fileUrl: string
+  fileType?: string
+  fileSize?: number
+}
+
+export function getMerchantAttachments(id: number) {
+  return request.get<AttachmentVO[], AttachmentVO[]>(`/base/merchants/${id}/attachments`)
+}
+
+export function addMerchantAttachment(id: number, data: AttachmentSaveDTO) {
+  return request.post<number, number>(`/base/merchants/${id}/attachments`, data)
+}
+
+export function deleteMerchantAttachment(id: number, aid: number) {
+  return request.delete<void, void>(`/base/merchants/${id}/attachments/${aid}`)
+}
+
+/** 商家审核 */
+export function auditMerchant(id: number, auditStatus: number) {
+  return request.put<void, void>(`/base/merchants/${id}/audit`, { auditStatus })
+}
+
+// ─────────────────────────── Excel 导入 ───────────────────────────
+
+export function importMerchants(file: File, projectId: number) {
+  const fd = new FormData()
+  fd.append('file', file)
+  fd.append('projectId', String(projectId))
+  return request.post<any, any>('/base/merchants/import', fd)
+}
+
+export function downloadMerchantTemplate() {
+  return request.get('/base/merchants/template', { responseType: 'blob' })
+}

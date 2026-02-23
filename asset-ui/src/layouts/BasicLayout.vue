@@ -50,6 +50,14 @@
             <el-icon><User /></el-icon>
             <template #title>商家管理</template>
           </el-menu-item>
+          <el-menu-item index="/base/notices">
+            <el-icon><Bell /></el-icon>
+            <template #title>通知公告</template>
+          </el-menu-item>
+          <el-menu-item index="/base/news">
+            <el-icon><Document /></el-icon>
+            <template #title>新闻资讯</template>
+          </el-menu-item>
         </el-sub-menu>
       </el-menu>
     </el-aside>
@@ -102,7 +110,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop, Star, User } from '@element-plus/icons-vue'
+import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop, Star, User, Bell, Document } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/modules/user'
 import { useAppStore } from '@/store/modules/app'
 
