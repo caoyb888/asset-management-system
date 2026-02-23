@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.asset.investment.contract.mapper.InvLeaseContractMapper">
+
+    <!-- 合同完整VO结果映射 -->
+    <resultMap id="ContractDetailMap" type="map">
+        <id column="id" property="id"/>
+        <result column="contract_code" property="contractCode"/>
+        <result column="contract_name" property="contractName"/>
+        <result column="project_id" property="projectId"/>
+        <result column="project_name" property="projectName"/>
+        <result column="merchant_id" property="merchantId"/>
+        <result column="merchant_name" property="merchantName"/>
+        <result column="status" property="status"/>
+        <result column="contract_start" property="contractStart"/>
+        <result column="contract_end" property="contractEnd"/>
+        <result column="total_amount" property="totalAmount"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <!--
+        合同到期预警查询（利用 idx_contract_end 索引，第五阶段实现）
+        SELECT * FROM inv_lease_contract
+        WHERE contract_end BETWEEN ? AND ?
+          AND status = 2
+          AND is_current = 1
+          AND is_deleted = 0
+        ORDER BY contract_end ASC
+    -->
+    <!-- TODO: 第五阶段补充联表查询和到期预警查询 -->
+
+</mapper>

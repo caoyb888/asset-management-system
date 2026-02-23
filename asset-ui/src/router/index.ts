@@ -77,6 +77,86 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/base/news/index.vue'),
         meta: { title: '新闻资讯', icon: 'Document' },
       },
+      // ── 招商配置 ──
+      {
+        path: 'inv/config/rent-schemes',
+        name: 'InvCfgRentScheme',
+        component: () => import('@/views/inv/config/rent-scheme/index.vue'),
+        meta: { title: '计租方案管理', icon: 'Setting' },
+      },
+      {
+        path: 'inv/config/fee-items',
+        name: 'InvCfgFeeItem',
+        component: () => import('@/views/inv/config/fee-item/index.vue'),
+        meta: { title: '收款项目管理', icon: 'Coin' },
+      },
+      // ── 招商管理 ──
+      {
+        path: 'inv/intentions',
+        name: 'InvIntention',
+        component: () => import('@/views/inv/intention/index.vue'),
+        meta: { title: '意向协议', icon: 'DocumentAdd' },
+      },
+      {
+        path: 'inv/intentions/form',
+        name: 'InvIntentionForm',
+        component: () => import('@/views/inv/intention/form.vue'),
+        meta: { title: '意向协议 - 新增/编辑', icon: 'DocumentAdd' },
+      },
+      {
+        path: 'inv/contracts',
+        name: 'InvContract',
+        component: () => import('@/views/inv/contract/index.vue'),
+        meta: { title: '招商合同', icon: 'Document' },
+      },
+      {
+        path: 'inv/contracts/form',
+        name: 'InvContractForm',
+        component: () => import('@/views/inv/contract/form.vue'),
+        meta: { title: '合同 - 新增/编辑', icon: 'Document' },
+      },
+      {
+        path: 'inv/contracts/from-intention',
+        name: 'InvContractFromIntention',
+        component: () => import('@/views/inv/contract/from-intention.vue'),
+        meta: { title: '意向转合同', icon: 'Document' },
+      },
+      {
+        path: 'inv/opening-approvals',
+        name: 'InvOpeningApproval',
+        component: () => import('@/views/inv/opening-approval/index.vue'),
+        meta: { title: '开业审批', icon: 'Stamp' },
+      },
+      {
+        path: 'inv/opening-approvals/form',
+        name: 'InvOpeningApprovalForm',
+        component: () => import('@/views/inv/opening-approval/form.vue'),
+        meta: { title: '开业审批 - 新增', icon: 'Stamp' },
+      },
+      {
+        path: 'inv/rent-policies',
+        name: 'InvRentPolicy',
+        component: () => import('@/views/inv/rent-policy/index.vue'),
+        meta: { title: '租决政策', icon: 'PriceTag' },
+      },
+      {
+        path: 'inv/rent-policies/form',
+        name: 'InvRentPolicyForm',
+        component: () => import('@/views/inv/rent-policy/form.vue'),
+        meta: { title: '租决政策 - 新增/编辑', icon: 'PriceTag' },
+      },
+      {
+        path: 'inv/rent-decomps',
+        name: 'InvRentDecomp',
+        component: () => import('@/views/inv/rent-decomp/index.vue'),
+        meta: { title: '租金分解', icon: 'DataLine' },
+      },
+      {
+        path: 'inv/rent-decomps/form',
+        name: 'InvRentDecompForm',
+        component: () => import('@/views/inv/rent-decomp/form.vue'),
+        meta: { title: '租金分解 - 新增/编辑', icon: 'DataLine' },
+      },
     ],
   },
   {
