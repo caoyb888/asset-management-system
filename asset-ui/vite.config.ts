@@ -20,6 +20,13 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 3100,
     proxy: {
+      // /api/inv/* → asset-investment (8002) - 必须在 /api 规则之前
+      '/api/inv': {
+        target: 'http://localhost:8002',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+      // /api/* → asset-base (8001)
       '/api': {
         target: 'http://localhost:8001',
         changeOrigin: true,

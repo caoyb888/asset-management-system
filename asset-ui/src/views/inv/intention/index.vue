@@ -10,8 +10,8 @@
 
       <!-- 搜索栏 -->
       <el-form :model="query" inline class="search-form">
-        <el-form-item label="项目">
-          <el-input v-model="query.projectName" placeholder="项目名称" clearable />
+        <el-form-item label="关键词">
+          <el-input v-model="query.keyword" placeholder="意向名称/编号" clearable />
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="query.status" placeholder="全部" clearable style="width: 120px">
@@ -56,8 +56,8 @@
 
       <!-- 分页 -->
       <el-pagination
-        v-model:current-page="query.page"
-        v-model:page-size="query.size"
+        v-model:current-page="query.pageNum"
+        v-model:page-size="query.pageSize"
         :total="total"
         :page-sizes="[10, 20, 50]"
         layout="total, sizes, prev, pager, next"
@@ -81,9 +81,9 @@ const list = ref<IntentionVO[]>([])
 const total = ref(0)
 
 const query = reactive({
-  page: 1,
-  size: 10,
-  projectName: '',
+  pageNum: 1,
+  pageSize: 10,
+  keyword: '',
   status: undefined as number | undefined,
 })
 
@@ -111,8 +111,8 @@ async function fetchList() {
 }
 
 function handleReset() {
-  query.page = 1
-  query.projectName = ''
+  query.pageNum = 1
+  query.keyword = ''
   query.status = undefined
   fetchList()
 }

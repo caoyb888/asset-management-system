@@ -13,11 +13,8 @@
 
       <!-- 搜索栏 -->
       <el-form :model="query" inline class="search-form">
-        <el-form-item label="合同编号">
-          <el-input v-model="query.contractCode" placeholder="合同编号" clearable />
-        </el-form-item>
-        <el-form-item label="商家">
-          <el-input v-model="query.merchantName" placeholder="商家名称" clearable />
+        <el-form-item label="关键词">
+          <el-input v-model="query.keyword" placeholder="合同编号/名称" clearable />
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="query.status" placeholder="全部" clearable style="width: 120px">
@@ -53,17 +50,18 @@
             <el-tag :type="statusTagType(row.status)">{{ statusLabel(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right">
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
             <el-button link type="info" @click="handleDetail(row)">详情</el-button>
+            <el-button v-if="row.status === 0" link type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
 
       <el-pagination
-        v-model:current-page="query.page"
-        v-model:page-size="query.size"
+        v-model:current-page="query.pageNum"
+        v-model:page-size="query.pageSize"
         :total="total"
         :page-sizes="[10, 20, 50]"
         layout="total, sizes, prev, pager, next"
@@ -77,8 +75,9 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, Refresh } from '@element-plus/icons-vue'
-import { getContractPage, type ContractVO } from '@/api/inv/contract'
+import { getContractPage, deleteContract, type ContractVO } from '@/api/inv/contract'
 
 const router = useRouter()
 const loading = ref(false)
@@ -86,8 +85,8 @@ const list = ref<ContractVO[]>([])
 const total = ref(0)
 
 const query = reactive({
-  page: 1, size: 10,
-  contractCode: '', merchantName: '',
+  pageNum: 1, pageSize: 10,
+  keyword: '',
   status: undefined as number | undefined,
 })
 
@@ -121,7 +120,7 @@ async function fetchList() {
 }
 
 function handleReset() {
-  query.page = 1; query.contractCode = ''; query.merchantName = ''; query.status = undefined
+  query.pageNum = 1; query.keyword = ''; query.status = undefined
   fetchList()
 }
 
@@ -131,6 +130,17 @@ function handleEdit(row: ContractVO) {
 
 function handleDetail(row: ContractVO) {
   router.push({ path: '/inv/contracts/form', query: { id: row.id, readonly: '1' } })
+}
+
+async function handleDelete(row: ContractVO) {
+  await ElMessageBox.confirm(`确认删除合同「${row.contractName}」？此操作不可恢复`, '删除确认', { type: 'warning' })
+  try {
+    await deleteContract(row.id)
+    ElMessage.success('删除成功')
+    fetchList()
+  } catch (err: unknown) {
+    ElMessage.error((err as { message?: string })?.message || '删除失败')
+  }
 }
 
 onMounted(fetchList)

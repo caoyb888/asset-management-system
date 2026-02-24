@@ -59,6 +59,30 @@
             <template #title>新闻资讯</template>
           </el-menu-item>
         </el-sub-menu>
+
+        <!-- 招商管理 -->
+        <el-sub-menu index="inv">
+          <template #title>
+            <el-icon><Briefcase /></el-icon>
+            <span>招商管理</span>
+          </template>
+          <el-menu-item index="/inv/config/rent-schemes">
+            <el-icon><Setting /></el-icon>
+            <template #title>计租方案</template>
+          </el-menu-item>
+          <el-menu-item index="/inv/config/fee-items">
+            <el-icon><Coin /></el-icon>
+            <template #title>收款费项</template>
+          </el-menu-item>
+          <el-menu-item index="/inv/intentions">
+            <el-icon><EditPen /></el-icon>
+            <template #title>意向协议</template>
+          </el-menu-item>
+          <el-menu-item index="/inv/contracts">
+            <el-icon><Tickets /></el-icon>
+            <template #title>招商合同</template>
+          </el-menu-item>
+        </el-sub-menu>
       </el-menu>
     </el-aside>
 
@@ -110,7 +134,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop, Star, User, Bell, Document } from '@element-plus/icons-vue'
+import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop, Star, User, Bell, Document, Briefcase, Setting, Coin, EditPen, Tickets } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/modules/user'
 import { useAppStore } from '@/store/modules/app'
 
