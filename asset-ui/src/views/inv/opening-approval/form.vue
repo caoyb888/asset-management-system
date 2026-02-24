@@ -4,63 +4,330 @@
       <template #header>
         <div class="card-header">
           <el-button :icon="ArrowLeft" text @click="router.back()">返回</el-button>
-          <span>{{ isEdit ? '开业审批详情' : '新增开业审批' }}</span>
+          <span>{{ isEdit ? '编辑开业审批' : '新增开业审批' }}</span>
           <div />
         </div>
       </template>
 
-      <el-form :model="form" label-width="120px" class="form-body">
-        <el-form-item label="关联合同" required>
-          <el-select v-model="form.contractId" placeholder="请选择合同" style="width: 300px" filterable>
-            <el-option label="暂无数据" :value="0" disabled />
+      <el-tabs v-model="activeTab">
+
+        <!-- ===== Tab 1: 基本信息 ===== -->
+        <el-tab-pane label="基本信息" name="basic">
+          <el-form ref="formRef" :model="form" label-width="120px" class="form-section">
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="关联合同" prop="contractId"
+                  :rules="[{ required: true, message: '请选择合同', trigger: 'change' }]">
+                  <el-select
+                    v-model="form.contractId"
+                    filterable remote clearable :remote-method="searchContracts"
+                    placeholder="请搜索合同编号" style="width: 100%"
+                    :disabled="isReadonly"
+                  >
+                    <el-option
+                      v-for="c in contractOptions"
+                      :key="c.id"
+                      :label="`${c.contractCode} - ${c.contractName}`"
+                      :value="c.id"
+                    />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="状态">
+                  <el-tag :type="statusTagType(currentStatus)">
+                    {{ statusLabel(currentStatus) }}
+                  </el-tag>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="计划开业日" prop="plannedOpeningDate"
+                  :rules="[{ required: true, message: '请选择计划开业日期', trigger: 'change' }]">
+                  <el-date-picker
+                    v-model="form.plannedOpeningDate" type="date"
+                    value-format="YYYY-MM-DD" style="width: 100%"
+                    :disabled="isReadonly"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="实际开业日">
+                  <el-date-picker
+                    v-model="form.actualOpeningDate" type="date"
+                    value-format="YYYY-MM-DD" style="width: 100%"
+                    :disabled="isReadonly"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="24">
+                <el-form-item label="备注">
+                  <el-input
+                    v-model="form.remark" type="textarea" :rows="3"
+                    placeholder="备注说明" maxlength="500" show-word-limit
+                    :disabled="isReadonly"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </el-form>
+
+          <div class="tab-actions" v-if="!isReadonly">
+            <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
+            <el-button
+              v-if="recordId && (currentStatus === 0 || currentStatus === 3)"
+              type="warning" :loading="submitting" @click="handleSubmit"
+            >提交审批</el-button>
+          </div>
+
+          <div v-if="currentStatus === 1" class="mock-approval">
+            <el-divider>Mock 审批操作（测试用）</el-divider>
+            <el-button type="success" @click="mockApprove(true)">模拟审批通过</el-button>
+            <el-button type="danger" @click="mockApprove(false)">模拟审批驳回</el-button>
+          </div>
+        </el-tab-pane>
+
+        <!-- ===== Tab 2: 审批材料 ===== -->
+        <el-tab-pane label="审批材料" name="attachments">
+          <div v-if="!isReadonly && recordId && currentStatus === 0" class="toolbar">
+            <el-button type="primary" plain size="small" :icon="Plus" @click="showAddAttachment = true">
+              添加材料
+            </el-button>
+          </div>
+
+          <el-table :data="attachments" border stripe>
+            <el-table-column prop="fileName" label="文件名" />
+            <el-table-column prop="fileType" label="类型" width="100" />
+            <el-table-column label="大小" width="120">
+              <template #default="{ row }">
+                {{ row.fileSize ? `${(row.fileSize / 1024).toFixed(1)} KB` : '-' }}
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="140" align="center">
+              <template #default="{ row }">
+                <el-button link type="primary" @click="previewFile(row.fileUrl)">预览</el-button>
+                <el-button
+                  v-if="!isReadonly && currentStatus === 0"
+                  link type="danger" @click="handleDeleteAttachment(row)"
+                >删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          <el-empty v-if="attachments.length === 0" description="暂无审批材料" :image-size="60" />
+        </el-tab-pane>
+
+      </el-tabs>
+    </el-card>
+
+    <!-- 添加附件 Dialog -->
+    <el-dialog v-model="showAddAttachment" title="添加审批材料" width="480px">
+      <el-form :model="attachForm" label-width="80px">
+        <el-form-item label="文件名">
+          <el-input v-model="attachForm.fileName" placeholder="如：营业执照.pdf" />
+        </el-form-item>
+        <el-form-item label="文件地址">
+          <el-input v-model="attachForm.fileUrl" placeholder="请填写文件URL" />
+        </el-form-item>
+        <el-form-item label="文件类型">
+          <el-select v-model="attachForm.fileType" style="width: 100%">
+            <el-option label="PDF" value="pdf" />
+            <el-option label="图片" value="image" />
+            <el-option label="Word" value="doc" />
+            <el-option label="其他" value="other" />
           </el-select>
         </el-form-item>
-        <el-form-item label="计划开业日" required>
-          <el-date-picker v-model="form.plannedOpenDate" type="date" placeholder="选择日期" value-format="YYYY-MM-DD" />
-        </el-form-item>
-        <el-form-item label="审批备注">
-          <el-input v-model="form.remark" type="textarea" :rows="3" placeholder="请输入备注" style="width: 400px" />
-        </el-form-item>
-
-        <el-divider content-position="left">附件上传</el-divider>
-        <el-form-item label="附件">
-          <el-upload drag action="#" :auto-upload="false" multiple>
-            <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-            <div class="el-upload__text">拖拽文件到此处，或 <em>点击上传</em></div>
-            <template #tip>
-              <div class="el-upload__tip">支持 PDF、图片格式，单文件不超过 20MB</div>
-            </template>
-          </el-upload>
-        </el-form-item>
       </el-form>
-
-      <div class="form-actions">
-        <el-button type="primary" @click="handleSubmit">提交审批</el-button>
-        <el-button @click="handleSaveDraft">暂存草稿</el-button>
-        <el-button @click="router.back()">取消</el-button>
-      </div>
-    </el-card>
+      <template #footer>
+        <el-button @click="showAddAttachment = false">取消</el-button>
+        <el-button type="primary" :loading="attachSaving" @click="handleAddAttachment">确认</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { ArrowLeft, UploadFilled } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { ArrowLeft, Plus } from '@element-plus/icons-vue'
+import type { FormInstance } from 'element-plus'
+
+import { getContractPage, type ContractVO } from '@/api/inv/contract'
+import {
+  createOpeningApproval, updateOpeningApproval, getOpeningApprovalDetail,
+  submitOpeningApproval, openingApprovalCallback,
+  getOpeningAttachments, addOpeningAttachment, deleteOpeningAttachment,
+  type OpeningApprovalVO, type OpeningAttachmentVO,
+} from '@/api/inv/openingApproval'
 
 const route = useRoute()
 const router = useRouter()
-const isEdit = computed(() => !!route.query.id)
+const routeId = computed(() => route.query.id ? Number(route.query.id) : null)
+const isEdit = computed(() => !!routeId.value)
+const isReadonly = computed(() => route.query.readonly === '1')
+const activeTab = ref('basic')
 
-const form = ref({ contractId: undefined as number | undefined, plannedOpenDate: '', remark: '' })
+const recordId = ref<number | null>(null)
+const currentStatus = ref(0)
+const saving = ref(false)
+const submitting = ref(false)
+const attachSaving = ref(false)
+const showAddAttachment = ref(false)
 
-function handleSubmit() { ElMessage.success('提交成功'); router.push('/inv/opening-approvals') }
-function handleSaveDraft() { ElMessage.success('已暂存') }
+const formRef = ref<FormInstance>()
+const form = ref({
+  contractId: null as number | null,
+  plannedOpeningDate: '',
+  actualOpeningDate: '',
+  remark: '',
+})
+
+const contractOptions = ref<ContractVO[]>([])
+const attachments = ref<OpeningAttachmentVO[]>([])
+
+const attachForm = reactive({
+  fileName: '',
+  fileUrl: '',
+  fileType: 'pdf',
+})
+
+// ─── 状态映射 ─────────────────────────────────────────────
+type TagType = 'primary' | 'success' | 'warning' | 'danger' | 'info' | undefined
+const STATUS_MAP: Record<number, { label: string; type: TagType }> = {
+  0: { label: '草稿', type: 'info' },
+  1: { label: '审批中', type: 'warning' },
+  2: { label: '已通过', type: 'success' },
+  3: { label: '已驳回', type: 'danger' },
+}
+const statusLabel = (s: number) => STATUS_MAP[s]?.label ?? '-'
+const statusTagType = (s: number) => STATUS_MAP[s]?.type ?? 'info'
+
+// ─── 合同搜索 ─────────────────────────────────────────────
+async function searchContracts(q: string) {
+  const res = await getContractPage({ pageNum: 1, pageSize: 20, keyword: q, status: 2 })
+  contractOptions.value = res.records ?? []
+}
+
+// ─── 保存 ─────────────────────────────────────────────────
+async function handleSave() {
+  const valid = await formRef.value?.validate().then(() => true).catch(() => false)
+  if (!valid) return
+  saving.value = true
+  try {
+    const dto = {
+      contractId: form.value.contractId ?? undefined,
+      plannedOpeningDate: form.value.plannedOpeningDate || undefined,
+      actualOpeningDate: form.value.actualOpeningDate || undefined,
+      remark: form.value.remark || undefined,
+    }
+    if (!recordId.value) {
+      recordId.value = await createOpeningApproval(dto)
+      ElMessage.success('开业审批已创建')
+    } else {
+      await updateOpeningApproval(recordId.value, dto)
+      ElMessage.success('保存成功')
+    }
+  } catch (err: unknown) {
+    ElMessage.error((err as { message?: string })?.message || '保存失败')
+  } finally {
+    saving.value = false
+  }
+}
+
+// ─── 提交审批 ─────────────────────────────────────────────
+async function handleSubmit() {
+  if (!recordId.value) { ElMessage.warning('请先保存'); return }
+  await ElMessageBox.confirm('提交审批后进入审批流程，确认提交？', '提交确认', { type: 'warning' })
+  submitting.value = true
+  try {
+    await submitOpeningApproval(recordId.value)
+    currentStatus.value = 1
+    ElMessage.success('已成功提交审批')
+  } catch (err: unknown) {
+    ElMessage.error((err as { message?: string })?.message || '提交失败')
+  } finally {
+    submitting.value = false
+  }
+}
+
+// ─── Mock 审批 ────────────────────────────────────────────
+async function mockApprove(approved: boolean) {
+  if (!recordId.value) return
+  try {
+    await openingApprovalCallback(recordId.value, approved)
+    currentStatus.value = approved ? 2 : 3
+    ElMessage.success(approved ? '审批通过' : '已驳回')
+  } catch (err: unknown) {
+    ElMessage.error((err as { message?: string })?.message || '操作失败')
+  }
+}
+
+// ─── 附件管理 ─────────────────────────────────────────────
+async function loadAttachments() {
+  if (!recordId.value) return
+  attachments.value = await getOpeningAttachments(recordId.value)
+}
+
+async function handleAddAttachment() {
+  if (!recordId.value) return
+  if (!attachForm.fileName || !attachForm.fileUrl) {
+    ElMessage.warning('请填写文件名和文件地址')
+    return
+  }
+  attachSaving.value = true
+  try {
+    await addOpeningAttachment(recordId.value, { ...attachForm })
+    showAddAttachment.value = false
+    Object.assign(attachForm, { fileName: '', fileUrl: '', fileType: 'pdf' })
+    await loadAttachments()
+    ElMessage.success('添加成功')
+  } catch (err: unknown) {
+    ElMessage.error((err as { message?: string })?.message || '添加失败')
+  } finally {
+    attachSaving.value = false
+  }
+}
+
+async function handleDeleteAttachment(row: OpeningAttachmentVO) {
+  await ElMessageBox.confirm(`确认删除「${row.fileName}」？`, '删除确认', { type: 'warning' })
+  await deleteOpeningAttachment(row.id)
+  await loadAttachments()
+  ElMessage.success('已删除')
+}
+
+function previewFile(url: string) {
+  if (url) window.open(url, '_blank')
+  else ElMessage.warning('文件地址无效')
+}
+
+// ─── 初始化 ───────────────────────────────────────────────
+async function loadData(id: number) {
+  const detail: OpeningApprovalVO = await getOpeningApprovalDetail(id)
+  currentStatus.value = detail.status ?? 0
+  form.value.contractId = detail.contractId ?? null
+  form.value.plannedOpeningDate = detail.plannedOpeningDate
+    ? String(detail.plannedOpeningDate) : ''
+  form.value.actualOpeningDate = detail.actualOpeningDate
+    ? String(detail.actualOpeningDate) : ''
+  form.value.remark = detail.remark ?? ''
+  await loadAttachments()
+}
+
+onMounted(async () => {
+  await searchContracts('')
+  if (isEdit.value && routeId.value) {
+    recordId.value = routeId.value
+    await loadData(routeId.value)
+  }
+})
 </script>
 
 <style scoped>
 .card-header { display: flex; justify-content: space-between; align-items: center; }
-.form-body { max-width: 700px; }
-.form-actions { margin-top: 24px; display: flex; gap: 12px; justify-content: center; }
+.form-section { max-width: 900px; }
+.toolbar { margin-bottom: 10px; }
+.tab-actions {
+  display: flex; align-items: center; gap: 12px;
+  margin-top: 16px; padding-top: 16px; border-top: 1px solid #f0f0f0;
+}
+.mock-approval { margin-top: 20px; text-align: center; }
 </style>

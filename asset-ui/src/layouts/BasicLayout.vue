@@ -82,6 +82,18 @@
             <el-icon><Tickets /></el-icon>
             <template #title>招商合同</template>
           </el-menu-item>
+          <el-menu-item index="/inv/opening-approvals">
+            <el-icon><Checked /></el-icon>
+            <template #title>开业审批</template>
+          </el-menu-item>
+          <el-menu-item index="/inv/rent-policies">
+            <el-icon><DataLine /></el-icon>
+            <template #title>租决政策</template>
+          </el-menu-item>
+          <el-menu-item index="/inv/rent-decomps">
+            <el-icon><PieChart /></el-icon>
+            <template #title>租金分解</template>
+          </el-menu-item>
         </el-sub-menu>
       </el-menu>
     </el-aside>
@@ -134,7 +146,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop, Star, User, Bell, Document, Briefcase, Setting, Coin, EditPen, Tickets } from '@element-plus/icons-vue'
+import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop, Star, User, Bell, Document, Briefcase, Setting, Coin, EditPen, Tickets, Checked, DataLine, PieChart } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/modules/user'
 import { useAppStore } from '@/store/modules/app'
 
