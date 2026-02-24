@@ -22,9 +22,52 @@
     </resultMap>
 
     <!--
-        意向协议分页列表（联表查询，第四阶段任务4.1实现）
-        利用 idx_intention_multi 复合索引加速
+        意向协议多条件分页查询（任务 4.1）
+        主表走 idx_intention_multi(project_id, status, is_deleted, created_at)
+        当存在商铺相关过滤时，LEFT JOIN inv_intention_shop 进行联表过滤
+        注意：DISTINCT 防止一意向多商铺时重复行
     -->
-    <!-- TODO: 第四阶段补充联表查询 selectPageWithCond -->
+    <select id="pageQueryWithCondition"
+            resultType="com.asset.investment.intention.entity.InvIntention">
+        SELECT DISTINCT ii.*
+        FROM inv_intention ii
+        <if test="q.buildingId != null or q.floorId != null or q.shopId != null
+                  or (q.formatType != null and q.formatType != '')">
+            LEFT JOIN inv_intention_shop iis
+                ON iis.intention_id = ii.id
+               AND iis.is_deleted = 0
+        </if>
+        WHERE ii.is_deleted = 0
+          AND ii.is_current = 1
+        <if test="q.projectId != null">
+            AND ii.project_id = #{q.projectId}
+        </if>
+        <if test="q.status != null">
+            AND ii.status = #{q.status}
+        </if>
+        <if test="q.merchantId != null">
+            AND ii.merchant_id = #{q.merchantId}
+        </if>
+        <if test="q.brandId != null">
+            AND ii.brand_id = #{q.brandId}
+        </if>
+        <if test="q.keyword != null and q.keyword != ''">
+            AND (ii.intention_name LIKE CONCAT('%', #{q.keyword}, '%')
+              OR ii.intention_code LIKE CONCAT('%', #{q.keyword}, '%'))
+        </if>
+        <if test="q.buildingId != null">
+            AND iis.building_id = #{q.buildingId}
+        </if>
+        <if test="q.floorId != null">
+            AND iis.floor_id = #{q.floorId}
+        </if>
+        <if test="q.shopId != null">
+            AND iis.shop_id = #{q.shopId}
+        </if>
+        <if test="q.formatType != null and q.formatType != ''">
+            AND iis.format_type = #{q.formatType}
+        </if>
+        ORDER BY ii.created_at DESC
+    </select>
 
 </mapper>
