@@ -2,9 +2,16 @@ package com.asset.investment.intention.controller;
 
 import com.asset.common.model.R;
 import com.asset.investment.intention.dto.ApprovalCallbackDTO;
+import com.asset.investment.intention.dto.IntentionFeeItemDTO;
+import com.asset.investment.intention.dto.IntentionFeeStageItemDTO;
 import com.asset.investment.intention.dto.IntentionQueryDTO;
 import com.asset.investment.intention.dto.IntentionSaveDTO;
+import com.asset.investment.intention.dto.IntentionShopItemDTO;
 import com.asset.investment.intention.entity.InvIntention;
+import com.asset.investment.intention.entity.InvIntentionBilling;
+import com.asset.investment.intention.entity.InvIntentionFee;
+import com.asset.investment.intention.entity.InvIntentionFeeStage;
+import com.asset.investment.intention.entity.InvIntentionShop;
 import com.asset.investment.intention.service.InvIntentionService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,6 +20,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * 意向协议 Controller
@@ -160,5 +170,118 @@ public class InvIntentionController {
                                     @Valid @RequestBody ApprovalCallbackDTO dto) {
         intentionService.handleApprovalCallback(id, dto);
         return R.ok(null);
+    }
+
+    // ----------------------------------------------------------------
+    // 任务 4.2 — 商铺关联
+    // ----------------------------------------------------------------
+
+    /**
+     * 批量保存商铺关联（替换全量，IA-03 Step3）
+     * 仅草稿(0)/驳回(3)状态可操作
+     */
+    @Operation(summary = "批量保存商铺关联（全量替换）")
+    @PostMapping("/{id}/shops")
+    public R<Void> saveShops(@PathVariable Long id,
+                             @RequestBody List<IntentionShopItemDTO> shops) {
+        intentionService.saveShops(id, shops);
+        return R.ok(null);
+    }
+
+    /**
+     * 查询关联商铺列表
+     */
+    @Operation(summary = "查询意向协议关联商铺列表")
+    @GetMapping("/{id}/shops")
+    public R<List<InvIntentionShop>> listShops(@PathVariable Long id) {
+        return R.ok(intentionService.listShops(id));
+    }
+
+    // ----------------------------------------------------------------
+    // 任务 4.2 — 费项配置
+    // ----------------------------------------------------------------
+
+    /**
+     * 批量保存费项配置（替换全量，IA-03 Step4）
+     * 同时删除旧的阶段数据（级联）
+     * 仅草稿(0)/驳回(3)状态可操作
+     */
+    @Operation(summary = "批量保存费项配置（全量替换，含 formula_params）")
+    @PostMapping("/{id}/fees")
+    public R<Void> saveFees(@PathVariable Long id,
+                            @RequestBody List<IntentionFeeItemDTO> fees) {
+        intentionService.saveFees(id, fees);
+        return R.ok(null);
+    }
+
+    /**
+     * 查询费项列表
+     */
+    @Operation(summary = "查询意向协议费项列表")
+    @GetMapping("/{id}/fees")
+    public R<List<InvIntentionFee>> listFees(@PathVariable Long id) {
+        return R.ok(intentionService.listFees(id));
+    }
+
+    // ----------------------------------------------------------------
+    // 任务 4.2 — 分铺计租阶段
+    // ----------------------------------------------------------------
+
+    /**
+     * 批量保存分铺计租阶段（按费项分组替换，IA-03 Step5）
+     * 每条记录须含 intentionFeeId，一次提交可包含多个费项的多个商铺阶段
+     * 仅草稿(0)/驳回(3)状态可操作
+     */
+    @Operation(summary = "批量保存分铺计租阶段（含 min_commission_amount）")
+    @PostMapping("/{id}/fee-stages")
+    public R<Void> saveFeeStages(@PathVariable Long id,
+                                 @RequestBody List<IntentionFeeStageItemDTO> stages) {
+        intentionService.saveFeeStages(id, stages);
+        return R.ok(null);
+    }
+
+    /**
+     * 查询当前意向的全部分铺计租阶段
+     */
+    @Operation(summary = "查询意向协议分铺计租阶段列表")
+    @GetMapping("/{id}/fee-stages")
+    public R<List<InvIntentionFeeStage>> listFeeStages(@PathVariable Long id) {
+        return R.ok(intentionService.listFeeStages(id));
+    }
+
+    // ----------------------------------------------------------------
+    // 任务 4.2 — 费用生成 & 账期生成
+    // ----------------------------------------------------------------
+
+    /**
+     * 生成费用明细，更新 total_amount（IA-03 Step6）
+     * 调用计算引擎按收费方式计算各费项金额，汇总写入 inv_intention.total_amount
+     * 返回各费项明细和总金额
+     */
+    @Operation(summary = "生成费用明细（调用计算引擎，更新 total_amount）")
+    @PostMapping("/{id}/generate-cost")
+    public R<Map<String, Object>> generateCost(@PathVariable Long id) {
+        return R.ok(intentionService.generateCost(id));
+    }
+
+    /**
+     * 生成账期列表（IA-03 Step7）
+     * 按 paymentCycle + billingMode 拆分账期，写入 inv_intention_billing
+     * 首账期标记 billingType=1，全量替换旧账期
+     */
+    @Operation(summary = "生成账期（按支付周期拆分，全量替换）")
+    @PostMapping("/{id}/billing")
+    public R<List<InvIntentionBilling>> generateBilling(@PathVariable Long id) {
+        return R.ok(intentionService.generateBilling(id));
+    }
+
+    /**
+     * 查询账期列表（IA-03 Step7 展示）
+     * 按 billing_start 升序排列，首账期在前
+     */
+    @Operation(summary = "查询账期列表（按账期开始日期升序）")
+    @GetMapping("/{id}/billing")
+    public R<List<InvIntentionBilling>> listBilling(@PathVariable Long id) {
+        return R.ok(intentionService.listBilling(id));
     }
 }

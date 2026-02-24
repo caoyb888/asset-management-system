@@ -33,7 +33,7 @@ public class FixedRentStrategy implements RentCalculateStrategy {
      * @param start 开始日期（含）
      * @param end   结束日期（含）
      */
-    static BigDecimal calcMonths(LocalDate start, LocalDate end) {
+    public static BigDecimal calcMonths(LocalDate start, LocalDate end) {
         // plusDays(1) 将"含尾"转换为"半开区间"，方便 ChronoUnit.MONTHS 精确计算
         LocalDate exclusiveEnd = end.plusDays(1);
         long fullMonths = ChronoUnit.MONTHS.between(start, exclusiveEnd);
