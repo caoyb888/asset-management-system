@@ -144,11 +144,27 @@
                 <el-table-column prop="area" label="面积(㎡)" width="110" align="right" />
               </el-table>
             </template>
+
+            <!-- 合同文本 -->
+            <el-divider content-position="left">合同文本</el-divider>
+            <el-form-item label="合同正文" style="max-width: 960px">
+              <el-input
+                v-model="form.contractText"
+                type="textarea" :rows="8"
+                placeholder="请输入合同正文（支持换行，可复制粘贴标准合同模板）"
+                maxlength="20000" show-word-limit
+                :disabled="isReadonly"
+              />
+            </el-form-item>
           </el-form>
 
           <!-- 操作栏 -->
           <div class="tab-actions" v-if="!isReadonly">
             <el-button type="primary" :loading="saving" @click="handleSave">保存基本信息</el-button>
+            <el-button v-if="form.contractText" plain @click="showContractPreview = true">预览合同文本</el-button>
+          </div>
+          <div class="tab-actions" v-else-if="form.contractText">
+            <el-button plain @click="showContractPreview = true">预览合同文本</el-button>
           </div>
         </el-tab-pane>
 
@@ -407,6 +423,22 @@
         </el-tab-pane>
       </el-tabs>
     </el-card>
+
+    <!-- 合同文本预览弹窗 -->
+    <el-dialog
+      v-model="showContractPreview"
+      title="合同文本预览"
+      width="760px"
+      :destroy-on-close="false"
+    >
+      <div id="contract-print-area" class="contract-preview-body">
+        <pre class="contract-text">{{ form.contractText }}</pre>
+      </div>
+      <template #footer>
+        <el-button @click="showContractPreview = false">关闭</el-button>
+        <el-button type="primary" @click="handlePrint">打印</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -447,6 +479,7 @@ const isReadonly = computed(() => route.query.readonly === '1')
 const contractId = ref<number | null>(null)
 const contractStatus = ref<number>(0)
 const activeTab = ref('basic')
+const showContractPreview = ref(false)
 
 const isDraft = computed(() => contractStatus.value === 0)
 
@@ -477,6 +510,7 @@ const form = ref({
   decorationEnd: '',
   paymentCycle: null as number | null,
   billingMode: null as number | null,
+  contractText: '',
 })
 
 // ─── 下拉选项 ─────────────────────────────────────────────────────────────────
@@ -615,6 +649,7 @@ async function handleSave() {
       decorationEnd: form.value.decorationEnd || undefined,
       paymentCycle: form.value.paymentCycle ?? undefined,
       billingMode: form.value.billingMode ?? undefined,
+      contractText: form.value.contractText || undefined,
     }
     if (!contractId.value) {
       contractId.value = await createContract(dto)
@@ -753,6 +788,26 @@ async function mockApprove(approved: boolean) {
   }
 }
 
+// ─── 合同文本打印 ─────────────────────────────────────────────────────────────
+function handlePrint() {
+  const printArea = document.getElementById('contract-print-area')
+  if (!printArea) return
+  const win = window.open('', '_blank')
+  if (!win) return
+  win.document.write(`
+    <html><head><title>合同文本打印</title>
+    <style>
+      body { font-family: '宋体', SimSun, serif; font-size: 14px; line-height: 1.8; padding: 40px; }
+      pre { white-space: pre-wrap; word-wrap: break-word; }
+    </style></head>
+    <body><pre>${printArea.innerText}</pre></body></html>
+  `)
+  win.document.close()
+  win.focus()
+  win.print()
+  win.close()
+}
+
 // ─── 格式化 ───────────────────────────────────────────────────────────────────
 function fmtAmount(n: number | null | undefined) {
   if (n == null) return '-'
@@ -786,6 +841,7 @@ async function loadEditData(id: number) {
     form.value.decorationEnd = detail.decorationEnd ? String(detail.decorationEnd) : ''
     form.value.paymentCycle = detail.paymentCycle ?? null
     form.value.billingMode = detail.billingMode ?? null
+    form.value.contractText = detail.contractText ?? ''
     totalAmount.value = detail.totalAmount ?? null
 
     shops.value = shopList
@@ -861,5 +917,21 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.contract-preview-body {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 0 4px;
+}
+
+.contract-text {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: '宋体', SimSun, 'Microsoft YaHei', sans-serif;
+  font-size: 14px;
+  line-height: 1.8;
+  color: #303133;
+  margin: 0;
 }
 </style>

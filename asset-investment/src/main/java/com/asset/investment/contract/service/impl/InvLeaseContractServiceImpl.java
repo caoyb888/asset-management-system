@@ -34,6 +34,8 @@ import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.jdbc.core.JdbcTemplate;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -63,6 +65,7 @@ public class InvLeaseContractServiceImpl extends ServiceImpl<InvLeaseContractMap
     private final RentCalculateStrategyRouter strategyRouter;
     private final RedissonClient redissonClient;
     private final ObjectMapper objectMapper;
+    private final JdbcTemplate jdbcTemplate;
 
     // ====================================================
     // 查询
@@ -218,12 +221,21 @@ public class InvLeaseContractServiceImpl extends ServiceImpl<InvLeaseContractMap
                 }
             }
 
-            // 9. 更新意向状态为"已转合同"(4)
+            // 9. 更新商铺状态为"在租"(1)——商铺已签约
+            if (!shopIds.isEmpty()) {
+                String placeholders = shopIds.stream().map(id -> "?").collect(Collectors.joining(","));
+                jdbcTemplate.update(
+                        "UPDATE biz_shop SET shop_status = 1 WHERE id IN (" + placeholders + ")",
+                        shopIds.toArray());
+                log.info("[意向转合同] 已更新商铺状态为在租，shopIds={}", shopIds);
+            }
+
+            // 10. 更新意向状态为"已转合同"(4)
             intentionService.update(new LambdaUpdateWrapper<InvIntention>()
                     .eq(InvIntention::getId, intentionId)
                     .set(InvIntention::getStatus, IntentionStatus.CONVERTED.getCode()));
 
-            // 10. 写版本快照
+            // 11. 写版本快照
             createSnapshot(contractId, "意向转合同");
 
             log.info("[意向转合同] intentionId={}, contractId={}, contractCode={}",
@@ -326,9 +338,8 @@ public class InvLeaseContractServiceImpl extends ServiceImpl<InvLeaseContractMap
             throw new BizException("当前状态不在审批中，无法处理审批回调");
         }
         // 通过 → 生效(2)；驳回 → 回到草稿(0)重新编辑
-        int newStatus = Boolean.TRUE.equals(dto.getApproved())
-                ? ContractStatus.EFFECTIVE.getCode()
-                : ContractStatus.DRAFT.getCode();
+        boolean approved = Boolean.TRUE.equals(dto.getApproved());
+        int newStatus = approved ? ContractStatus.EFFECTIVE.getCode() : ContractStatus.DRAFT.getCode();
         LambdaUpdateWrapper<InvLeaseContract> uw = new LambdaUpdateWrapper<InvLeaseContract>()
                 .eq(InvLeaseContract::getId, id)
                 .set(InvLeaseContract::getStatus, newStatus);
@@ -336,6 +347,11 @@ public class InvLeaseContractServiceImpl extends ServiceImpl<InvLeaseContractMap
             uw.set(InvLeaseContract::getApprovalId, dto.getApprovalId());
         }
         update(uw);
+
+        // 审批通过时写版本快照（任务5.3：状态≠草稿时记录变更历史）
+        if (approved) {
+            createSnapshot(id, "审批通过，合同生效");
+        }
     }
 
     // ====================================================
