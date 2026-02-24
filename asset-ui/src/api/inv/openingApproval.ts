@@ -17,7 +17,9 @@ export interface OpeningApprovalVO {
   status: number    // 0草稿 1审批中 2通过 3驳回
   approvalId: string
   remark: string
+  previousApprovalId: number | null   // 被驳回的原单 ID
   createdAt: string
+  updatedAt: string
 }
 
 export interface OpeningApprovalQuery {
@@ -103,4 +105,9 @@ export function addOpeningAttachment(id: number, data: Partial<OpeningAttachment
 /** 删除附件 */
 export function deleteOpeningAttachment(attachmentId: number) {
   return request.delete<void, void>(`/inv/opening-approvals/attachments/${attachmentId}`)
+}
+
+/** 基于历史驳回单据创建新审批（返回新记录 ID） */
+export function createFromPreviousApproval(id: number) {
+  return request.post<number, number>(`/inv/opening-approvals/from-previous/${id}`)
 }

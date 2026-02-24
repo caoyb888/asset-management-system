@@ -9,10 +9,42 @@
         </div>
       </template>
 
+      <!-- 审批进度步骤条 -->
+      <el-steps :active="approvalStep" align-center class="approval-steps">
+        <el-step title="草稿" description="单据已创建" />
+        <el-step title="审批中" description="等待审批结果" />
+        <el-step
+          :title="currentStatus === 3 ? '已驳回' : '审批通过'"
+          :status="currentStatus === 3 ? 'error' : undefined"
+          description="审批流程完成"
+        />
+      </el-steps>
+
       <el-tabs v-model="activeTab">
 
         <!-- ===== Tab 1: 基本信息 ===== -->
         <el-tab-pane label="基本信息" name="basic">
+
+          <!-- 驳回提示：不可修改原单，需重新创建 -->
+          <el-alert
+            v-if="currentStatus === 3"
+            type="error"
+            :closable="false"
+            show-icon
+            class="reject-alert"
+          >
+            <template #title>
+              <strong>本单已被驳回，不可修改原单</strong>
+            </template>
+            <template #default>
+              请基于当前单据重新创建一份新的开业审批，补充或修改相关信息后再次提交。
+              <el-button
+                type="danger" plain size="small" style="margin-left: 12px"
+                :loading="creatingFromPrev" @click="handleCreateFromPrevious"
+              >基于历史单据创建</el-button>
+            </template>
+          </el-alert>
+
           <el-form ref="formRef" :model="form" label-width="120px" class="form-section">
             <el-row :gutter="20">
               <el-col :span="12">
@@ -22,7 +54,8 @@
                     v-model="form.contractId"
                     filterable remote clearable :remote-method="searchContracts"
                     placeholder="请搜索合同编号" style="width: 100%"
-                    :disabled="isReadonly"
+                    :disabled="isReadonly || currentStatus === 3"
+                    @change="onContractChange"
                   >
                     <el-option
                       v-for="c in contractOptions"
@@ -46,7 +79,7 @@
                   <el-date-picker
                     v-model="form.plannedOpeningDate" type="date"
                     value-format="YYYY-MM-DD" style="width: 100%"
-                    :disabled="isReadonly"
+                    :disabled="isReadonly || currentStatus === 3"
                   />
                 </el-form-item>
               </el-col>
@@ -55,7 +88,7 @@
                   <el-date-picker
                     v-model="form.actualOpeningDate" type="date"
                     value-format="YYYY-MM-DD" style="width: 100%"
-                    :disabled="isReadonly"
+                    :disabled="isReadonly || currentStatus === 3"
                   />
                 </el-form-item>
               </el-col>
@@ -64,17 +97,17 @@
                   <el-input
                     v-model="form.remark" type="textarea" :rows="3"
                     placeholder="备注说明" maxlength="500" show-word-limit
-                    :disabled="isReadonly"
+                    :disabled="isReadonly || currentStatus === 3"
                   />
                 </el-form-item>
               </el-col>
             </el-row>
           </el-form>
 
-          <div class="tab-actions" v-if="!isReadonly">
+          <div class="tab-actions" v-if="!isReadonly && currentStatus !== 3">
             <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
             <el-button
-              v-if="recordId && (currentStatus === 0 || currentStatus === 3)"
+              v-if="recordId && currentStatus === 0"
               type="warning" :loading="submitting" @click="handleSubmit"
             >提交审批</el-button>
           </div>
@@ -154,7 +187,7 @@ import type { FormInstance } from 'element-plus'
 import { getContractPage, type ContractVO } from '@/api/inv/contract'
 import {
   createOpeningApproval, updateOpeningApproval, getOpeningApprovalDetail,
-  submitOpeningApproval, openingApprovalCallback,
+  submitOpeningApproval, openingApprovalCallback, createFromPreviousApproval,
   getOpeningAttachments, addOpeningAttachment, deleteOpeningAttachment,
   type OpeningApprovalVO, type OpeningAttachmentVO,
 } from '@/api/inv/openingApproval'
@@ -168,14 +201,25 @@ const activeTab = ref('basic')
 
 const recordId = ref<number | null>(null)
 const currentStatus = ref(0)
+const previousApprovalId = ref<number | null>(null)
 const saving = ref(false)
 const submitting = ref(false)
 const attachSaving = ref(false)
+const creatingFromPrev = ref(false)
 const showAddAttachment = ref(false)
+
+// 审批进度步骤（0=草稿, 1=审批中, 2=已完成）
+const approvalStep = computed(() => {
+  if (currentStatus.value <= 0) return 0
+  if (currentStatus.value === 1) return 1
+  return 2
+})
 
 const formRef = ref<FormInstance>()
 const form = ref({
   contractId: null as number | null,
+  projectId: null as number | null,
+  merchantId: null as number | null,
   plannedOpeningDate: '',
   actualOpeningDate: '',
   remark: '',
@@ -207,6 +251,30 @@ async function searchContracts(q: string) {
   contractOptions.value = res.records ?? []
 }
 
+// 选择合同后自动联动填充项目/商家信息
+function onContractChange(contractId: number | null) {
+  const contract = contractOptions.value.find(c => c.id === contractId)
+  if (contract) {
+    form.value.projectId = contract.projectId ?? null
+    form.value.merchantId = contract.merchantId ?? null
+  }
+}
+
+// ─── 基于历史驳回单据创建新单 ──────────────────────────────
+async function handleCreateFromPrevious() {
+  if (!recordId.value) return
+  creatingFromPrev.value = true
+  try {
+    const newId = await createFromPreviousApproval(recordId.value)
+    ElMessage.success('已创建新开业审批单，正在跳转编辑...')
+    router.push(`/inv/opening-approvals/form?id=${newId}`)
+  } catch (err: unknown) {
+    ElMessage.error((err as { message?: string })?.message || '创建失败')
+  } finally {
+    creatingFromPrev.value = false
+  }
+}
+
 // ─── 保存 ─────────────────────────────────────────────────
 async function handleSave() {
   const valid = await formRef.value?.validate().then(() => true).catch(() => false)
@@ -215,6 +283,8 @@ async function handleSave() {
   try {
     const dto = {
       contractId: form.value.contractId ?? undefined,
+      projectId: form.value.projectId ?? undefined,
+      merchantId: form.value.merchantId ?? undefined,
       plannedOpeningDate: form.value.plannedOpeningDate || undefined,
       actualOpeningDate: form.value.actualOpeningDate || undefined,
       remark: form.value.remark || undefined,
@@ -303,7 +373,10 @@ function previewFile(url: string) {
 async function loadData(id: number) {
   const detail: OpeningApprovalVO = await getOpeningApprovalDetail(id)
   currentStatus.value = detail.status ?? 0
+  previousApprovalId.value = detail.previousApprovalId ?? null
   form.value.contractId = detail.contractId ?? null
+  form.value.projectId = detail.projectId ?? null
+  form.value.merchantId = detail.merchantId ?? null
   form.value.plannedOpeningDate = detail.plannedOpeningDate
     ? String(detail.plannedOpeningDate) : ''
   form.value.actualOpeningDate = detail.actualOpeningDate
@@ -330,4 +403,13 @@ onMounted(async () => {
   margin-top: 16px; padding-top: 16px; border-top: 1px solid #f0f0f0;
 }
 .mock-approval { margin-top: 20px; text-align: center; }
+.approval-steps {
+  padding: 20px 40px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 4px;
+}
+.reject-alert {
+  margin-bottom: 16px;
+  max-width: 900px;
+}
 </style>

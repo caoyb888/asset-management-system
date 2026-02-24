@@ -10,6 +10,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ public class InvOpeningApprovalController {
 
     private final InvOpeningApprovalService approvalService;
     private final InvOpeningAttachmentService attachmentService;
+    private final ObjectMapper objectMapper;
 
     // ── 查询 ──────────────────────────────────────────────
 
@@ -111,10 +113,41 @@ public class InvOpeningApprovalController {
         if (existing == null) throw new BizException("记录不存在");
         if (existing.getStatus() != 1) throw new BizException("当前状态不在审批中");
         boolean approved = Boolean.TRUE.equals(body.get("approved"));
-        approvalService.update(new LambdaUpdateWrapper<InvOpeningApproval>()
+        LambdaUpdateWrapper<InvOpeningApproval> uw = new LambdaUpdateWrapper<InvOpeningApproval>()
                 .eq(InvOpeningApproval::getId, id)
-                .set(InvOpeningApproval::getStatus, approved ? 2 : 3));
+                .set(InvOpeningApproval::getStatus, approved ? 2 : 3);
+        // 驳回时：将当前单据数据序列化为快照，便于后续"基于历史创建"接口恢复数据
+        if (!approved) {
+            uw.set(InvOpeningApproval::getSnapshotData, objectMapper.valueToTree(existing));
+        }
+        approvalService.update(uw);
         return R.ok(null);
+    }
+
+    @Operation(summary = "基于历史驳回单据创建新开业审批（驳回状态可用）")
+    @PostMapping("/from-previous/{id}")
+    public R<Long> createFromPrevious(@PathVariable Long id) {
+        InvOpeningApproval source = approvalService.getById(id);
+        if (source == null) throw new BizException("原始记录不存在");
+        if (source.getStatus() != 3) throw new BizException("仅驳回状态的记录可基于历史创建新单");
+
+        InvOpeningApproval newApproval = new InvOpeningApproval();
+        // 从原单复制业务字段
+        newApproval.setProjectId(source.getProjectId());
+        newApproval.setBuildingId(source.getBuildingId());
+        newApproval.setFloorId(source.getFloorId());
+        newApproval.setShopId(source.getShopId());
+        newApproval.setContractId(source.getContractId());
+        newApproval.setMerchantId(source.getMerchantId());
+        newApproval.setPlannedOpeningDate(source.getPlannedOpeningDate());
+        newApproval.setActualOpeningDate(source.getActualOpeningDate());
+        newApproval.setRemark(source.getRemark());
+        // 新单为草稿状态，关联原单 ID
+        newApproval.setStatus(0);
+        newApproval.setApprovalCode(generateCode());
+        newApproval.setPreviousApprovalId(id);
+        approvalService.save(newApproval);
+        return R.ok(newApproval.getId());
     }
 
     // ── 附件管理 ──────────────────────────────────────────────
