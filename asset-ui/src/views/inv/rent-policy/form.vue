@@ -129,7 +129,7 @@
             <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
             <el-button
               v-if="recordId && (currentStatus === 0 || currentStatus === 3)"
-              type="warning" :loading="submitting" @click="handleSubmit"
+              type="warning" @click="approvalDialogVisible = true"
             >提交审批</el-button>
           </div>
 
@@ -138,6 +138,11 @@
             <el-button type="success" @click="mockApprove(true)">模拟审批通过</el-button>
             <el-button type="danger" @click="mockApprove(false)">模拟审批驳回</el-button>
           </div>
+        </el-tab-pane>
+
+        <!-- ===== Tab 3: 审批流程 ===== -->
+        <el-tab-pane label="审批流程" name="timeline">
+          <ApprovalTimeline :current-status="currentStatus" />
         </el-tab-pane>
 
         <!-- ===== Tab 2: 分类指标 ===== -->
@@ -215,12 +220,20 @@
       </el-tabs>
     </el-card>
   </div>
+
+  <!-- 审批发起弹窗 -->
+  <ApprovalDialog
+    v-model:visible="approvalDialogVisible"
+    title="提交租决政策审批"
+    :loading="submitting"
+    @confirm="onApprovalConfirm"
+  />
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { ArrowLeft, Plus, Delete } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 
@@ -232,6 +245,8 @@ import {
   getPolicyIndicators, savePolicyIndicators,
   type RentPolicyVO, type PolicyIndicatorVO,
 } from '@/api/inv/rentPolicy'
+import ApprovalDialog from '@/components/inv/ApprovalDialog.vue'
+import ApprovalTimeline from '@/components/inv/ApprovalTimeline.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -245,6 +260,7 @@ const currentStatus = ref(0)
 const saving = ref(false)
 const submitting = ref(false)
 const indicatorSaving = ref(false)
+const approvalDialogVisible = ref(false)
 
 const formRef = ref<FormInstance>()
 const form = ref({
@@ -316,14 +332,15 @@ async function handleSave() {
   }
 }
 
-// ─── 提交审批 ─────────────────────────────────────────────
-async function handleSubmit() {
-  if (!recordId.value) { ElMessage.warning('请先保存'); return }
-  await ElMessageBox.confirm('提交审批后将进入审批流程，确认？', '提交确认', { type: 'warning' })
+// ─── 提交审批（由 ApprovalDialog confirm 触发） ─────────────
+async function onApprovalConfirm(_payload: { approverIds: number[]; comment: string }) {
+  if (!recordId.value) return
+  // _payload.approverIds / _payload.comment 留给后续审批引擎集成使用
   submitting.value = true
   try {
     await submitRentPolicyApproval(recordId.value)
     currentStatus.value = 1
+    approvalDialogVisible.value = false
     ElMessage.success('已成功提交审批')
   } catch (err: unknown) {
     ElMessage.error((err as { message?: string })?.message || '提交失败')

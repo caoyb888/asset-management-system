@@ -46,6 +46,13 @@
               <el-input :value="decompCode || '（保存后自动生成）'" disabled />
             </el-form-item>
           </el-col>
+          <el-col :span="12">
+            <el-form-item label="审批状态">
+              <el-tag :type="STATUS_MAP[currentStatus]?.type ?? 'info'">
+                {{ STATUS_MAP[currentStatus]?.label ?? '-' }}
+              </el-tag>
+            </el-form-item>
+          </el-col>
           <el-col :span="6">
             <el-form-item label="年度总租金">
               <el-input-number
@@ -71,6 +78,17 @@
           v-if="recordId"
           type="success" :loading="calculating" @click="handleCalculate"
         >汇总计算</el-button>
+        <el-button
+          v-if="recordId && (currentStatus === 0 || currentStatus === 3)"
+          type="warning" @click="approvalDialogVisible = true"
+        >提交审批</el-button>
+      </div>
+
+      <!-- Mock 审批操作（测试用，审批中状态显示） -->
+      <div v-if="recordId && currentStatus === 1" class="mock-approval">
+        <el-divider>Mock 审批操作（测试用）</el-divider>
+        <el-button type="success" @click="mockApprove(true)">模拟审批通过</el-button>
+        <el-button type="danger" @click="mockApprove(false)">模拟审批驳回</el-button>
       </div>
 
       <!-- 明细分类 Tab -->
@@ -175,8 +193,24 @@
           </el-button>
         </div>
       </template>
+
+      <!-- 审批流程时间线（已保存后显示） -->
+      <template v-if="recordId">
+        <el-divider content-position="left">审批流程</el-divider>
+        <div class="timeline-wrap">
+          <ApprovalTimeline :current-status="currentStatus" />
+        </div>
+      </template>
     </el-card>
   </div>
+
+  <!-- 审批发起弹窗 -->
+  <ApprovalDialog
+    v-model:visible="approvalDialogVisible"
+    title="提交租金分解审批"
+    :loading="submitting"
+    @confirm="onApprovalConfirm"
+  />
 </template>
 
 <script setup lang="ts">
@@ -192,8 +226,11 @@ import { getApprovedPolicies, type RentPolicyVO } from '@/api/inv/rentPolicy'
 import {
   createRentDecomp, updateRentDecomp, getRentDecompDetail,
   getRentDecompDetails, saveRentDecompDetails, calculateRentDecomp,
+  submitRentDecompApproval, rentDecompApprovalCallback,
   type RentDecompVO, type RentDecompDetailVO,
 } from '@/api/inv/rentDecomp'
+import ApprovalDialog from '@/components/inv/ApprovalDialog.vue'
+import ApprovalTimeline from '@/components/inv/ApprovalTimeline.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -205,10 +242,22 @@ const recordId = ref<number | null>(null)
 const decompCode = ref('')
 const totalAnnualRent = ref<number | undefined>(undefined)
 const totalAnnualFee = ref<number | undefined>(undefined)
+const currentStatus = ref(0)
 const saving = ref(false)
 const detailSaving = ref(false)
 const calculating = ref(false)
+const submitting = ref(false)
+const approvalDialogVisible = ref(false)
 const activeCategory = ref('1')
+
+// ─── 状态映射 ─────────────────────────────────────────────
+type TagType = 'primary' | 'success' | 'warning' | 'danger' | 'info' | undefined
+const STATUS_MAP: Record<number, { label: string; type: TagType }> = {
+  0: { label: '草稿', type: 'info' },
+  1: { label: '审批中', type: 'warning' },
+  2: { label: '已通过', type: 'success' },
+  3: { label: '已驳回', type: 'danger' },
+}
 
 const formRef = ref<FormInstance>()
 const form = ref({
@@ -340,6 +389,34 @@ async function handleCalculate() {
   }
 }
 
+// ─── 提交审批（由 ApprovalDialog confirm 触发） ─────────────
+async function onApprovalConfirm(_payload: { approverIds: number[]; comment: string }) {
+  if (!recordId.value) return
+  submitting.value = true
+  try {
+    await submitRentDecompApproval(recordId.value)
+    currentStatus.value = 1
+    approvalDialogVisible.value = false
+    ElMessage.success('已成功提交审批')
+  } catch (err: unknown) {
+    ElMessage.error((err as { message?: string })?.message || '提交失败')
+  } finally {
+    submitting.value = false
+  }
+}
+
+// ─── Mock 审批 ────────────────────────────────────────────
+async function mockApprove(approved: boolean) {
+  if (!recordId.value) return
+  try {
+    await rentDecompApprovalCallback(recordId.value, approved)
+    currentStatus.value = approved ? 2 : 3
+    ElMessage.success(approved ? '审批通过' : '已驳回')
+  } catch (err: unknown) {
+    ElMessage.error((err as { message?: string })?.message || '操作失败')
+  }
+}
+
 // ─── 同步明细到分组 ──────────────────────────────────────
 function syncDetails(details: RentDecompDetailVO[]) {
   detailsByCategory[1] = []
@@ -365,6 +442,7 @@ async function loadData(id: number) {
   form.value.policyId = d.policyId ?? null
   totalAnnualRent.value = d.totalAnnualRent
   totalAnnualFee.value = d.totalAnnualFee
+  currentStatus.value = d.status ?? 0
   policyOptions.value = policies
   syncDetails(details)
 }
@@ -403,4 +481,6 @@ onMounted(async () => {
 .subtotal strong { color: #e6a23c; font-size: 15px; }
 .amount-text { color: #303133; font-weight: 500; }
 .no-record-tip { margin: 20px 0; }
+.mock-approval { margin-top: 20px; text-align: center; }
+.timeline-wrap { max-width: 600px; padding: 0 4px 16px; }
 </style>

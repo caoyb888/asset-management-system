@@ -129,3 +129,13 @@ export function exportRentDecompDetails(id: number, decompCode: string) {
 export function reLinkRentDecompPolicy(id: number, policyId: number) {
   return request.put<void, void>(`/inv/rent-decomps/${id}/re-link-policy`, { policyId })
 }
+
+/** 提交审批（草稿/驳回 → 审批中） */
+export function submitRentDecompApproval(id: number) {
+  return request.post<void, void>(`/inv/rent-decomps/${id}/submit-approval`)
+}
+
+/** 审批回调（Mock 测试用） */
+export function rentDecompApprovalCallback(id: number, approved: boolean) {
+  return request.post<void, void>(`/inv/rent-decomps/${id}/approval-callback`, { approved })
+}

@@ -108,12 +108,33 @@ public class InvRentDecompositionController {
         return R.ok(null);
     }
 
-    @Operation(summary = "删除租金分解（级联删明细）")
+    @Operation(summary = "删除租金分解（级联删明细，仅草稿/驳回状态可删）")
     @DeleteMapping("/{id}")
     public R<Void> delete(@PathVariable Long id) {
+        InvRentDecomposition existing = decompositionService.getById(id);
+        if (existing != null && existing.getStatus() == 1) throw new BizException("审批中不可删除");
+        if (existing != null && existing.getStatus() == 2) throw new BizException("已通过的记录不可删除");
         detailService.remove(new LambdaQueryWrapper<InvRentDecompDetail>()
                 .eq(InvRentDecompDetail::getDecompId, id));
         decompositionService.removeById(id);
+        return R.ok(null);
+    }
+
+    // ── 审批状态机 ──────────────────────────────────────────────
+
+    @Operation(summary = "提交审批（草稿0/驳回3 → 审批中1）")
+    @PostMapping("/{id}/submit-approval")
+    public R<Void> submitApproval(@PathVariable Long id) {
+        decompositionService.submitApproval(id);
+        return R.ok(null);
+    }
+
+    @Operation(summary = "审批回调（审批中1 → 通过2/驳回3）")
+    @PostMapping("/{id}/approval-callback")
+    public R<Void> approvalCallback(@PathVariable Long id,
+                                    @RequestBody Map<String, Object> body) {
+        boolean approved = Boolean.TRUE.equals(body.get("approved"));
+        decompositionService.handleApprovalCallback(id, approved);
         return R.ok(null);
     }
 

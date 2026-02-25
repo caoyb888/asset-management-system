@@ -18,6 +18,14 @@
         <el-form-item label="年度">
           <el-date-picker v-model="query.businessYear" type="year" placeholder="选择年度" value-format="YYYY" style="width: 120px" />
         </el-form-item>
+        <el-form-item label="状态">
+          <el-select v-model="query.status" placeholder="全部" clearable style="width: 100px">
+            <el-option label="草稿" :value="0" />
+            <el-option label="审批中" :value="1" />
+            <el-option label="已通过" :value="2" />
+            <el-option label="已驳回" :value="3" />
+          </el-select>
+        </el-form-item>
         <el-form-item>
           <el-button type="primary" :icon="Search" @click="fetchList">查询</el-button>
           <el-button :icon="Refresh" @click="handleReset">重置</el-button>
@@ -42,11 +50,23 @@
             {{ row.totalAnnualRent != null ? Number(row.totalAnnualRent).toLocaleString('zh-CN', { minimumFractionDigits: 2 }) : '-' }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column prop="status" label="状态" width="90">
+          <template #default="{ row }">
+            <el-tag :type="STATUS_MAP[row.status]?.type ?? 'info'">
+              {{ STATUS_MAP[row.status]?.label ?? '-' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="router.push({ path: '/inv/rent-decomps/form', query: { id: row.id } })">编辑</el-button>
+            <el-button
+              v-if="row.status === 0 || row.status === 3"
+              link type="warning" :loading="submittingId === row.id"
+              @click="handleSubmitApproval(row)"
+            >提交审批</el-button>
             <el-button link type="success" :loading="exportingId === row.id" @click="handleExport(row)">导出</el-button>
-            <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+            <el-button link type="danger" :disabled="row.status === 1 || row.status === 2" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -101,6 +121,7 @@ import { Plus, Search, Refresh, Upload, UploadFilled } from '@element-plus/icons
 import {
   getRentDecompPage, deleteRentDecomp,
   importRentDecompDetails, exportRentDecompDetails,
+  submitRentDecompApproval,
   type RentDecompVO,
 } from '@/api/inv/rentDecomp'
 
@@ -108,10 +129,22 @@ const router = useRouter()
 const loading = ref(false)
 const list = ref<RentDecompVO[]>([])
 const total = ref(0)
-const query = reactive({ page: 1, size: 10, projectName: '', businessYear: '' })
+const query = reactive({ page: 1, size: 10, projectName: '', businessYear: '', status: undefined as number | undefined })
+
+// ── 状态映射 ──
+type TagType = 'primary' | 'success' | 'warning' | 'danger' | 'info' | undefined
+const STATUS_MAP: Record<number, { label: string; type: TagType }> = {
+  0: { label: '草稿', type: 'info' },
+  1: { label: '审批中', type: 'warning' },
+  2: { label: '已通过', type: 'success' },
+  3: { label: '已驳回', type: 'danger' },
+}
 
 // ── 导出状态 ──
 const exportingId = ref<number | null>(null)
+
+// ── 提交审批状态 ──
+const submittingId = ref<number | null>(null)
 
 // ── 导入状态 ──
 const importVisible = ref(false)
@@ -129,7 +162,20 @@ async function fetchList() {
   } finally { loading.value = false }
 }
 
-function handleReset() { query.page = 1; query.projectName = ''; query.businessYear = ''; fetchList() }
+function handleReset() { query.page = 1; query.projectName = ''; query.businessYear = ''; query.status = undefined; fetchList() }
+
+async function handleSubmitApproval(row: RentDecompVO) {
+  submittingId.value = row.id
+  try {
+    await submitRentDecompApproval(row.id)
+    ElMessage.success('已提交审批')
+    fetchList()
+  } catch (err: unknown) {
+    ElMessage.error((err as { message?: string })?.message || '提交失败')
+  } finally {
+    submittingId.value = null
+  }
+}
 
 /** 打开导入弹窗（不强依赖选中行，允许通用导入后再指定记录） */
 function handleImport() {
