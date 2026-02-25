@@ -258,7 +258,7 @@ public class InvRentDecompositionController {
         detailService.remove(new LambdaQueryWrapper<InvRentDecompDetail>()
                 .eq(InvRentDecompDetail::getDecompId, id));
         if (!validRows.isEmpty()) {
-            detailService.saveBatch(validRows);
+            detailService.saveBatch(validRows, 500);
         }
 
         Map<String, Object> result = new HashMap<>();

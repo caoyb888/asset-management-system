@@ -393,4 +393,97 @@ class RentCalculateEngineTest {
                 LocalDate.of(2026, 1, 31), LocalDate.of(2026, 3, 30));
         assertEquals(new BigDecimal("2"), months);
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // §7  跨年精度 & 边界（任务9.2 补充用例）
+    // ═══════════════════════════════════════════════════════════
+
+    @Test
+    @DisplayName("阶梯提成-小数费率不损失精度：3.7% × 1,000,001 = 37,000.04（非float误差37000.037）")
+    void stepCommission_decimalRate_noPrecisionLoss() throws Exception {
+        // 如果用 double 运算：1000001 * 0.037 = 37000.037（精度丢失）
+        // BigDecimal 应精确：1000001 × 3.7% = 37000.037 → 保底不触发，取 37000.04（HALF_UP）
+        String json = """
+                {"stages":[
+                  {"commission_rate":3.7,"min_commission_amount":1000,"revenue":1000001}
+                ]}""";
+        RentCalculateContext ctx = RentCalculateContext.builder()
+                .formulaParams(objectMapper.readTree(json))
+                .build();
+        // 1000001 × 3.7% = 37000.037 → HALF_UP → 37000.04
+        BigDecimal result = stepCommissionStrategy.calculate(ctx);
+        assertEquals(new BigDecimal("37000.04"), result,
+                "BigDecimal 应精确到分，不因浮点误差截断");
+    }
+
+    @Test
+    @DisplayName("阶梯提成-三年跨年合同（三阶段不同费率）：各年提成精确求和")
+    void stepCommission_threeYears_crossYear() throws Exception {
+        // 第1年：年营业额 120万 × 4% = 48000
+        // 第2年：年营业额 150万 × 5% = 75000
+        // 第3年：年营业额 180万 × 6% = 108000
+        // 合计 = 231000
+        String json = """
+                {"stages":[
+                  {"commission_rate":4.0,"min_commission_amount":5000,"revenue":1200000},
+                  {"commission_rate":5.0,"min_commission_amount":6000,"revenue":1500000},
+                  {"commission_rate":6.0,"min_commission_amount":7000,"revenue":1800000}
+                ]}""";
+        RentCalculateContext ctx = RentCalculateContext.builder()
+                .formulaParams(objectMapper.readTree(json))
+                .build();
+        assertEquals(new BigDecimal("231000.00"), stepCommissionStrategy.calculate(ctx));
+    }
+
+    @Test
+    @DisplayName("阶梯提成-三年跨年第二年保底触发：第一、三年正常，第二年触发保底")
+    void stepCommission_threeYears_middleYearFloor() throws Exception {
+        // 第1年：500000 × 5% = 25000 > 5000 → 25000
+        // 第2年：50000 × 5% = 2500 < 30000保底 → 30000（触发保底）
+        // 第3年：800000 × 5% = 40000 > 5000 → 40000
+        // 合计 = 95000
+        String json = """
+                {"stages":[
+                  {"commission_rate":5.0,"min_commission_amount":5000,"revenue":500000},
+                  {"commission_rate":5.0,"min_commission_amount":30000,"revenue":50000},
+                  {"commission_rate":5.0,"min_commission_amount":5000,"revenue":800000}
+                ]}""";
+        RentCalculateContext ctx = RentCalculateContext.builder()
+                .formulaParams(objectMapper.readTree(json))
+                .build();
+        assertEquals(new BigDecimal("95000.00"), stepCommissionStrategy.calculate(ctx));
+    }
+
+    @Test
+    @DisplayName("固定租金-跨月非整数：calcMonths 精度确保金额计算正确")
+    void fixedRent_partialMonth_preciseAmount() {
+        // 2026-01-16 ~ 2026-02-15 = 1个月（Jan16到Feb15，月末+1=Feb16，Feb16-1=Feb15）
+        // 面积 200㎡，单价 50元/㎡/月 → 200×50×1=10000
+        RentCalculateContext ctx = RentCalculateContext.builder()
+                .unitPrice(new BigDecimal("50.00"))
+                .area(new BigDecimal("200.00"))
+                .stageStart(LocalDate.of(2026, 1, 16))
+                .stageEnd(LocalDate.of(2026, 2, 15))
+                .build();
+        assertEquals(new BigDecimal("10000.00"), fixedRentStrategy.calculate(ctx));
+    }
+
+    @Test
+    @DisplayName("两者取高-高精度场景：固定租金与提成差额极小时取较大值")
+    void higherOf_nearEqual_takesLarger() {
+        // 固定：100元 × 100㎡ × 1月 = 10000
+        // 提成：200001 × 5% = 10000.05 > 保底8000 → 10000.05
+        // 取高：10000.05（提成）> 10000.00（固定）
+        RentCalculateContext ctx = RentCalculateContext.builder()
+                .unitPrice(new BigDecimal("100.00"))
+                .area(new BigDecimal("100.00"))
+                .stageStart(LocalDate.of(2026, 1, 1))
+                .stageEnd(LocalDate.of(2026, 1, 31))
+                .revenue(new BigDecimal("200001.00"))
+                .commissionRate(new BigDecimal("5.00"))
+                .minCommissionAmount(new BigDecimal("8000.00"))
+                .build();
+        // 提成 = 200001 × 5% = 10000.05; 固定 = 10000; 取高 = 10000.05
+        assertEquals(new BigDecimal("10000.05"), higherOfStrategy.calculate(ctx));
+    }
 }
