@@ -476,6 +476,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
+import { useIntentionStore } from '@/store/modules/inv/intention'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, Plus, Delete, Loading, Warning } from '@element-plus/icons-vue'
@@ -508,6 +509,9 @@ import {
 } from '@/api/inv/intention'
 import { getRentSchemeDetail } from '@/api/inv/config'
 
+// ─── Pinia 向导状态缓存 ──────────────────────────────────────────────────────
+const intentionStore = useIntentionStore()
+
 // ─── Route & mode ───────────────────────────────────────────────────────────
 const route = useRoute()
 const router = useRouter()
@@ -537,6 +541,60 @@ function onSchemeSelect(scheme: RentSchemeVO) {
   stageRows.value = []
   costResult.value = null
   billingList.value = []
+  // 同步到 Store（上游变更清空下游数据）
+  intentionStore.setRentScheme({
+    schemeId: scheme.id,
+    schemeName: scheme.schemeName,
+    chargeType: scheme.chargeType ?? null,
+  })
+}
+
+/** 将当前表单状态同步到 Pinia store（步骤完成/切换时调用） */
+function syncToStore() {
+  intentionStore.$patch((s) => {
+    s.intentionId = intentionId.value
+    s.currentStep = currentStep.value
+    s.basicInfo = {
+      projectId: basicForm.value.projectId,
+      projectName: '',
+      intentionName: basicForm.value.intentionName,
+      partyBName: basicForm.value.signingEntity,
+      merchantId: basicForm.value.merchantId,
+      brandId: basicForm.value.brandId,
+    }
+    s.businessInfo = {
+      shopIds: selectedShops.value.map((sh) => sh.id),
+      contractStart: businessForm.value.contractStart,
+      contractEnd: businessForm.value.contractEnd,
+      deliveryDate: businessForm.value.deliveryDate,
+      decorationStart: businessForm.value.decorationStart,
+      decorationEnd: businessForm.value.decorationEnd,
+      openingDate: businessForm.value.openingDate,
+      paymentCycle: businessForm.value.paymentCycle,
+      billingMode: businessForm.value.billingMode,
+    }
+  })
+}
+
+/** 从 Pinia store 恢复表单状态（新增模式导航离开后重新进入时） */
+function restoreFromStore() {
+  const s = intentionStore
+  selectedSchemeId.value = s.rentScheme.schemeId
+  basicForm.value.intentionName = s.basicInfo.intentionName
+  basicForm.value.projectId = s.basicInfo.projectId
+  basicForm.value.signingEntity = s.basicInfo.partyBName
+  basicForm.value.merchantId = s.basicInfo.merchantId
+  basicForm.value.brandId = s.basicInfo.brandId
+  businessForm.value.contractStart = s.businessInfo.contractStart
+  businessForm.value.contractEnd = s.businessInfo.contractEnd
+  businessForm.value.deliveryDate = s.businessInfo.deliveryDate
+  businessForm.value.decorationStart = s.businessInfo.decorationStart
+  businessForm.value.decorationEnd = s.businessInfo.decorationEnd
+  businessForm.value.openingDate = s.businessInfo.openingDate
+  businessForm.value.paymentCycle = s.businessInfo.paymentCycle
+  businessForm.value.billingMode = s.businessInfo.billingMode
+  // 费项及以后步骤需从后端重新拉取，最多恢复到步骤2
+  currentStep.value = Math.min(s.currentStep, 2)
 }
 
 function chargeTypeLabel(t?: number | null) {
@@ -754,6 +812,7 @@ async function nextStep() {
   try {
     await saveStep(currentStep.value)
     currentStep.value++
+    syncToStore()  // 步骤完成后同步数据到 Pinia store
     await onEnterStep(currentStep.value)
   } catch (err: unknown) {
     const msg = (err as { message?: string })?.message
@@ -764,7 +823,10 @@ async function nextStep() {
 }
 
 function prevStep() {
-  if (currentStep.value > 0) currentStep.value--
+  if (currentStep.value > 0) {
+    currentStep.value--
+    intentionStore.$patch({ currentStep: currentStep.value })
+  }
 }
 
 async function validateStep(step: number): Promise<boolean> {
@@ -1025,8 +1087,17 @@ onMounted(async () => {
   await Promise.all([searchProjects(''), searchMerchants(''), searchBrands('')])
 
   if (isEdit.value && routeId.value) {
+    // 编辑模式：初始化 store 并从后端加载数据
+    intentionStore.initEdit(routeId.value)
     intentionId.value = routeId.value
     await loadEditData(routeId.value)
+  } else {
+    // 新增模式：若 store 中有上次未完成的数据则恢复，否则重置
+    if (intentionStore.rentScheme.schemeId !== null) {
+      restoreFromStore()
+    } else {
+      intentionStore.initCreate()
+    }
   }
 })
 </script>
