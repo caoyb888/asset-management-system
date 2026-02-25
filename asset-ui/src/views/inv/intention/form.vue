@@ -442,8 +442,7 @@
         <el-button
           v-if="currentStep === 6"
           type="success"
-          :loading="submitting"
-          @click="handleSubmitApproval"
+          @click="approvalDialogVisible = true"
         >
           提交审批
         </el-button>
@@ -455,19 +454,37 @@
           暂存
         </el-button>
       </div>
+
+      <!-- 审批流程时间线（已创建记录后展示） -->
+      <template v-if="intentionId">
+        <el-divider content-position="left">审批流程</el-divider>
+        <div class="timeline-wrap">
+          <ApprovalTimeline :current-status="intentionCurrentStatus" />
+        </div>
+      </template>
     </el-card>
   </div>
+
+  <!-- 审批发起弹窗 -->
+  <ApprovalDialog
+    v-model:visible="approvalDialogVisible"
+    title="提交意向协议审批"
+    :loading="submitting"
+    @confirm="onApprovalConfirm"
+  />
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { ArrowLeft, Plus, Delete, Loading, Warning } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 
 import RentSchemeSelector from '@/components/inv/RentSchemeSelector.vue'
 import FeeItemSelector from '@/components/inv/FeeItemSelector.vue'
+import ApprovalDialog from '@/components/inv/ApprovalDialog.vue'
+import ApprovalTimeline from '@/components/inv/ApprovalTimeline.vue'
 
 import type { RentSchemeVO } from '@/api/inv/config'
 import type { FeeItemVO } from '@/api/inv/config'
@@ -497,6 +514,8 @@ const router = useRouter()
 const routeId = computed(() => route.query.id ? Number(route.query.id) : null)
 const isEdit = computed(() => !!routeId.value)
 const intentionId = ref<number | null>(null)
+const intentionCurrentStatus = ref(0)  // 审批状态 0草稿 1审批中 2通过 3驳回 4已转合同
+const approvalDialogVisible = ref(false)
 
 // ─── 步骤状态 ────────────────────────────────────────────────────────────────
 const currentStep = ref(0)
@@ -882,12 +901,13 @@ async function handleSaveDraft() {
   }
 }
 
-async function handleSubmitApproval() {
+async function onApprovalConfirm(_payload: { approverIds: number[]; comment: string }) {
   if (!intentionId.value) return
-  await ElMessageBox.confirm('提交审批后将不可再编辑，确认提交？', '提交审批', { type: 'warning' })
   submitting.value = true
   try {
     await submitApproval(intentionId.value)
+    intentionCurrentStatus.value = 1
+    approvalDialogVisible.value = false
     ElMessage.success('已成功提交审批')
     router.push('/inv/intentions')
   } catch (err: unknown) {
@@ -926,6 +946,9 @@ async function loadEditData(id: number) {
         if (!detail.billingMode) businessForm.value.billingMode = scheme.billingMode
       } catch { /* 方案已停用时忽略 */ }
     }
+
+    // ── 审批状态 ──
+    intentionCurrentStatus.value = detail.status ?? 0
 
     // ── Step 1: 基础信息 ──
     basicForm.value.intentionName = detail.intentionName || ''
@@ -1104,4 +1127,5 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
 }
+.timeline-wrap { max-width: 600px; padding: 0 4px 16px; }
 </style>

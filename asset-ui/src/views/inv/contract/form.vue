@@ -389,7 +389,7 @@
 
           <!-- 发起审批（仅草稿状态且有账期时展示） -->
           <div class="tab-actions" v-if="!isReadonly && isDraft && billingList.length > 0" style="margin-top: 20px">
-            <el-button type="danger" size="large" :loading="submitting" @click="handleSubmitApproval">
+            <el-button type="danger" size="large" @click="approvalDialogVisible = true">
               发起审批
             </el-button>
           </div>
@@ -421,8 +421,21 @@
           </el-table>
           <el-empty v-if="versionList.length === 0 && !versionsLoading" description="暂无版本记录" :image-size="60" />
         </el-tab-pane>
+
+        <!-- ===== Tab 6: 审批流程 ===== -->
+        <el-tab-pane label="审批流程" name="approval">
+          <ApprovalTimeline :current-status="contractStatus" style="max-width: 600px; padding: 8px 4px;" />
+        </el-tab-pane>
       </el-tabs>
     </el-card>
+
+    <!-- 审批发起弹窗 -->
+    <ApprovalDialog
+      v-model:visible="approvalDialogVisible"
+      title="发起招商合同审批"
+      :loading="submitting"
+      @confirm="onApprovalConfirm"
+    />
 
     <!-- 合同文本预览弹窗 -->
     <el-dialog
@@ -445,11 +458,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { ArrowLeft, Plus, Delete } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 
 import FeeItemSelector from '@/components/inv/FeeItemSelector.vue'
+import ApprovalDialog from '@/components/inv/ApprovalDialog.vue'
+import ApprovalTimeline from '@/components/inv/ApprovalTimeline.vue'
 import type { FeeItemVO } from '@/api/inv/config'
 import type { ProjectVO } from '@/api/base/project'
 import type { MerchantVO } from '@/api/base/merchant'
@@ -491,6 +506,7 @@ const costLoading = ref(false)
 const billingLoading = ref(false)
 const submitting = ref(false)
 const versionsLoading = ref(false)
+const approvalDialogVisible = ref(false)
 
 // ─── 基本信息表单 ─────────────────────────────────────────────────────────────
 const basicFormRef = ref<FormInstance>()
@@ -760,14 +776,14 @@ async function handleSaveFeeStages() {
   }
 }
 
-// ─── 发起审批 ─────────────────────────────────────────────────────────────────
-async function handleSubmitApproval() {
+// ─── 发起审批（由 ApprovalDialog confirm 触发） ────────────────────────────────
+async function onApprovalConfirm(_payload: { approverIds: number[]; comment: string }) {
   if (!contractId.value) return
-  await ElMessageBox.confirm('提交审批后将不可再编辑，确认提交？', '发起审批', { type: 'warning' })
   submitting.value = true
   try {
     await submitContractApproval(contractId.value)
     contractStatus.value = 1
+    approvalDialogVisible.value = false
     ElMessage.success('已成功提交审批')
   } catch (err: unknown) {
     ElMessage.error((err as { message?: string })?.message || '提交失败')

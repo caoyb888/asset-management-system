@@ -108,7 +108,7 @@
             <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
             <el-button
               v-if="recordId && currentStatus === 0"
-              type="warning" :loading="submitting" @click="handleSubmit"
+              type="warning" @click="approvalDialogVisible = true"
             >提交审批</el-button>
           </div>
 
@@ -148,8 +148,21 @@
           <el-empty v-if="attachments.length === 0" description="暂无审批材料" :image-size="60" />
         </el-tab-pane>
 
+        <!-- ===== Tab 3: 审批流程 ===== -->
+        <el-tab-pane label="审批流程" name="timeline">
+          <ApprovalTimeline :current-status="currentStatus" style="max-width: 600px; padding: 8px 4px;" />
+        </el-tab-pane>
+
       </el-tabs>
     </el-card>
+
+    <!-- 审批发起弹窗 -->
+    <ApprovalDialog
+      v-model:visible="approvalDialogVisible"
+      title="提交开业审批"
+      :loading="submitting"
+      @confirm="onApprovalConfirm"
+    />
 
     <!-- 添加附件 Dialog -->
     <el-dialog v-model="showAddAttachment" title="添加审批材料" width="480px">
@@ -184,6 +197,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, Plus } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 
+import ApprovalDialog from '@/components/inv/ApprovalDialog.vue'
+import ApprovalTimeline from '@/components/inv/ApprovalTimeline.vue'
 import { getContractPage, type ContractVO } from '@/api/inv/contract'
 import {
   createOpeningApproval, updateOpeningApproval, getOpeningApprovalDetail,
@@ -207,6 +222,7 @@ const submitting = ref(false)
 const attachSaving = ref(false)
 const creatingFromPrev = ref(false)
 const showAddAttachment = ref(false)
+const approvalDialogVisible = ref(false)
 
 // 审批进度步骤（0=草稿, 1=审批中, 2=已完成）
 const approvalStep = computed(() => {
@@ -303,14 +319,14 @@ async function handleSave() {
   }
 }
 
-// ─── 提交审批 ─────────────────────────────────────────────
-async function handleSubmit() {
-  if (!recordId.value) { ElMessage.warning('请先保存'); return }
-  await ElMessageBox.confirm('提交审批后进入审批流程，确认提交？', '提交确认', { type: 'warning' })
+// ─── 提交审批（由 ApprovalDialog confirm 触发） ─────────────
+async function onApprovalConfirm(_payload: { approverIds: number[]; comment: string }) {
+  if (!recordId.value) return
   submitting.value = true
   try {
     await submitOpeningApproval(recordId.value)
     currentStatus.value = 1
+    approvalDialogVisible.value = false
     ElMessage.success('已成功提交审批')
   } catch (err: unknown) {
     ElMessage.error((err as { message?: string })?.message || '提交失败')
