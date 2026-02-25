@@ -2,6 +2,8 @@ package com.asset.investment.policy.controller;
 
 import com.asset.common.exception.BizException;
 import com.asset.common.model.R;
+import com.asset.investment.decomposition.entity.InvRentDecomposition;
+import com.asset.investment.decomposition.service.InvRentDecompositionService;
 import com.asset.investment.policy.entity.InvRentPolicy;
 import com.asset.investment.policy.entity.InvRentPolicyIndicator;
 import com.asset.investment.policy.service.InvRentPolicyIndicatorService;
@@ -32,6 +34,7 @@ public class InvRentPolicyController {
 
     private final InvRentPolicyService policyService;
     private final InvRentPolicyIndicatorService indicatorService;
+    private final InvRentDecompositionService decompositionService;
 
     // ── 查询 ──────────────────────────────────────────────
 
@@ -94,6 +97,10 @@ public class InvRentPolicyController {
         InvRentPolicy existing = policyService.getById(id);
         if (existing != null && existing.getStatus() == 1) throw new BizException("审批中不可删除");
         if (existing != null && existing.getStatus() == 2) throw new BizException("已通过的政策不可删除");
+        // RP-08：检查是否有关联的租金分解记录
+        long decompCount = decompositionService.count(new LambdaQueryWrapper<InvRentDecomposition>()
+                .eq(InvRentDecomposition::getPolicyId, id));
+        if (decompCount > 0) throw new BizException("该政策已被租金分解引用（共 " + decompCount + " 条），不可删除");
         // 级联删除指标
         indicatorService.remove(new LambdaQueryWrapper<InvRentPolicyIndicator>()
                 .eq(InvRentPolicyIndicator::getPolicyId, id));

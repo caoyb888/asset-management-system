@@ -463,6 +463,7 @@ CREATE TABLE IF NOT EXISTS inv_rent_decomposition (
     total_annual_fee DECIMAL(14,2)                        COMMENT '标准年物管费汇总',
     status           TINYINT       DEFAULT 0              COMMENT '状态(0草稿/1审批中/2通过/3驳回)',
     approval_id      VARCHAR(100)                         COMMENT '审批流程实例ID',
+    policy_snapshot  JSON                                 COMMENT '租决政策关键参数快照(避免政策变更影响已有分解)',
     created_by       BIGINT                               COMMENT '创建人ID',
     created_at       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_by       BIGINT                               COMMENT '更新人ID',

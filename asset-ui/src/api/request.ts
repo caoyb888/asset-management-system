@@ -29,6 +29,10 @@ request.interceptors.request.use(
 // 响应拦截：统一错误处理
 request.interceptors.response.use(
   (response: AxiosResponse<ApiResponse>) => {
+    // blob 响应（文件下载）：直接返回原始数据
+    if (response.config.responseType === 'blob') {
+      return response.data as unknown as AxiosResponse
+    }
     const { code, msg, data } = response.data
     if (code === 200) {
       return data as unknown as AxiosResponse

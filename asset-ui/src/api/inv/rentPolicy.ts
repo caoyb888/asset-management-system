@@ -27,9 +27,12 @@ export interface RentPolicyVO {
 }
 
 export interface RentPolicyQuery {
+  page?: number
+  size?: number
   pageNum?: number
   pageSize?: number
   projectId?: number
+  policyCode?: string   // 按编号模糊搜索
   status?: number
 }
 

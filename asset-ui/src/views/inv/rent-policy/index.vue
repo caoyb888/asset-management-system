@@ -9,8 +9,8 @@
       </template>
 
       <el-form :model="query" inline class="search-form">
-        <el-form-item label="政策名称">
-          <el-input v-model="query.policyName" placeholder="政策名称" clearable />
+        <el-form-item label="政策编号">
+          <el-input v-model="query.policyCode" placeholder="政策编号" clearable />
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="query.status" placeholder="全部" clearable style="width: 120px">
@@ -27,10 +27,16 @@
       </el-form>
 
       <el-table v-loading="loading" :data="list" border stripe>
-        <el-table-column prop="policyCode" label="政策编号" width="140" />
-        <el-table-column prop="policyName" label="政策名称" />
-        <el-table-column prop="projectName" label="适用项目" />
-        <el-table-column prop="effectiveYear" label="适用年度" width="100" />
+        <el-table-column prop="policyCode" label="政策编号" width="150" />
+        <el-table-column label="业态范围">
+          <template #default="{ row }">{{ row.formatType || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="最短/最长租期(月)" width="160" align="center">
+          <template #default="{ row }">{{ row.minLeaseTerm ?? '-' }} / {{ row.maxLeaseTerm ?? '-' }}</template>
+        </el-table-column>
+        <el-table-column label="第一年租金(元/㎡/月)" width="170" align="right">
+          <template #default="{ row }">{{ row.year1Rent != null ? Number(row.year1Rent).toFixed(2) : '-' }}</template>
+        </el-table-column>
         <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="STATUS_MAP[row.status]?.type ?? 'info'">{{ STATUS_MAP[row.status]?.label ?? '-' }}</el-tag>
@@ -68,7 +74,7 @@ const router = useRouter()
 const loading = ref(false)
 const list = ref<RentPolicyVO[]>([])
 const total = ref(0)
-const query = reactive({ page: 1, size: 10, policyName: '', status: undefined as number | undefined })
+const query = reactive({ page: 1, size: 10, policyCode: '', status: undefined as number | undefined })
 
 type TagType = 'primary' | 'success' | 'warning' | 'danger' | 'info' | undefined
 const STATUS_MAP: Record<number, { label: string; type: TagType }> = {
@@ -86,10 +92,10 @@ async function fetchList() {
   } finally { loading.value = false }
 }
 
-function handleReset() { query.page = 1; query.policyName = ''; query.status = undefined; fetchList() }
+function handleReset() { query.page = 1; query.policyCode = ''; query.status = undefined; fetchList() }
 
 async function handleDelete(row: RentPolicyVO) {
-  await ElMessageBox.confirm(`确认删除政策 "${row.policyName}"？`, '提示', { type: 'warning' })
+  await ElMessageBox.confirm(`确认删除政策 "${row.policyCode}"？`, '提示', { type: 'warning' })
   await deleteRentPolicy(row.id)
   ElMessage.success('删除成功'); fetchList()
 }
