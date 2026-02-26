@@ -95,6 +95,38 @@
             <template #title>租金分解</template>
           </el-menu-item>
         </el-sub-menu>
+
+        <!-- 营运管理 -->
+        <el-sub-menu index="opr">
+          <template #title>
+            <el-icon><Operation /></el-icon>
+            <span>营运管理</span>
+          </template>
+          <el-menu-item index="/opr/ledgers">
+            <el-icon><Memo /></el-icon>
+            <template #title>合同台账</template>
+          </el-menu-item>
+          <el-menu-item index="/opr/contract-changes">
+            <el-icon><Switch /></el-icon>
+            <template #title>合同变更</template>
+          </el-menu-item>
+          <el-menu-item index="/opr/revenue-reports">
+            <el-icon><TrendCharts /></el-icon>
+            <template #title>营收填报</template>
+          </el-menu-item>
+          <el-menu-item index="/opr/floating-rent">
+            <el-icon><DataLine /></el-icon>
+            <template #title>浮动租金</template>
+          </el-menu-item>
+          <el-menu-item index="/opr/passenger-flows">
+            <el-icon><UserFilled /></el-icon>
+            <template #title>客流填报</template>
+          </el-menu-item>
+          <el-menu-item index="/opr/terminations">
+            <el-icon><CircleClose /></el-icon>
+            <template #title>合同解约</template>
+          </el-menu-item>
+        </el-sub-menu>
       </el-menu>
     </el-aside>
 
@@ -146,7 +178,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop, Star, User, Bell, Document, Briefcase, Setting, Coin, EditPen, Tickets, Checked, DataLine, PieChart } from '@element-plus/icons-vue'
+import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop, Star, User, Bell, Document, Briefcase, Setting, Coin, EditPen, Tickets, Checked, DataLine, PieChart, Operation, Memo, Switch, TrendCharts, UserFilled, CircleClose } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/modules/user'
 import { useAppStore } from '@/store/modules/app'
 

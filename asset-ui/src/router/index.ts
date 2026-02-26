@@ -157,6 +157,61 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/inv/rent-decomp/form.vue'),
         meta: { title: '租金分解 - 新增/编辑', icon: 'DataLine' },
       },
+      // ── 营运管理 ──
+      {
+        path: 'opr/ledgers',
+        name: 'OprLedger',
+        component: () => import('@/views/opr/ledger/index.vue'),
+        meta: { title: '合同台账', icon: 'Memo' },
+      },
+      {
+        path: 'opr/ledgers/:id',
+        name: 'OprLedgerDetail',
+        component: () => import('@/views/opr/ledger/detail.vue'),
+        meta: { title: '台账详情', icon: 'Memo' },
+      },
+      {
+        path: 'opr/contract-changes',
+        name: 'OprContractChange',
+        component: () => import('@/views/opr/change/index.vue'),
+        meta: { title: '合同变更', icon: 'Switch' },
+      },
+      {
+        path: 'opr/contract-changes/form',
+        name: 'OprContractChangeForm',
+        component: () => import('@/views/opr/change/form.vue'),
+        meta: { title: '变更 - 新增/编辑', icon: 'Switch' },
+      },
+      {
+        path: 'opr/revenue-reports',
+        name: 'OprRevenueReport',
+        component: () => import('@/views/opr/revenue/index.vue'),
+        meta: { title: '营收填报', icon: 'TrendCharts' },
+      },
+      {
+        path: 'opr/floating-rent',
+        name: 'OprFloatingRent',
+        component: () => import('@/views/opr/revenue/floating-rent.vue'),
+        meta: { title: '浮动租金', icon: 'DataLine' },
+      },
+      {
+        path: 'opr/passenger-flows',
+        name: 'OprPassengerFlow',
+        component: () => import('@/views/opr/flow/index.vue'),
+        meta: { title: '客流填报', icon: 'User' },
+      },
+      {
+        path: 'opr/terminations',
+        name: 'OprTermination',
+        component: () => import('@/views/opr/termination/index.vue'),
+        meta: { title: '合同解约', icon: 'CircleClose' },
+      },
+      {
+        path: 'opr/terminations/form',
+        name: 'OprTerminationForm',
+        component: () => import('@/views/opr/termination/form.vue'),
+        meta: { title: '解约 - 新增/编辑', icon: 'CircleClose' },
+      },
     ],
   },
   {
