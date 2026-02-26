@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import request from '@/api/request'
 
 /** 合同解约查询参数 */
 export interface TerminationQueryDTO {

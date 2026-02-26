@@ -20,6 +20,10 @@ public class R<T> implements Serializable {
         return r;
     }
 
+    public static R<Void> ok() {
+        return ok(null);
+    }
+
     public static <T> R<T> fail(int code, String msg) {
         R<T> r = new R<>();
         r.setCode(code);

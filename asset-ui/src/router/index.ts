@@ -171,6 +171,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '台账详情', icon: 'Memo' },
       },
       {
+        path: 'opr/alerts/contract-expiry',
+        name: 'OprContractExpiryAlert',
+        component: () => import('@/views/opr/alerts/contract-expiry.vue'),
+        meta: { title: '合同到期预警', icon: 'Warning' },
+      },
+      {
         path: 'opr/contract-changes',
         name: 'OprContractChange',
         component: () => import('@/views/opr/change/index.vue'),
@@ -181,6 +187,12 @@ const routes: RouteRecordRaw[] = [
         name: 'OprContractChangeForm',
         component: () => import('@/views/opr/change/form.vue'),
         meta: { title: '变更 - 新增/编辑', icon: 'Switch' },
+      },
+      {
+        path: 'opr/contract-changes/:id',
+        name: 'OprContractChangeDetail',
+        component: () => import('@/views/opr/change/detail.vue'),
+        meta: { title: '变更详情', icon: 'Switch' },
       },
       {
         path: 'opr/revenue-reports',

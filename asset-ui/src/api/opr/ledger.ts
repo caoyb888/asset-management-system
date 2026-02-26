@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import request from '@/api/request'
 
 /** 合同台账查询参数 */
 export interface LedgerQueryDTO {
@@ -6,7 +6,10 @@ export interface LedgerQueryDTO {
   contractType?: number
   status?: number
   auditStatus?: number
+  doubleSignStatus?: number
   ledgerCode?: string
+  contractEndFrom?: string
+  contractEndTo?: string
   pageNum?: number
   pageSize?: number
 }
@@ -28,6 +31,24 @@ export interface OprContractLedger {
   auditStatus: number
   status: number
   pushTime?: string
+  createdAt?: string
+}
+
+/** 合同台账详情 VO（含关联信息） */
+export interface LedgerDetailVO extends OprContractLedger {
+  projectName?: string
+  merchantName?: string
+  brandName?: string
+  contractCode?: string
+  contractName?: string
+  shopCode?: string
+  shopId?: number
+  receivablePlans?: OprReceivablePlan[]
+  contractTypeName?: string
+  doubleSignStatusName?: string
+  receivableStatusName?: string
+  auditStatusName?: string
+  statusName?: string
 }
 
 /** 应收计划 */
