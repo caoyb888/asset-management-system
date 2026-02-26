@@ -201,6 +201,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '营收填报', icon: 'TrendCharts' },
       },
       {
+        path: 'opr/revenue-reports/form',
+        name: 'OprRevenueReportForm',
+        component: () => import('@/views/opr/revenue/form.vue'),
+        meta: { title: '营收日历填报', icon: 'TrendCharts' },
+      },
+      {
         path: 'opr/floating-rent',
         name: 'OprFloatingRent',
         component: () => import('@/views/opr/revenue/floating-rent.vue'),
