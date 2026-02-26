@@ -55,6 +55,8 @@ declare module 'vue' {
     ElTabPane: typeof import('element-plus/es')['ElTabPane']
     ElTabs: typeof import('element-plus/es')['ElTabs']
     ElTag: typeof import('element-plus/es')['ElTag']
+    ElTimeline: typeof import('element-plus/es')['ElTimeline']
+    ElTimelineItem: typeof import('element-plus/es')['ElTimelineItem']
     ElUpload: typeof import('element-plus/es')['ElUpload']
     FeeItemSelector: typeof import('./src/components/inv/FeeItemSelector.vue')['default']
     RentSchemeSelector: typeof import('./src/components/inv/RentSchemeSelector.vue')['default']
