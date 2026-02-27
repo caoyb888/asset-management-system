@@ -230,6 +230,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/opr/termination/form.vue'),
         meta: { title: '解约 - 新增/编辑', icon: 'CircleClose' },
       },
+      {
+        path: 'opr/terminations/:id',
+        name: 'OprTerminationDetail',
+        component: () => import('@/views/opr/termination/detail.vue'),
+        meta: { title: '解约单详情', icon: 'CircleClose' },
+      },
     ],
   },
   {
