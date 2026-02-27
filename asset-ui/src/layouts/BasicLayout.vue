@@ -146,6 +146,10 @@
             <el-icon><CreditCard /></el-icon>
             <template #title>收款管理</template>
           </el-menu-item>
+          <el-menu-item index="/fin/write-offs">
+            <el-icon><CircleCheck /></el-icon>
+            <template #title>核销管理</template>
+          </el-menu-item>
           <el-menu-item index="/fin/vouchers">
             <el-icon><Postcard /></el-icon>
             <template #title>凭证管理</template>
@@ -210,7 +214,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop, Star, User, Bell, Document, Briefcase, Setting, Coin, EditPen, Tickets, Checked, DataLine, PieChart, Operation, Memo, Switch, TrendCharts, UserFilled, CircleClose, Money, List, CreditCard, Postcard, Wallet, CollectionTag, Warning } from '@element-plus/icons-vue'
+import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop, Star, User, Bell, Document, Briefcase, Setting, Coin, EditPen, Tickets, Checked, DataLine, PieChart, Operation, Memo, Switch, TrendCharts, UserFilled, CircleClose, Money, List, CreditCard, Postcard, Wallet, CollectionTag, Warning, CircleCheck } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/modules/user'
 import { useAppStore } from '@/store/modules/app'
 

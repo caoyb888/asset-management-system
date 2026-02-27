@@ -13,10 +13,14 @@ public class ReceivableDetailVO {
     private Long feeItemId; private String feeName;
     private LocalDate billingStart; private LocalDate billingEnd; private LocalDate dueDate;
     private String accrualMonth;
-    private BigDecimal originalAmount; private BigDecimal actualAmount;
-    private BigDecimal receivedAmount; private BigDecimal reductionAmount;
-    private BigDecimal outstandingAmount; // actualAmount - receivedAmount
+    private BigDecimal originalAmount; private BigDecimal adjustAmount;
+    private BigDecimal deductionAmount; private BigDecimal actualAmount;
+    private BigDecimal receivedAmount; private BigDecimal outstandingAmount;
     private Integer status; private String statusName;
     private Integer overdueDays;
     private Boolean isOverdue;
+    /** 是否已打印：0否/1是 */
+    private Integer isPrinted;
+    /** 是否已开票：0否/1是 */
+    private Integer isInvoiced;
 }

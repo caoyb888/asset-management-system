@@ -10,5 +10,5 @@ public class OpenApiGroupConfig {
     @Bean public GroupedOpenApi voucherApi() { return GroupedOpenApi.builder().group("03-凭证管理").addOpenApiCustomizer(o -> o.info(new Info().title("凭证管理").version("1.0"))).pathsToMatch("/fin/vouchers/**").build(); }
     @Bean public GroupedOpenApi depositApi() { return GroupedOpenApi.builder().group("04-保证金管理").addOpenApiCustomizer(o -> o.info(new Info().title("保证金管理").version("1.0"))).pathsToMatch("/fin/deposits/**").build(); }
     @Bean public GroupedOpenApi prepaymentApi() { return GroupedOpenApi.builder().group("05-预收款管理").addOpenApiCustomizer(o -> o.info(new Info().title("预收款管理").version("1.0"))).pathsToMatch("/fin/prepayments/**").build(); }
-    @Bean public GroupedOpenApi reductionApi() { return GroupedOpenApi.builder().group("06-减免调整").addOpenApiCustomizer(o -> o.info(new Info().title("减免调整").version("1.0"))).pathsToMatch("/fin/reductions/**").build(); }
+    @Bean public GroupedOpenApi deductionApi() { return GroupedOpenApi.builder().group("06-减免调整").addOpenApiCustomizer(o -> o.info(new Info().title("减免与调整单").version("1.0"))).pathsToMatch("/fin/deductions/**", "/fin/adjustments/**").build(); }
 }

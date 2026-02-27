@@ -15,4 +15,20 @@ public interface FinReceivableService extends IService<FinReceivable> {
     void syncFromPlan(Long planId);
     /** 刷新逾期天数（每日定时任务） */
     void refreshOverdueDays();
+
+    // ─── 减免管理 ─────────────────────────────────────────────────────────────
+    /** 提交减免申请（创建减免单，发起OA审批） */
+    Long applyDeduction(DeductionCreateDTO dto);
+    /** 减免审批回调（通过后更新应收金额） */
+    void deductionCallback(String approvalId, boolean approved);
+
+    // ─── 调整管理 ─────────────────────────────────────────────────────────────
+    /** 提交调整申请（创建调整单，发起OA审批） */
+    Long applyAdjustment(AdjustmentCreateDTO dto);
+    /** 调整审批回调（通过后更新应收金额） */
+    void adjustmentCallback(String approvalId, boolean approved);
+
+    // ─── 账单打印 ─────────────────────────────────────────────────────────────
+    /** 标记为已打印（is_printed=1） */
+    void markPrinted(List<Long> ids);
 }

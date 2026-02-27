@@ -88,6 +88,13 @@
         </el-form-item>
       </el-form>
 
+      <!-- 批量打印工具栏 -->
+      <div v-if="activeTab === 'detail' && selectedRows.length > 0" style="margin-bottom:8px">
+        <el-button type="primary" size="small" @click="handleMarkPrinted">
+          打印账单（已选 {{ selectedRows.length }} 条）
+        </el-button>
+      </div>
+
       <!-- 应收明细表格 -->
       <el-table
         v-if="activeTab === 'detail'"
@@ -96,7 +103,9 @@
         stripe
         border
         row-key="id"
+        @selection-change="handleSelectionChange"
       >
+        <el-table-column type="selection" width="45" />
         <el-table-column prop="receivableCode" label="应收编号" width="160" fixed="left" />
         <el-table-column prop="contractCode" label="合同编号" width="150" />
         <el-table-column prop="merchantName" label="商家" width="130" />
@@ -132,7 +141,13 @@
             <el-tag :type="statusTagType(row.status)" size="small">{{ row.statusName }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="100" fixed="right">
+        <el-table-column label="已打印" width="80" align="center">
+          <template #default="{ row }">
+            <el-tag v-if="row.isPrinted === 1" type="success" size="small">已打印</el-tag>
+            <span v-else style="color:#c0c4cc">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <el-button
               v-if="row.status === 0 || row.status === 1"
@@ -141,6 +156,13 @@
               size="small"
               @click="openReductionDialog(row)"
             >减免</el-button>
+            <el-button
+              v-if="row.status === 0 || row.status === 1"
+              type="primary"
+              link
+              size="small"
+              @click="openAdjustDialog(row)"
+            >调整</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -169,8 +191,8 @@
             <span :class="row.totalOutstanding > 0 ? 'text-danger' : ''">{{ fmt(row.totalOutstanding) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="totalReduction" label="减免合计" width="120" align="right">
-          <template #default="{ row }">{{ fmt(row.totalReduction) }}</template>
+        <el-table-column prop="totalDeduction" label="减免合计" width="120" align="right">
+          <template #default="{ row }">{{ fmt(row.totalDeduction) }}</template>
         </el-table-column>
         <el-table-column prop="overdueCount" label="逾期条数" width="90" align="center">
           <template #default="{ row }">
@@ -227,22 +249,28 @@
       />
     </el-card>
 
-    <!-- 减免弹窗 -->
-    <el-dialog v-model="reductionVisible" title="减免调整" width="440px" @closed="reductionForm = { receivableId: 0, reductionAmount: 0, reason: '' }">
+    <!-- 减免申请弹窗 -->
+    <el-dialog v-model="reductionVisible" title="申请减免" width="440px" destroy-on-close>
       <el-descriptions :column="1" border class="mb-16">
         <el-descriptions-item label="应收编号">{{ reductionRow?.receivableCode }}</el-descriptions-item>
-        <el-descriptions-item label="应收金额">{{ fmt(reductionRow?.actualAmount) }}</el-descriptions-item>
-        <el-descriptions-item label="未收金额">{{ fmt(reductionRow?.outstandingAmount) }}</el-descriptions-item>
+        <el-descriptions-item label="实际应收">{{ fmt(reductionRow?.actualAmount) }}</el-descriptions-item>
+        <el-descriptions-item label="欠费金额">
+          <span class="text-danger">{{ fmt(reductionRow?.outstandingAmount) }}</span>
+        </el-descriptions-item>
       </el-descriptions>
       <el-form :model="reductionForm" label-width="90px">
         <el-form-item label="减免金额" required>
           <el-input-number
-            v-model="reductionForm.reductionAmount"
+            v-model="reductionForm.deductionAmount"
             :min="0.01"
             :max="reductionRow?.outstandingAmount ?? 9999999"
             :precision="2"
-            style="width:200px"
+            controls-position="right"
+            style="width:220px"
           />
+          <span style="margin-left:8px;font-size:12px;color:#909399">
+            最多 {{ fmt(reductionRow?.outstandingAmount) }} 元
+          </span>
         </el-form-item>
         <el-form-item label="减免原因" required>
           <el-input v-model="reductionForm.reason" type="textarea" :rows="3" placeholder="请填写减免原因" />
@@ -250,7 +278,43 @@
       </el-form>
       <template #footer>
         <el-button @click="reductionVisible = false">取消</el-button>
-        <el-button type="primary" :loading="reductionLoading" @click="submitReduction">确认减免</el-button>
+        <el-button type="primary" :loading="reductionLoading" @click="submitReduction">提交申请</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 调整申请弹窗 -->
+    <el-dialog v-model="adjustVisible" title="申请调整" width="440px" destroy-on-close>
+      <el-descriptions :column="1" border class="mb-16">
+        <el-descriptions-item label="应收编号">{{ adjustRow?.receivableCode }}</el-descriptions-item>
+        <el-descriptions-item label="原始应收">{{ fmt(adjustRow?.originalAmount) }}</el-descriptions-item>
+        <el-descriptions-item label="实际应收">{{ fmt(adjustRow?.actualAmount) }}</el-descriptions-item>
+        <el-descriptions-item label="欠费金额">
+          <span class="text-danger">{{ fmt(adjustRow?.outstandingAmount) }}</span>
+        </el-descriptions-item>
+      </el-descriptions>
+      <el-form :model="adjustForm" label-width="90px">
+        <el-form-item label="调整类型" required>
+          <el-radio-group v-model="adjustForm.adjustType">
+            <el-radio :value="1">增加应收</el-radio>
+            <el-radio :value="2">减少应收</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="调整金额" required>
+          <el-input-number
+            v-model="adjustForm.adjustAmount"
+            :min="0.01"
+            :precision="2"
+            controls-position="right"
+            style="width:220px"
+          />
+        </el-form-item>
+        <el-form-item label="调整原因" required>
+          <el-input v-model="adjustForm.reason" type="textarea" :rows="3" placeholder="请填写调整原因" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="adjustVisible = false">取消</el-button>
+        <el-button type="primary" :loading="adjustLoading" @click="submitAdjust">提交申请</el-button>
       </template>
     </el-dialog>
   </div>
@@ -266,7 +330,9 @@ import {
   getOverdueStatistics,
   exportReceivable,
   refreshOverdueDays,
-  applyReduction,
+  applyDeduction,
+  applyAdjustment,
+  markPrinted,
   type ReceivableDetailVO,
   type ReceivableSummaryVO,
   type OverdueStatisticsVO,
@@ -388,36 +454,86 @@ async function handleRefreshOverdue() {
   }
 }
 
-// 减免弹窗
+// ─── 表格多选（打印账单用）──────────────────────────────────────────────────
+const selectedRows = ref<ReceivableDetailVO[]>([])
+function handleSelectionChange(rows: ReceivableDetailVO[]) {
+  selectedRows.value = rows
+}
+
+async function handleMarkPrinted() {
+  if (!selectedRows.value.length) return
+  const ids = selectedRows.value.map(r => r.id)
+  try {
+    await markPrinted(ids)
+    ElMessage.success(`已标记 ${ids.length} 条为已打印`)
+    loadData()
+  } catch {
+    ElMessage.error('标记失败')
+  }
+}
+
+// ─── 减免申请弹窗 ─────────────────────────────────────────────────────────────
 const reductionVisible = ref(false)
 const reductionLoading = ref(false)
 const reductionRow = ref<ReceivableDetailVO | null>(null)
-const reductionForm = reactive({ receivableId: 0, reductionAmount: 0, reason: '' })
+const reductionForm = reactive({ receivableId: 0, deductionAmount: 0, reason: '' })
 
 function openReductionDialog(row: ReceivableDetailVO) {
   reductionRow.value = row
   reductionForm.receivableId = row.id
-  reductionForm.reductionAmount = 0
+  reductionForm.deductionAmount = 0
   reductionForm.reason = ''
   reductionVisible.value = true
 }
 
 async function submitReduction() {
-  if (!reductionForm.reductionAmount || !reductionForm.reason.trim()) {
+  if (!reductionForm.deductionAmount || !reductionForm.reason.trim()) {
     ElMessage.warning('请填写减免金额和原因')
     return
   }
   reductionLoading.value = true
   try {
-    await applyReduction(reductionForm)
-    ElMessage.success('减免成功')
+    await applyDeduction(reductionForm)
+    ElMessage.success('减免申请已提交，等待审批')
     reductionVisible.value = false
     loadData()
-    loadOverdueStats()
   } catch {
-    ElMessage.error('减免失败')
+    ElMessage.error('申请失败')
   } finally {
     reductionLoading.value = false
+  }
+}
+
+// ─── 调整申请弹窗 ─────────────────────────────────────────────────────────────
+const adjustVisible = ref(false)
+const adjustLoading = ref(false)
+const adjustRow = ref<ReceivableDetailVO | null>(null)
+const adjustForm = reactive({ receivableId: 0, adjustType: 1 as 1 | 2, adjustAmount: 0, reason: '' })
+
+function openAdjustDialog(row: ReceivableDetailVO) {
+  adjustRow.value = row
+  adjustForm.receivableId = row.id
+  adjustForm.adjustType = 1
+  adjustForm.adjustAmount = 0
+  adjustForm.reason = ''
+  adjustVisible.value = true
+}
+
+async function submitAdjust() {
+  if (!adjustForm.adjustAmount || !adjustForm.reason.trim()) {
+    ElMessage.warning('请填写调整金额和原因')
+    return
+  }
+  adjustLoading.value = true
+  try {
+    await applyAdjustment(adjustForm)
+    ElMessage.success('调整申请已提交，等待审批')
+    adjustVisible.value = false
+    loadData()
+  } catch {
+    ElMessage.error('申请失败')
+  } finally {
+    adjustLoading.value = false
   }
 }
 

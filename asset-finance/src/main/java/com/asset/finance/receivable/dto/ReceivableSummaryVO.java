@@ -14,7 +14,7 @@ public class ReceivableSummaryVO {
     private BigDecimal totalOriginal;    // 原始应收合计
     private BigDecimal totalActual;      // 实际应收合计
     private BigDecimal totalReceived;    // 已收合计
-    private BigDecimal totalReduction;   // 减免合计
+    private BigDecimal totalDeduction;   // 减免合计
     private BigDecimal totalOutstanding; // 未收合计（actual - received）
     private Integer overdueCount;        // 逾期条数
     private BigDecimal overdueAmount;    // 逾期金额

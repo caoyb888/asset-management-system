@@ -34,14 +34,17 @@ export interface ReceivableDetailVO {
   dueDate: string
   accrualMonth: string
   originalAmount: number
+  adjustAmount: number
+  deductionAmount: number
   actualAmount: number
   receivedAmount: number
-  reductionAmount: number
   outstandingAmount: number
   status: number
   statusName: string
   overdueDays: number
   isOverdue: boolean
+  isPrinted: number
+  isInvoiced: number
 }
 
 /** 应收汇总 VO */
@@ -56,7 +59,7 @@ export interface ReceivableSummaryVO {
   totalOriginal: number
   totalActual: number
   totalReceived: number
-  totalReduction: number
+  totalDeduction: number
   totalOutstanding: number
   overdueCount: number
   overdueAmount: number
@@ -72,10 +75,18 @@ export interface OverdueStatisticsVO {
   topDebtors: ReceivableSummaryVO[]
 }
 
-/** 减免调整参数 */
-export interface ReductionDTO {
+/** 减免申请参数 */
+export interface DeductionDTO {
   receivableId: number
-  reductionAmount: number
+  deductionAmount: number
+  reason: string
+}
+
+/** 调整申请参数 */
+export interface AdjustmentDTO {
+  receivableId: number
+  adjustType: 1 | 2    // 1增加/2减少
+  adjustAmount: number
   reason: string
 }
 
@@ -99,17 +110,27 @@ export function exportReceivable(params: ReceivableQueryDTO) {
   return request.get('/api/fin/receivables/export', { params, responseType: 'blob' })
 }
 
-/** 从营运应收计划同步（按台账planId） */
+/** 从营运应收计划同步 */
 export function syncFromPlan(planId: number) {
   return request.post(`/api/fin/receivables/sync-from-plan/${planId}`)
 }
 
-/** 手动刷新逾期天数 */
+/** 手动刷新欠费金额 */
 export function refreshOverdueDays() {
   return request.post('/api/fin/receivables/refresh-overdue')
 }
 
-/** 减免调整 */
-export function applyReduction(data: ReductionDTO) {
-  return request.post('/api/fin/receivables/reduction', data)
+/** 申请减免 */
+export function applyDeduction(data: DeductionDTO) {
+  return request.post('/api/fin/receivables/deduction', data)
+}
+
+/** 申请调整 */
+export function applyAdjustment(data: AdjustmentDTO) {
+  return request.post('/api/fin/receivables/adjustment', data)
+}
+
+/** 标记账单为已打印 */
+export function markPrinted(ids: number[]) {
+  return request.post('/api/fin/receivables/mark-printed', ids)
 }

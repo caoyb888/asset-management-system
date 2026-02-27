@@ -250,6 +250,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '收款管理', icon: 'CreditCard' },
       },
       {
+        path: 'fin/write-offs',
+        name: 'FinWriteOff',
+        component: () => import('@/views/fin/write-off/index.vue'),
+        meta: { title: '核销管理', icon: 'CircleCheck' },
+      },
+      {
         path: 'fin/vouchers',
         name: 'FinVoucher',
         component: () => import('@/views/fin/voucher/index.vue'),
