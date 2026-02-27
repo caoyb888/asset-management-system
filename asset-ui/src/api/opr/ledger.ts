@@ -109,3 +109,20 @@ export function addOneTimePayment(id: number, data: unknown) {
 export function listReceivables(id: number) {
   return request.get(`/api/opr/ledgers/${id}/receivables`)
 }
+
+/** 选择器简化 VO */
+export interface LedgerSelectorVO {
+  id: number
+  ledgerCode: string
+  contractCode?: string
+  merchantName?: string
+  shopCode?: string
+  contractStart?: string
+  contractEnd?: string
+  status: number
+}
+
+/** 选择器模糊搜索（按台账编号/合同编号/商家名） */
+export function searchLedgers(keyword?: string, pageSize = 10) {
+  return request.get<LedgerSelectorVO[]>('/api/opr/ledgers/search', { params: { keyword, pageSize } })
+}

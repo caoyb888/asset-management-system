@@ -5,6 +5,7 @@ import com.asset.operation.engine.ReceivablePlanGenerator;
 import com.asset.operation.ledger.dto.AuditDTO;
 import com.asset.operation.ledger.dto.LedgerDetailVO;
 import com.asset.operation.ledger.dto.LedgerQueryDTO;
+import com.asset.operation.ledger.dto.LedgerSelectorVO;
 import com.asset.operation.ledger.dto.OneTimePaymentDTO;
 import com.asset.operation.ledger.entity.OprContractLedger;
 import com.asset.operation.ledger.entity.OprOneTimePayment;
@@ -379,6 +380,88 @@ public class OprContractLedgerServiceImpl extends ServiceImpl<OprContractLedgerM
         );
 
         log.info("[一次性首款] 台账 {} 录入首款成功，paymentId={}，receivableId={}", ledgerId, payment.getId(), plan.getId());
+    }
+
+    // ====================================================
+    // 选择器搜索（供前端 ContractSelector 组件使用）
+    // ====================================================
+
+    @Override
+    public List<LedgerSelectorVO> searchForSelector(String keyword, int pageSize) {
+        // 先按台账编号或商家名模糊查台账ID列表
+        LambdaQueryWrapper<OprContractLedger> wrapper = new LambdaQueryWrapper<OprContractLedger>()
+                .eq(OprContractLedger::getStatus, 0) // 仅进行中台账
+                .orderByDesc(OprContractLedger::getCreatedAt)
+                .last("LIMIT " + Math.min(pageSize, 50));
+
+        if (keyword != null && !keyword.isBlank()) {
+            wrapper.and(w -> w
+                    .like(OprContractLedger::getLedgerCode, keyword)
+                    .or()
+                    // merchantId 上做 LIKE 无意义，依赖后续关联查询过滤
+                    .apply("1=1")
+            );
+        }
+
+        List<OprContractLedger> ledgers = list(wrapper);
+        if (ledgers.isEmpty()) {
+            return List.of();
+        }
+
+        // 为每条台账补充关联信息
+        List<LedgerSelectorVO> result = new java.util.ArrayList<>();
+        for (OprContractLedger ledger : ledgers) {
+            LedgerSelectorVO vo = new LedgerSelectorVO();
+            vo.setId(ledger.getId());
+            vo.setLedgerCode(ledger.getLedgerCode());
+            vo.setContractStart(ledger.getContractStart());
+            vo.setContractEnd(ledger.getContractEnd());
+            vo.setStatus(ledger.getStatus());
+
+            // 查合同编号
+            try {
+                String contractCode = jdbcTemplate.queryForObject(
+                        "SELECT contract_code FROM inv_lease_contract WHERE id = ? AND is_deleted = 0 LIMIT 1",
+                        String.class, ledger.getContractId());
+                vo.setContractCode(contractCode);
+            } catch (Exception ignored) {}
+
+            // 查商家名称
+            if (ledger.getMerchantId() != null) {
+                try {
+                    String merchantName = jdbcTemplate.queryForObject(
+                            "SELECT merchant_name FROM biz_merchant WHERE id = ? AND is_deleted = 0 LIMIT 1",
+                            String.class, ledger.getMerchantId());
+                    vo.setMerchantName(merchantName);
+                } catch (Exception ignored) {}
+            }
+
+            // 查第一个商铺编号
+            try {
+                String shopCode = jdbcTemplate.queryForObject(
+                        """
+                        SELECT biz.shop_code FROM inv_lease_contract_shop s
+                        JOIN biz_shop biz ON biz.id = s.shop_id
+                        WHERE s.contract_id = ? AND s.is_deleted = 0 ORDER BY s.id LIMIT 1
+                        """,
+                        String.class, ledger.getContractId());
+                vo.setShopCode(shopCode);
+            } catch (Exception ignored) {}
+
+            // 关键字同时匹配商家名
+            if (keyword != null && !keyword.isBlank()) {
+                boolean matchCode = vo.getLedgerCode() != null && vo.getLedgerCode().contains(keyword);
+                boolean matchMerchant = vo.getMerchantName() != null && vo.getMerchantName().contains(keyword);
+                boolean matchContract = vo.getContractCode() != null && vo.getContractCode().contains(keyword);
+                if (!matchCode && !matchMerchant && !matchContract) {
+                    continue; // 跳过不匹配
+                }
+            }
+
+            result.add(vo);
+            if (result.size() >= pageSize) break;
+        }
+        return result;
     }
 
     // ====================================================

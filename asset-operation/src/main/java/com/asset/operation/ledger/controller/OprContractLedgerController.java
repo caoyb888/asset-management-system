@@ -4,6 +4,7 @@ import com.asset.common.model.R;
 import com.asset.operation.ledger.dto.AuditDTO;
 import com.asset.operation.ledger.dto.LedgerDetailVO;
 import com.asset.operation.ledger.dto.LedgerQueryDTO;
+import com.asset.operation.ledger.dto.LedgerSelectorVO;
 import com.asset.operation.ledger.dto.OneTimePaymentDTO;
 import com.asset.operation.ledger.entity.OprContractLedger;
 import com.asset.operation.ledger.service.OprContractLedgerService;
@@ -14,6 +15,8 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 合同台账 Controller
@@ -33,6 +36,16 @@ public class OprContractLedgerController {
     @GetMapping
     public R<IPage<OprContractLedger>> page(LedgerQueryDTO query) {
         return R.ok(ledgerService.pageQuery(query));
+    }
+
+    /** 选择器搜索（供前端 ContractSelector 下拉组件使用） */
+    @Operation(summary = "台账选择器模糊搜索（按台账编号/合同编号/商家名）")
+    @GetMapping("/search")
+    public R<List<LedgerSelectorVO>> search(
+            @Parameter(description = "搜索关键字") @RequestParam(required = false) String keyword,
+            @Parameter(description = "返回条数，默认10，最大50") @RequestParam(defaultValue = "10") int pageSize
+    ) {
+        return R.ok(ledgerService.searchForSelector(keyword, pageSize));
     }
 
     /** 台账详情（含应收计划/关联信息） */

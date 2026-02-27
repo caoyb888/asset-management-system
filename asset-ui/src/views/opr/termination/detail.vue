@@ -101,13 +101,13 @@
           正数金额表示「应收（租方欠款）」，负数金额表示「应退（平台退款）」
         </el-alert>
 
-        <!-- 审批信息 -->
-        <div v-if="detail.approvalId" class="mt-24">
-          <div class="section-title">审批信息</div>
-          <el-descriptions :column="2" border>
-            <el-descriptions-item label="审批流程ID">{{ detail.approvalId }}</el-descriptions-item>
-            <el-descriptions-item label="当前状态">{{ detail.statusName }}</el-descriptions-item>
-          </el-descriptions>
+        <!-- 审批进度时间线 -->
+        <div class="mt-24">
+          <div class="section-title">审批进度</div>
+          <ApprovalTimeline
+            :records="approvalRecords"
+            :current-status="detail.status"
+          />
         </div>
       </template>
     </el-card>
@@ -134,7 +134,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
@@ -145,6 +145,7 @@ import {
   terminationApprovalCallback,
   type TerminationDetailVO
 } from '@/api/opr/termination'
+import ApprovalTimeline, { type ApprovalRecord } from '@/components/inv/ApprovalTimeline.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -209,6 +210,22 @@ async function doCallback() {
     callbackLoading.value = false
   }
 }
+
+/** 根据解约单状态派生审批时间线记录 */
+const approvalRecords = computed<ApprovalRecord[]>(() => {
+  if (!detail.value) return []
+  const records: ApprovalRecord[] = []
+  records.push({ action: 'create', time: (detail.value as any).createdAt })
+  if (detail.value.status >= 1) {
+    records.push({ action: 'submit', comment: detail.value.approvalId ? `流程ID: ${detail.value.approvalId}` : undefined })
+  }
+  if (detail.value.status === 2) {
+    records.push({ action: 'approve', comment: '解约审批通过，已生效' })
+  } else if (detail.value.status === 3) {
+    records.push({ action: 'reject', comment: '审批已驳回' })
+  }
+  return records
+})
 
 // 工具函数
 function typeLabel(t: number) {

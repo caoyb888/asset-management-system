@@ -55,6 +55,15 @@
           <el-descriptions-item label="创建时间">{{ formatDt(detail?.createdAt) }}</el-descriptions-item>
           <el-descriptions-item label="审批实例ID">{{ detail?.approvalId || '—' }}</el-descriptions-item>
         </el-descriptions>
+
+        <!-- 审批时间线 -->
+        <div style="margin-top: 24px;">
+          <div class="section-title">审批进度</div>
+          <ApprovalTimeline
+            :records="approvalRecords"
+            :current-status="detail?.status ?? 0"
+          />
+        </div>
       </el-tab-pane>
 
       <!-- 字段明细对比 -->
@@ -98,7 +107,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
@@ -107,6 +116,7 @@ import {
   approvalCallback,
   type ChangeDetailVO,
 } from '@/api/opr/change'
+import ApprovalTimeline, { type ApprovalRecord } from '@/components/inv/ApprovalTimeline.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -119,6 +129,22 @@ const showCallbackDialog = ref(false)
 const submitting = ref(false)
 const callbackStatus = ref<2 | 3>(2)
 const callbackForm = reactive({ comment: '' })
+
+/** 根据变更状态派生审批时间线记录 */
+const approvalRecords = computed<ApprovalRecord[]>(() => {
+  if (!detail.value) return []
+  const records: ApprovalRecord[] = []
+  records.push({ action: 'create', operator: detail.value.createdBy as string | undefined, time: detail.value.createdAt })
+  if (detail.value.status >= 1) {
+    records.push({ action: 'submit', time: detail.value.updatedAt })
+  }
+  if (detail.value.status === 2) {
+    records.push({ action: 'approve', comment: detail.value.approvalId ? '审批已通过' : undefined })
+  } else if (detail.value.status === 3) {
+    records.push({ action: 'reject', comment: '审批已驳回' })
+  }
+  return records
+})
 
 type TagType = 'success' | 'primary' | 'warning' | 'info' | 'danger' | undefined
 const TYPE_TAG_MAP: Record<string, TagType> = {
@@ -174,4 +200,12 @@ onMounted(loadDetail)
 .page-title { font-weight: 600; font-size: 16px; }
 .old-value { color: #f56c6c; text-decoration: line-through; }
 .new-value { color: #67c23a; font-weight: 600; }
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 12px;
+  padding-left: 8px;
+  border-left: 3px solid #2e75b6;
+}
 </style>

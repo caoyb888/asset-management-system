@@ -3,10 +3,13 @@ package com.asset.operation.ledger.service;
 import com.asset.operation.ledger.dto.AuditDTO;
 import com.asset.operation.ledger.dto.LedgerDetailVO;
 import com.asset.operation.ledger.dto.LedgerQueryDTO;
+import com.asset.operation.ledger.dto.LedgerSelectorVO;
 import com.asset.operation.ledger.dto.OneTimePaymentDTO;
 import com.asset.operation.ledger.entity.OprContractLedger;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
+
+import java.util.List;
 
 /**
  * 合同台账 Service 接口
@@ -57,4 +60,13 @@ public interface OprContractLedgerService extends IService<OprContractLedger> {
      * 录入一次性首款
      */
     void addOneTimePayment(Long ledgerId, OneTimePaymentDTO dto);
+
+    /**
+     * 供前端选择器模糊搜索台账（按台账编号或商家名模糊匹配）
+     *
+     * @param keyword  搜索关键字（台账编号或商家名）
+     * @param pageSize 返回条数，默认10
+     * @return 简化 VO 列表
+     */
+    List<LedgerSelectorVO> searchForSelector(String keyword, int pageSize);
 }
