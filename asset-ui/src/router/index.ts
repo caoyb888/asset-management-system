@@ -236,6 +236,37 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/opr/termination/detail.vue'),
         meta: { title: '解约单详情', icon: 'CircleClose' },
       },
+      // ── 财务管理 ──
+      {
+        path: 'fin/receivables',
+        name: 'FinReceivable',
+        component: () => import('@/views/fin/receivable/index.vue'),
+        meta: { title: '应收管理', icon: 'List' },
+      },
+      {
+        path: 'fin/receipts',
+        name: 'FinReceipt',
+        component: () => import('@/views/fin/receipt/index.vue'),
+        meta: { title: '收款管理', icon: 'CreditCard' },
+      },
+      {
+        path: 'fin/vouchers',
+        name: 'FinVoucher',
+        component: () => import('@/views/fin/voucher/index.vue'),
+        meta: { title: '凭证管理', icon: 'Postcard' },
+      },
+      {
+        path: 'fin/deposits',
+        name: 'FinDeposit',
+        component: () => import('@/views/fin/deposit/index.vue'),
+        meta: { title: '保证金管理', icon: 'Wallet' },
+      },
+      {
+        path: 'fin/prepayments',
+        name: 'FinPrepayment',
+        component: () => import('@/views/fin/prepayment/index.vue'),
+        meta: { title: '预收款管理', icon: 'CollectionTag' },
+      },
     ],
   },
   {

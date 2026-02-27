@@ -127,6 +127,34 @@
             <template #title>合同解约</template>
           </el-menu-item>
         </el-sub-menu>
+
+        <!-- 财务管理 -->
+        <el-sub-menu index="fin">
+          <template #title>
+            <el-icon><Money /></el-icon>
+            <span>财务管理</span>
+          </template>
+          <el-menu-item index="/fin/receivables">
+            <el-icon><List /></el-icon>
+            <template #title>应收管理</template>
+          </el-menu-item>
+          <el-menu-item index="/fin/receipts">
+            <el-icon><CreditCard /></el-icon>
+            <template #title>收款管理</template>
+          </el-menu-item>
+          <el-menu-item index="/fin/vouchers">
+            <el-icon><Postcard /></el-icon>
+            <template #title>凭证管理</template>
+          </el-menu-item>
+          <el-menu-item index="/fin/deposits">
+            <el-icon><Wallet /></el-icon>
+            <template #title>保证金管理</template>
+          </el-menu-item>
+          <el-menu-item index="/fin/prepayments">
+            <el-icon><CollectionTag /></el-icon>
+            <template #title>预收款管理</template>
+          </el-menu-item>
+        </el-sub-menu>
       </el-menu>
     </el-aside>
 
@@ -178,7 +206,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop, Star, User, Bell, Document, Briefcase, Setting, Coin, EditPen, Tickets, Checked, DataLine, PieChart, Operation, Memo, Switch, TrendCharts, UserFilled, CircleClose } from '@element-plus/icons-vue'
+import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop, Star, User, Bell, Document, Briefcase, Setting, Coin, EditPen, Tickets, Checked, DataLine, PieChart, Operation, Memo, Switch, TrendCharts, UserFilled, CircleClose, Money, List, CreditCard, Postcard, Wallet, CollectionTag } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/modules/user'
 import { useAppStore } from '@/store/modules/app'
 
