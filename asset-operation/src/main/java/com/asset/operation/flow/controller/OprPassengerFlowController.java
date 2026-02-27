@@ -1,16 +1,18 @@
 package com.asset.operation.flow.controller;
 
 import com.asset.common.model.R;
+import com.asset.operation.flow.dto.PassengerFlowCreateDTO;
+import com.asset.operation.flow.dto.PassengerFlowQueryDTO;
 import com.asset.operation.flow.service.OprPassengerFlowService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 客流填报 Controller
- * 阶段四（第5周前半）实现：客流CRUD/导入导出/趋势统计
  */
 @Tag(name = "04-客流填报管理")
 @RestController
@@ -20,37 +22,50 @@ public class OprPassengerFlowController {
 
     private final OprPassengerFlowService passengerFlowService;
 
-    @Operation(summary = "客流列表查询")
+    @Operation(summary = "客流分页列表")
     @GetMapping
-    public R<?> page() {
-        // TODO 阶段四实现
-        return R.ok();
+    public R<?> page(PassengerFlowQueryDTO query) {
+        return R.ok(passengerFlowService.pageQuery(query));
     }
 
     @Operation(summary = "新增客流填报")
     @PostMapping
-    public R<?> create(@RequestBody Object dto) {
-        // TODO 阶段四实现
+    public R<Long> create(@RequestBody PassengerFlowCreateDTO dto) {
+        return R.ok(passengerFlowService.create(dto));
+    }
+
+    @Operation(summary = "编辑客流填报")
+    @PutMapping("/{id}")
+    public R<?> update(@PathVariable Long id, @RequestBody PassengerFlowCreateDTO dto) {
+        passengerFlowService.update(id, dto);
+        return R.ok();
+    }
+
+    @Operation(summary = "删除客流填报")
+    @DeleteMapping("/{id}")
+    public R<?> delete(@PathVariable Long id) {
+        passengerFlowService.delete(id);
         return R.ok();
     }
 
     @Operation(summary = "批量导入客流（Excel）")
     @PostMapping("/import")
     public R<?> importExcel(@RequestParam("file") MultipartFile file) {
-        // TODO 阶段四实现
-        return R.ok();
+        return R.ok(passengerFlowService.importExcel(file));
     }
 
     @Operation(summary = "导出客流报表（Excel）")
     @GetMapping("/export")
-    public void exportExcel() {
-        // TODO 阶段四实现
+    public void exportExcel(PassengerFlowQueryDTO query, HttpServletResponse response) {
+        passengerFlowService.exportExcel(query, response);
     }
 
-    @Operation(summary = "客流趋势统计（日/周环比）")
+    @Operation(summary = "客流统计分析（日/周环比 + 近30天趋势）")
     @GetMapping("/statistics")
-    public R<?> statistics() {
-        // TODO 阶段四实现
-        return R.ok();
+    public R<?> statistics(
+            @RequestParam(required = false) Long projectId,
+            @RequestParam(required = false) Long buildingId,
+            @RequestParam(required = false) Long floorId) {
+        return R.ok(passengerFlowService.statistics(projectId, buildingId, floorId));
     }
 }
