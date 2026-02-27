@@ -53,4 +53,13 @@ public class OpenApiGroupConfig {
                 .pathsToMatch("/opr/terminations/**")
                 .build();
     }
+
+    @Bean
+    public GroupedOpenApi alertApi() {
+        return GroupedOpenApi.builder()
+                .group("06-预警记录管理")
+                .addOpenApiCustomizer(openApi -> openApi.info(new Info().title("预警记录管理").version("1.0")))
+                .pathsToMatch("/opr/alerts/**")
+                .build();
+    }
 }

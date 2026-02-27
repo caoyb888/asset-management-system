@@ -114,15 +114,16 @@
 
     <!-- 审批回调弹窗 -->
     <el-dialog v-model="callbackVisible" title="审批回调" width="420px">
-      <el-form :model="callbackForm" label-width="80px">
+      <el-form ref="callbackFormRef" :model="callbackForm" :rules="callbackRules" label-width="80px">
         <el-form-item label="审批结果">
           <el-radio-group v-model="callbackForm.status">
             <el-radio :value="2">通过</el-radio>
             <el-radio :value="3">驳回</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="审批意见">
-          <el-input v-model="callbackForm.comment" type="textarea" :rows="3" placeholder="选填" />
+        <el-form-item label="审批意见" prop="comment">
+          <el-input v-model="callbackForm.comment" type="textarea" :rows="3"
+            :placeholder="callbackForm.status === 3 ? '驳回时必须填写意见' : '选填'" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -157,6 +158,14 @@ const detail = ref<TerminationDetailVO | null>(null)
 const callbackVisible = ref(false)
 const callbackLoading = ref(false)
 const callbackForm = reactive({ status: 2, comment: '' })
+const callbackFormRef = ref()
+
+/** 驳回时审批意见必填 */
+const callbackRules = computed(() => ({
+  comment: callbackForm.status === 3
+    ? [{ required: true, message: '驳回须填写意见', trigger: 'blur' }]
+    : [],
+}))
 
 async function loadDetail() {
   loading.value = true
@@ -195,6 +204,7 @@ function openCallback() {
 }
 
 async function doCallback() {
+  await callbackFormRef.value.validate()
   callbackLoading.value = true
   try {
     await terminationApprovalCallback(id, {

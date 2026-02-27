@@ -89,9 +89,10 @@
     <!-- 审批回调弹窗 -->
     <el-dialog v-model="showCallbackDialog" :title="callbackStatus === 2 ? '确认审批通过' : '确认审批驳回'"
       width="420px" :close-on-click-modal="false">
-      <el-form :model="callbackForm" label-width="90px">
-        <el-form-item label="审批意见">
-          <el-input v-model="callbackForm.comment" type="textarea" :rows="3" />
+      <el-form ref="callbackFormRef" :model="callbackForm" :rules="callbackRules" label-width="90px">
+        <el-form-item label="审批意见" prop="comment">
+          <el-input v-model="callbackForm.comment" type="textarea" :rows="3"
+            :placeholder="callbackStatus === 3 ? '驳回时必须填写意见' : '选填'" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -129,6 +130,14 @@ const showCallbackDialog = ref(false)
 const submitting = ref(false)
 const callbackStatus = ref<2 | 3>(2)
 const callbackForm = reactive({ comment: '' })
+const callbackFormRef = ref()
+
+/** 驳回时审批意见必填 */
+const callbackRules = computed(() => ({
+  comment: callbackStatus.value === 3
+    ? [{ required: true, message: '驳回须填写意见', trigger: 'blur' }]
+    : [],
+}))
 
 /** 根据变更状态派生审批时间线记录 */
 const approvalRecords = computed<ApprovalRecord[]>(() => {
@@ -182,6 +191,7 @@ function openCallback(status: 2 | 3) {
   showCallbackDialog.value = true
 }
 async function submitCallback() {
+  await callbackFormRef.value.validate()
   submitting.value = true
   try {
     await approvalCallback(id, { status: callbackStatus.value, comment: callbackForm.comment })

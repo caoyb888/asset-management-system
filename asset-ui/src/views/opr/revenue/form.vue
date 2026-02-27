@@ -7,8 +7,8 @@
       <el-col :span="17">
         <el-card shadow="never">
           <!-- 合同 + 月份选择 -->
-          <el-form :model="form" inline label-width="80px" style="margin-bottom:8px">
-            <el-form-item label="合同ID" required>
+          <el-form ref="formRef" :model="form" :rules="formRules" inline label-width="80px" style="margin-bottom:8px">
+            <el-form-item label="合同ID" prop="contractId" required>
               <el-input-number
                 v-model="form.contractId"
                 :min="1"
@@ -18,7 +18,7 @@
                 @change="onContractChange"
               />
             </el-form-item>
-            <el-form-item label="月份" required>
+            <el-form-item label="月份" prop="reportMonth" required>
               <el-date-picker
                 v-model="form.reportMonth"
                 type="month"
@@ -139,10 +139,16 @@ import { revenueReportApi, floatingRentApi } from '@/api/opr/revenue'
 const router = useRouter()
 
 // ── 表单 ────────────────────────────────────────────────────────
+const formRef = ref()
 const form = reactive<{ contractId: number | null; reportMonth: string }>({
   contractId: null,
   reportMonth: new Date().toISOString().slice(0, 7),
 })
+
+const formRules = {
+  contractId: [{ required: true, message: '请输入合同ID', trigger: 'change' }],
+  reportMonth: [{ required: true, message: '请选择月份', trigger: 'change' }],
+}
 
 // 日历数据：key=YYYY-MM-DD, value=营业额
 const dailyData     = ref<Record<string, number>>({})
@@ -239,6 +245,7 @@ async function saveDayAmount() {
 
 // ── 触发浮动租金 ────────────────────────────────────────────────
 async function triggerFloatingRent() {
+  await formRef.value.validate()
   if (!form.contractId || !form.reportMonth) return
   try {
     const res = await floatingRentApi.generate({

@@ -80,11 +80,18 @@
             待收: {{ pendingCount }} 条 ·
             应收合计: <strong>{{ totalAmount }}</strong> 元
           </span>
-          <el-tag :type="receivableStatusType(detail?.receivableStatus)" size="small">
-            {{ detail?.receivableStatusName }}
-          </el-tag>
+          <el-space>
+            <el-tag :type="receivableStatusType(detail?.receivableStatus)" size="small">
+              {{ detail?.receivableStatusName }}
+            </el-tag>
+            <el-radio-group v-model="viewMode" size="small">
+              <el-radio-button value="table">表格</el-radio-button>
+              <el-radio-button value="calendar">日历</el-radio-button>
+            </el-radio-group>
+          </el-space>
         </div>
-        <el-table :data="detail?.receivablePlans" border stripe size="small" max-height="500">
+        <!-- 表格视图 -->
+        <el-table v-if="viewMode === 'table'" :data="detail?.receivablePlans" border stripe size="small" max-height="500">
           <el-table-column type="index" label="序号" width="50" align="center" />
           <el-table-column prop="feeName" label="费项名称" width="120" />
           <el-table-column prop="billingStart" label="账期开始" width="110" align="center" />
@@ -118,6 +125,13 @@
             <template #default="{ row }">{{ sourceTypeLabel(row.sourceType) }}</template>
           </el-table-column>
         </el-table>
+        <!-- 日历视图 -->
+        <ReceivableCalendar
+          v-else
+          :receivables="detail?.receivablePlans ?? []"
+          :year="calendarYear"
+          :month="calendarMonth"
+        />
       </el-tab-pane>
 
       <!-- Tab3: 双签管理 -->
@@ -298,6 +312,7 @@ import {
 } from '@/api/opr/ledger'
 import { getChangeHistory, type ChangeDetailVO } from '@/api/opr/change'
 import request from '@/api/request'
+import ReceivableCalendar from '@/components/opr/ReceivableCalendar.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -311,6 +326,11 @@ const showOneTimePaymentDialog = ref(false)
 const submitting = ref(false)
 const paymentTab = ref('single')
 const feeItems = ref<{ id: number; itemName: string }[]>([])
+
+// 应收计划视图模式：table / calendar
+const viewMode = ref<'table' | 'calendar'>('table')
+const calendarYear = computed(() => new Date().getFullYear())
+const calendarMonth = computed(() => new Date().getMonth() + 1)
 
 const paymentFormRef = ref()
 const paymentForm = reactive({
