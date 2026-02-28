@@ -1,18 +1,23 @@
 package com.asset.base.service.impl;
 
 import com.asset.base.entity.BizNotice;
+import com.asset.base.entity.BizNoticeRead;
 import com.asset.base.mapper.BizNoticeMapper;
+import com.asset.base.mapper.BizNoticeReadMapper;
 import com.asset.base.model.dto.NoticeQuery;
 import com.asset.base.model.dto.NoticeSaveDTO;
+import com.asset.base.model.vo.NoticeReadStatsVO;
 import com.asset.base.model.vo.NoticeVO;
 import com.asset.base.service.BizNoticeService;
 import com.asset.common.exception.BizException;
+import com.asset.common.security.util.SecurityUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -28,6 +33,8 @@ import java.util.Map;
 public class BizNoticeServiceImpl
         extends ServiceImpl<BizNoticeMapper, BizNotice>
         implements BizNoticeService {
+
+    private final BizNoticeReadMapper noticeReadMapper;
 
     private static final Map<Integer, String> NOTICE_TYPE_MAP = Map.of(
             1, "通知", 2, "公告", 3, "政策");
@@ -137,6 +144,57 @@ public class BizNoticeServiceImpl
         }
         existing.setStatus(2);
         updateById(existing);
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* 已读追踪                                                               */
+    /* ------------------------------------------------------------------ */
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void markAsRead(Long noticeId) {
+        BizNotice notice = getById(noticeId);
+        if (notice == null || notice.getIsDeleted() == 1) {
+            throw new BizException("通知公告不存在或已删除");
+        }
+        Long userId = SecurityUtil.getCurrentUserId();
+        // uk_notice_user 唯一约束保证幂等，捕获重复键忽略即可
+        BizNoticeRead record = new BizNoticeRead();
+        record.setNoticeId(noticeId);
+        record.setUserId(userId);
+        record.setReadTime(LocalDateTime.now());
+        record.setIsDeleted(0);
+        record.setCreatedAt(LocalDateTime.now());
+        try {
+            noticeReadMapper.insert(record);
+        } catch (DuplicateKeyException ignored) {
+            // 已读过，幂等处理
+        }
+    }
+
+    @Override
+    public NoticeReadStatsVO getReadStats(Long noticeId) {
+        BizNotice notice = getById(noticeId);
+        if (notice == null || notice.getIsDeleted() == 1) {
+            throw new BizException("通知公告不存在或已删除");
+        }
+        Long userId = SecurityUtil.getCurrentUserId();
+        long readCount = noticeReadMapper.selectCount(
+                new LambdaQueryWrapper<BizNoticeRead>()
+                        .eq(BizNoticeRead::getNoticeId, noticeId)
+                        .eq(BizNoticeRead::getIsDeleted, 0)
+        );
+        boolean currentUserRead = noticeReadMapper.selectCount(
+                new LambdaQueryWrapper<BizNoticeRead>()
+                        .eq(BizNoticeRead::getNoticeId, noticeId)
+                        .eq(BizNoticeRead::getUserId, userId)
+                        .eq(BizNoticeRead::getIsDeleted, 0)
+        ) > 0;
+        NoticeReadStatsVO vo = new NoticeReadStatsVO();
+        vo.setNoticeId(noticeId);
+        vo.setReadCount(readCount);
+        vo.setCurrentUserRead(currentUserRead);
+        return vo;
     }
 
     /* ------------------------------------------------------------------ */

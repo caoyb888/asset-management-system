@@ -38,6 +38,8 @@
     <el-card shadow="never" class="table-card">
       <div class="toolbar">
         <el-button type="primary" :icon="Plus" @click="handleAdd">新增商家</el-button>
+        <el-button :icon="Upload" @click="importDialogVisible = true">批量导入</el-button>
+        <el-button :icon="Download" @click="handleDownloadTemplate">下载模板</el-button>
       </div>
 
       <el-table v-loading="loading" :data="tableData" border stripe row-key="id" style="width: 100%">
@@ -60,8 +62,12 @@
           </template>
         </el-table-column>
         <el-table-column prop="createdAt" label="创建时间" width="160" align="center" />
-        <el-table-column label="操作" width="200" align="center" fixed="right">
+        <el-table-column label="操作" width="250" align="center" fixed="right">
           <template #default="{ row }">
+            <template v-if="row.auditStatus === 0">
+              <el-button link type="warning" size="small" @click="handleAudit(row)">审核</el-button>
+              <el-divider direction="vertical" />
+            </template>
             <el-button link type="primary" size="small" @click="handleDetail(row)">详情</el-button>
             <el-divider direction="vertical" />
             <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
@@ -328,6 +334,28 @@
       </template>
     </el-dialog>
 
+    <!-- 审核 Dialog -->
+    <el-dialog v-model="auditDialogVisible" title="商家审核" width="420px" :close-on-click-modal="false" destroy-on-close>
+      <el-form ref="auditFormRef" :model="auditForm" :rules="auditFormRules" label-width="90px">
+        <el-form-item label="商家名称">
+          <span>{{ currentAuditMerchant?.merchantName }}</span>
+        </el-form-item>
+        <el-form-item label="审核结果" prop="auditStatus">
+          <el-radio-group v-model="auditForm.auditStatus">
+            <el-radio :value="1">通过</el-radio>
+            <el-radio :value="2">驳回</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item v-if="auditForm.auditStatus === 2" label="驳回原因" prop="rejectReason">
+          <el-input v-model="auditForm.rejectReason" type="textarea" :rows="3" placeholder="请填写驳回原因" maxlength="200" show-word-limit />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="auditDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="auditSubmitting" @click="submitAudit">确认</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 开票信息 Dialog -->
     <el-dialog v-model="invoiceDialogVisible" :title="invoiceEditId ? '编辑开票信息' : '新增开票信息'" width="520px" :close-on-click-modal="false" destroy-on-close>
       <el-form ref="invoiceFormRef" :model="invoiceForm" :rules="invoiceFormRules" label-width="90px">
@@ -358,19 +386,66 @@
         <el-button type="primary" :loading="invoiceSaving" @click="submitInvoice">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 批量导入 Dialog -->
+    <el-dialog v-model="importDialogVisible" title="批量导入商家" width="520px" :close-on-click-modal="false" destroy-on-close @close="resetImport">
+      <el-form label-width="90px">
+        <el-form-item label="所属项目">
+          <el-select v-model="importProjectId" placeholder="请选择项目（必填）" filterable style="width: 100%">
+            <el-option v-for="p in projectOptions" :key="p.id" :label="p.projectName" :value="p.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="选择文件">
+          <el-upload
+            ref="importUploadRef"
+            :auto-upload="false"
+            :limit="1"
+            accept=".xlsx,.xls"
+            :on-change="onImportFileChange"
+            :on-remove="() => { importFile = null }"
+            :file-list="[]"
+            drag
+            style="width: 100%"
+          >
+            <el-icon class="el-icon--upload"><Upload /></el-icon>
+            <div class="el-upload__text">拖拽文件到此处，或 <em>点击上传</em></div>
+            <template #tip>
+              <div class="el-upload__tip">仅支持 .xlsx / .xls 文件</div>
+            </template>
+          </el-upload>
+        </el-form-item>
+      </el-form>
+      <div v-if="importResult" class="import-result">
+        <el-alert
+          :title="`导入完成：成功 ${importResult.successCount} 条，失败 ${importResult.failCount} 条`"
+          :type="importResult.failCount > 0 ? 'warning' : 'success'"
+          show-icon
+          :closable="false"
+        />
+        <el-table v-if="importResult.errors?.length" :data="importResult.errors.map((e, i) => ({ index: i+1, msg: e }))" border size="small" style="margin-top:8px;max-height:160px;overflow-y:auto">
+          <el-table-column prop="index" label="序号" width="60" align="center" />
+          <el-table-column prop="msg" label="错误信息" />
+        </el-table>
+      </div>
+      <template #footer>
+        <el-button @click="importDialogVisible = false">关闭</el-button>
+        <el-button type="primary" :loading="importing" :disabled="!importFile || !importProjectId" @click="handleImport">开始导入</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { Search, Refresh, Plus } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Upload, Download } from '@element-plus/icons-vue'
 import {
   getMerchantPage, getMerchantDetail, createMerchant, updateMerchant, deleteMerchant,
   getMerchantContacts, addMerchantContact, updateMerchantContact, deleteMerchantContact,
   getMerchantCredits, addMerchantCredit, deleteMerchantCredit,
   getMerchantInvoices, addMerchantInvoice, updateMerchantInvoice, deleteMerchantInvoice,
   getMerchantAttachments, deleteMerchantAttachment,
+  auditMerchant, importMerchants, downloadMerchantTemplate,
   type MerchantVO, type MerchantContactVO, type MerchantCreditVO, type MerchantInvoiceVO, type AttachmentVO,
 } from '@/api/base/merchant'
 import { getProjectList } from '@/api/base/project'
@@ -660,6 +735,87 @@ async function deleteAttachment(aid: number) {
   } catch {}
 }
 
+// ─────────── 审核 ───────────
+const auditDialogVisible = ref(false)
+const auditSubmitting = ref(false)
+const currentAuditMerchant = ref<MerchantVO | null>(null)
+const auditFormRef = ref<FormInstance>()
+const auditForm = reactive({ auditStatus: 1 as number, rejectReason: '' })
+const auditFormRules: FormRules = {
+  auditStatus: [{ required: true, message: '请选择审核结果', trigger: 'change' }],
+  rejectReason: [{
+    validator: (_rule: any, value: string, callback: Function) => {
+      if (auditForm.auditStatus === 2 && !value?.trim()) {
+        callback(new Error('请填写驳回原因'))
+      } else {
+        callback()
+      }
+    },
+    trigger: 'blur',
+  }],
+}
+
+function handleAudit(row: MerchantVO) {
+  currentAuditMerchant.value = row
+  Object.assign(auditForm, { auditStatus: 1, rejectReason: '' })
+  auditDialogVisible.value = true
+}
+
+async function submitAudit() {
+  const valid = await auditFormRef.value?.validate().catch(() => false)
+  if (!valid) return
+  auditSubmitting.value = true
+  try {
+    await auditMerchant(currentAuditMerchant.value!.id, auditForm.auditStatus)
+    ElMessage.success('审核成功')
+    auditDialogVisible.value = false
+    fetchList()
+  } finally { auditSubmitting.value = false }
+}
+
+// ─────────── 批量导入 ───────────
+const importDialogVisible = ref(false)
+const importing = ref(false)
+const importFile = ref<File | null>(null)
+const importProjectId = ref<number | undefined>(undefined)
+const importResult = ref<{ successCount: number; failCount: number; errors: string[] } | null>(null)
+const importUploadRef = ref()
+
+function onImportFileChange(uploadFile: any) {
+  importFile.value = uploadFile.raw ?? null
+}
+
+function resetImport() {
+  importFile.value = null
+  importProjectId.value = undefined
+  importResult.value = null
+}
+
+async function handleImport() {
+  if (!importFile.value || !importProjectId.value) return
+  importing.value = true
+  try {
+    const res = await importMerchants(importFile.value, importProjectId.value)
+    importResult.value = (res as any)?.data ?? res
+    if ((importResult.value?.failCount ?? 0) === 0) {
+      ElMessage.success(`导入成功，共导入 ${importResult.value?.successCount} 条`)
+    }
+    fetchList()
+  } finally { importing.value = false }
+}
+
+async function handleDownloadTemplate() {
+  try {
+    const blob = await downloadMerchantTemplate() as unknown as Blob
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = '商家导入模板.xlsx'
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch { ElMessage.error('模板下载失败') }
+}
+
 onMounted(() => { loadProjectOptions(); fetchList() })
 </script>
 
@@ -675,4 +831,5 @@ onMounted(() => { loadProjectOptions(); fetchList() })
 }
 
 .tab-toolbar { margin-bottom: 12px; }
+.import-result { margin-top: 8px; }
 </style>

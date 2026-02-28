@@ -20,6 +20,11 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 3100,
     proxy: {
+      // /file/* → asset-file (8012)：文件上传接口 + 静态文件访问
+      '/file': {
+        target: 'http://localhost:8012',
+        changeOrigin: true,
+      },
       // /api/fin/* → asset-finance (8004) - 必须在 /api 规则之前
       '/api/fin': {
         target: 'http://localhost:8004',

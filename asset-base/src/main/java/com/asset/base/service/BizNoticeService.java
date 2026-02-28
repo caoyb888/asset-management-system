@@ -4,6 +4,7 @@ import com.asset.base.entity.BizNotice;
 import com.asset.base.model.dto.NoticeQuery;
 import com.asset.base.model.dto.NoticeSaveDTO;
 import com.asset.base.model.vo.NoticeVO;
+import com.asset.base.model.vo.NoticeReadStatsVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -32,4 +33,10 @@ public interface BizNoticeService extends IService<BizNotice> {
 
     /** 下架通知公告（status→2） */
     void unpublishNotice(Long id);
+
+    /** 当前用户标记已读 */
+    void markAsRead(Long noticeId);
+
+    /** 查询公告已读统计（已读人数） */
+    NoticeReadStatsVO getReadStats(Long noticeId);
 }

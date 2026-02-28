@@ -34,3 +34,17 @@ logging:
   level:
     com.asset: debug
     org.flowable: info
+
+# XXL-Job 执行器配置
+xxl:
+  job:
+    admin:
+      addresses: http://${XXL_JOB_HOST:localhost}:${XXL_JOB_PORT:8180}/xxl-job-admin
+    accessToken: ${XXL_JOB_TOKEN:default_token}
+    executor:
+      appname: asset-base-job
+      address:
+      ip:
+      port: 9201
+      logpath: /data/applogs/xxl-job/asset-base
+      logretentiondays: 30

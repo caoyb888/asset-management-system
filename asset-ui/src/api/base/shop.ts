@@ -129,3 +129,17 @@ export function splitShop(data: ShopSplitDTO) {
 export function mergeShop(data: ShopMergeDTO) {
   return request.post<void, void>('/base/shops/merge', data)
 }
+
+// ─────────────────────────── Excel 导入 ───────────────────────────
+
+/** 批量导入商铺（Excel） */
+export function importShops(file: File) {
+  const fd = new FormData()
+  fd.append('file', file)
+  return request.post<{ successCount: number; failCount: number; errors: string[] }, any>('/base/shops/import', fd)
+}
+
+/** 下载商铺导入模板 */
+export function downloadShopTemplate() {
+  return request.get('/base/shops/template', { responseType: 'blob' })
+}

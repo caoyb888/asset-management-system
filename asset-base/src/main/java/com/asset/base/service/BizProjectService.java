@@ -4,6 +4,7 @@ import com.asset.base.entity.BizProject;
 import com.asset.base.model.dto.ProjectBankDTO;
 import com.asset.base.model.dto.ProjectContractDTO;
 import com.asset.base.model.dto.ProjectFinanceContactDTO;
+import com.asset.base.model.dto.ProjectImageDTO;
 import com.asset.base.model.dto.ProjectQuery;
 import com.asset.base.model.dto.ProjectSaveDTO;
 import com.asset.base.model.vo.ProjectBankVO;
@@ -152,4 +153,24 @@ public interface BizProjectService extends IService<BizProject> {
      * @param bankId 银行账号ID
      */
     void deleteBank(Long bankId);
+
+    /* ------------------------------------------------------------------ */
+    /* 项目图片                                                             */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * 追加项目图片（写入 image_urls JSON 数组）
+     *
+     * @param id  项目ID
+     * @param dto 图片信息（url + name）
+     */
+    void addProjectImage(Long id, ProjectImageDTO dto);
+
+    /**
+     * 删除项目图片（按下标从 image_urls 中移除）
+     *
+     * @param id    项目ID
+     * @param index 图片下标（0起）
+     */
+    void deleteProjectImage(Long id, Integer index);
 }

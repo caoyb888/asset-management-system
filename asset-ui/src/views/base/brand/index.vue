@@ -36,6 +36,8 @@
     <el-card shadow="never" class="table-card">
       <div class="toolbar">
         <el-button type="primary" :icon="Plus" @click="handleAdd">新增品牌</el-button>
+        <el-button :icon="Upload" @click="importDialogVisible = true">批量导入</el-button>
+        <el-button :icon="Download" @click="handleDownloadTemplate">下载模板</el-button>
       </div>
 
       <el-table v-loading="loading" :data="tableData" border stripe row-key="id" style="width: 100%">
@@ -226,6 +228,43 @@
       </el-table>
     </el-dialog>
 
+    <!-- 批量导入 Dialog -->
+    <el-dialog v-model="importDialogVisible" title="批量导入品牌" width="500px" :close-on-click-modal="false" destroy-on-close @close="resetImport">
+      <el-upload
+        ref="importUploadRef"
+        :auto-upload="false"
+        :limit="1"
+        accept=".xlsx,.xls"
+        :on-change="onImportFileChange"
+        :on-remove="() => { importFile = null }"
+        :file-list="[]"
+        drag
+        style="margin-bottom: 12px"
+      >
+        <el-icon class="el-icon--upload"><Upload /></el-icon>
+        <div class="el-upload__text">拖拽文件到此处，或 <em>点击上传</em></div>
+        <template #tip>
+          <div class="el-upload__tip">仅支持 .xlsx / .xls 文件</div>
+        </template>
+      </el-upload>
+      <div v-if="importResult" class="import-result">
+        <el-alert
+          :title="`导入完成：成功 ${importResult.successCount} 条，失败 ${importResult.failCount} 条`"
+          :type="importResult.failCount > 0 ? 'warning' : 'success'"
+          show-icon
+          :closable="false"
+        />
+        <el-table v-if="importResult.errors?.length" :data="importResult.errors.map((e, i) => ({ index: i+1, msg: e }))" border size="small" style="margin-top:8px;max-height:160px;overflow-y:auto">
+          <el-table-column prop="index" label="序号" width="60" align="center" />
+          <el-table-column prop="msg" label="错误信息" />
+        </el-table>
+      </div>
+      <template #footer>
+        <el-button @click="importDialogVisible = false">关闭</el-button>
+        <el-button type="primary" :loading="importing" :disabled="!importFile" @click="handleImport">开始导入</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 联系人编辑 Dialog -->
     <el-dialog v-model="contactEditDialogVisible" :title="contactEditId ? '编辑联系人' : '新增联系人'" width="440px" :close-on-click-modal="false" destroy-on-close>
       <el-form ref="contactFormRef" :model="contactForm" :rules="contactFormRules" label-width="90px">
@@ -256,10 +295,11 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { Search, Refresh, Plus } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Upload, Download } from '@element-plus/icons-vue'
 import {
   getBrandPage, getBrandDetail, createBrand, updateBrand, deleteBrand,
   getBrandContacts, addBrandContact, updateBrandContact, deleteBrandContact,
+  importBrands, downloadBrandTemplate,
   type BrandVO, type BrandContactVO,
 } from '@/api/base/brand'
 import { useAppStore } from '@/store/modules/app'
@@ -416,6 +456,47 @@ async function handleDeleteContact(cid: number) {
   } catch {}
 }
 
+// ─────────── 批量导入 ───────────
+const importDialogVisible = ref(false)
+const importing = ref(false)
+const importFile = ref<File | null>(null)
+const importResult = ref<{ successCount: number; failCount: number; errors: string[] } | null>(null)
+const importUploadRef = ref()
+
+function onImportFileChange(uploadFile: any) {
+  importFile.value = uploadFile.raw ?? null
+}
+
+function resetImport() {
+  importFile.value = null
+  importResult.value = null
+}
+
+async function handleImport() {
+  if (!importFile.value) return
+  importing.value = true
+  try {
+    const res = await importBrands(importFile.value)
+    importResult.value = (res as any)?.data ?? res
+    if ((importResult.value?.failCount ?? 0) === 0) {
+      ElMessage.success(`导入成功，共导入 ${importResult.value?.successCount} 条`)
+    }
+    fetchList()
+  } finally { importing.value = false }
+}
+
+async function handleDownloadTemplate() {
+  try {
+    const blob = await downloadBrandTemplate() as unknown as Blob
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = '品牌导入模板.xlsx'
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch { ElMessage.error('模板下载失败') }
+}
+
 onMounted(() => fetchList())
 </script>
 
@@ -431,4 +512,5 @@ onMounted(() => fetchList())
 }
 
 .tab-toolbar { margin-bottom: 12px; }
+.import-result { margin-top: 8px; }
 </style>

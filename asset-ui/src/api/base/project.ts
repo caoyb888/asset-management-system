@@ -178,3 +178,15 @@ export function updateProjectBank(id: number, bid: number, data: Omit<ProjectBan
 export function deleteProjectBank(id: number, bid: number) {
   return request.delete<void, void>(`/base/projects/${id}/banks/${bid}`)
 }
+
+// ─────────────────────────── 项目图片 ───────────────────────────
+
+/** 追加项目图片（传入 url + name，由后端写入 image_urls 数组） */
+export function addProjectImage(id: number, data: { url: string; name?: string }) {
+  return request.post<void, void>(`/base/projects/${id}/images`, data)
+}
+
+/** 删除项目图片（按下标） */
+export function deleteProjectImage(id: number, index: number) {
+  return request.delete<void, void>(`/base/projects/${id}/images/${index}`)
+}

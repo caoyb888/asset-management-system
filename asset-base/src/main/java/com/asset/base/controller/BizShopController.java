@@ -1,5 +1,11 @@
 package com.asset.base.controller;
 
+import com.alibaba.excel.EasyExcel;
+import com.asset.base.excel.ShopImportListener;
+import com.asset.base.mapper.BizBuildingMapper;
+import com.asset.base.mapper.BizFloorMapper;
+import com.asset.base.mapper.BizProjectMapper;
+import com.asset.base.model.dto.ShopImportRow;
 import com.asset.base.model.dto.ShopMergeDTO;
 import com.asset.base.model.dto.ShopQuery;
 import com.asset.base.model.dto.ShopSaveDTO;
@@ -12,9 +18,15 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Map;
 
 /**
  * 商铺管理 Controller
@@ -34,6 +46,9 @@ import org.springframework.web.bind.annotation.*;
 public class BizShopController {
 
     private final BizShopService shopService;
+    private final BizProjectMapper projectMapper;
+    private final BizBuildingMapper buildingMapper;
+    private final BizFloorMapper floorMapper;
 
     @Operation(summary = "分页查询商铺列表")
     @GetMapping
@@ -90,5 +105,30 @@ public class BizShopController {
     public R<Void> merge(@Valid @RequestBody ShopMergeDTO dto) {
         shopService.mergeShop(dto);
         return R.ok(null);
+    }
+
+    /* ================================================================== */
+    /* Excel 批量导入                                                         */
+    /* ================================================================== */
+
+    @Operation(summary = "批量导入商铺（Excel）")
+    @PostMapping("/import")
+    @OperLog(module = "商铺管理", action = "批量导入", type = OperLog.OperType.CREATE)
+    public R<Map<String, Object>> importShops(
+            @RequestParam("file") MultipartFile file) throws IOException {
+        ShopImportListener listener = new ShopImportListener(
+                shopService, projectMapper, buildingMapper, floorMapper);
+        EasyExcel.read(file.getInputStream(), ShopImportRow.class, listener).sheet().doRead();
+        return R.ok(listener.getResult());
+    }
+
+    @Operation(summary = "下载商铺导入模板")
+    @GetMapping("/template")
+    public void downloadTemplate(HttpServletResponse response) throws IOException {
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment;filename=shop_import_template.xlsx");
+        EasyExcel.write(response.getOutputStream(), ShopImportRow.class)
+                .sheet("商铺导入模板")
+                .doWrite(new ArrayList<>());
     }
 }

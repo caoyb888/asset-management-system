@@ -2,6 +2,7 @@ package com.asset.base.controller;
 
 import com.asset.base.model.dto.NoticeQuery;
 import com.asset.base.model.dto.NoticeSaveDTO;
+import com.asset.base.model.vo.NoticeReadStatsVO;
 import com.asset.base.model.vo.NoticeVO;
 import com.asset.base.service.BizNoticeService;
 import com.asset.common.log.annotation.OperLog;
@@ -23,8 +24,10 @@ import org.springframework.web.bind.annotation.*;
  * POST   /base/notices              新增公告
  * PUT    /base/notices/{id}         编辑公告
  * DELETE /base/notices/{id}         逻辑删除
- * PUT    /base/notices/{id}/publish   发布公告
- * PUT    /base/notices/{id}/unpublish 下架公告
+ * PUT    /base/notices/{id}/publish      发布公告
+ * PUT    /base/notices/{id}/unpublish    下架公告
+ * POST   /base/notices/{id}/read         标记已读
+ * GET    /base/notices/{id}/read-stats   已读统计
  * </pre>
  */
 @Tag(name = "通知公告管理", description = "基础数据-通知公告增删改查及发布管理")
@@ -92,5 +95,22 @@ public class BizNoticeController {
             @Parameter(description = "公告ID") @PathVariable Long id) {
         noticeService.unpublishNotice(id);
         return R.ok(null);
+    }
+
+    @Operation(summary = "标记公告已读（当前用户）")
+    @PostMapping("/{id}/read")
+    @OperLog(module = "通知公告管理", action = "标记已读", type = OperLog.OperType.UPDATE)
+    public R<Void> markRead(
+            @Parameter(description = "公告ID") @PathVariable Long id) {
+        noticeService.markAsRead(id);
+        return R.ok(null);
+    }
+
+    @Operation(summary = "查询公告已读统计")
+    @GetMapping("/{id}/read-stats")
+    @OperLog(module = "通知公告管理", action = "查询已读统计", type = OperLog.OperType.QUERY)
+    public R<NoticeReadStatsVO> readStats(
+            @Parameter(description = "公告ID") @PathVariable Long id) {
+        return R.ok(noticeService.getReadStats(id));
     }
 }

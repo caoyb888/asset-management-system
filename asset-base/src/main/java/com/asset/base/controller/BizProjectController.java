@@ -4,6 +4,7 @@ import com.asset.base.entity.BizProject;
 import com.asset.base.model.dto.ProjectBankDTO;
 import com.asset.base.model.dto.ProjectContractDTO;
 import com.asset.base.model.dto.ProjectFinanceContactDTO;
+import com.asset.base.model.dto.ProjectImageDTO;
 import com.asset.base.model.dto.ProjectQuery;
 import com.asset.base.model.dto.ProjectSaveDTO;
 import com.asset.base.model.vo.ProjectBankVO;
@@ -215,6 +216,30 @@ public class BizProjectController {
             @Parameter(description = "项目ID") @PathVariable Long id,
             @Parameter(description = "银行账号ID") @PathVariable Long bid) {
         projectService.deleteBank(bid);
+        return R.ok(null);
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* 项目图片                                                             */
+    /* ------------------------------------------------------------------ */
+
+    @Operation(summary = "添加项目图片（追加到 image_urls 数组）")
+    @PostMapping("/{id}/images")
+    @OperLog(module = "项目管理", action = "添加图片", type = OperLog.OperType.UPDATE)
+    public R<Void> addImage(
+            @Parameter(description = "项目ID") @PathVariable Long id,
+            @RequestBody ProjectImageDTO dto) {
+        projectService.addProjectImage(id, dto);
+        return R.ok(null);
+    }
+
+    @Operation(summary = "删除项目图片（按下标从 image_urls 移除）")
+    @DeleteMapping("/{id}/images/{index}")
+    @OperLog(module = "项目管理", action = "删除图片", type = OperLog.OperType.DELETE)
+    public R<Void> deleteImage(
+            @Parameter(description = "项目ID") @PathVariable Long id,
+            @Parameter(description = "图片下标（0起）") @PathVariable Integer index) {
+        projectService.deleteProjectImage(id, index);
         return R.ok(null);
     }
 }

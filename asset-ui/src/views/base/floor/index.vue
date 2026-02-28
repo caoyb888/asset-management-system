@@ -219,6 +219,26 @@
               <el-input v-model="form.remark" type="textarea" :rows="2" maxlength="500" />
             </el-form-item>
           </el-col>
+          <el-col :span="24">
+            <el-form-item label="平面图">
+              <div class="image-upload-row">
+                <el-image
+                  v-if="form.imageUrl"
+                  :src="form.imageUrl"
+                  fit="cover"
+                  style="width:180px;height:130px;border-radius:4px;border:1px solid #e4e7ed"
+                  :preview-src-list="[form.imageUrl]"
+                />
+                <div class="image-upload-actions">
+                  <el-button size="small" :icon="Upload" :loading="imageUploading" @click="floorImageInputRef?.click()">
+                    {{ form.imageUrl ? '更换图片' : '上传平面图' }}
+                  </el-button>
+                  <el-button v-if="form.imageUrl" size="small" type="danger" plain @click="form.imageUrl = ''">清除</el-button>
+                </div>
+                <input ref="floorImageInputRef" type="file" accept="image/*" style="display:none" @change="handleFloorImageChange" />
+              </div>
+            </el-form-item>
+          </el-col>
         </el-row>
       </el-form>
 
@@ -235,7 +255,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { Search, Refresh, Plus } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Upload } from '@element-plus/icons-vue'
 import {
   getFloorPage,
   createFloor,
@@ -247,6 +267,7 @@ import {
 } from '@/api/base/floor'
 import { getProjectPage, type ProjectVO } from '@/api/base/project'
 import { getBuildingPage, type BuildingVO } from '@/api/base/building'
+import { uploadFile } from '@/api/file'
 import { useAppStore } from '@/store/modules/app'
 
 useAppStore().setPageTitle('楼层管理')
@@ -411,6 +432,25 @@ async function handleSubmit() {
   }
 }
 
+// ─────────── 图片上传 ───────────
+const imageUploading = ref(false)
+const floorImageInputRef = ref<HTMLInputElement>()
+
+async function handleFloorImageChange(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  imageUploading.value = true
+  try {
+    form.imageUrl = await uploadFile(file)
+    ElMessage.success('图片上传成功')
+  } catch {
+    ElMessage.error('图片上传失败')
+  } finally {
+    imageUploading.value = false
+    if (floorImageInputRef.value) floorImageInputRef.value.value = ''
+  }
+}
+
 // ─────────── 删除 ───────────
 async function handleDelete(id: number) {
   try {
@@ -445,5 +485,17 @@ async function handleDelete(id: number) {
     display: flex;
     justify-content: flex-end;
   }
+}
+
+.image-upload-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.image-upload-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 </style>

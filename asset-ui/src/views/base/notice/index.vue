@@ -49,12 +49,33 @@
         <el-table-column prop="publishTime" label="发布时间" width="170" align="center" />
         <el-table-column prop="scheduledTime" label="计划发布时间" width="170" align="center" />
         <el-table-column prop="createdAt" label="创建时间" width="170" align="center" />
-        <el-table-column label="操作" width="230" align="center" fixed="right">
+        <el-table-column label="已读" width="80" align="center">
+          <template #default="{ row }">
+            <el-popover
+              :width="160"
+              trigger="hover"
+              @show="loadReadStats(row.id)"
+            >
+              <template #reference>
+                <el-tag type="info" size="small" style="cursor:pointer">
+                  {{ readStatsMap[row.id]?.readCount ?? '–' }} 人
+                </el-tag>
+              </template>
+              <div style="font-size:13px">
+                <div>已读人数：{{ readStatsMap[row.id]?.readCount ?? '-' }}</div>
+                <div>我已阅读：{{ readStatsMap[row.id]?.currentUserRead ? '是' : '否' }}</div>
+              </div>
+            </el-popover>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="260" align="center" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
             <el-divider direction="vertical" />
             <el-button v-if="row.status !== 1" link type="success" size="small" @click="handlePublish(row.id)">发布</el-button>
             <el-button v-else link type="warning" size="small" @click="handleUnpublish(row.id)">下架</el-button>
+            <el-divider direction="vertical" />
+            <el-button link type="info" size="small" @click="handleMarkRead(row.id)">标记已读</el-button>
             <el-divider direction="vertical" />
             <el-popconfirm title="确认删除该公告？" confirm-button-text="确认" cancel-button-text="取消" @confirm="handleDelete(row.id)">
               <template #reference>
@@ -119,8 +140,9 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { Search, Refresh, Plus } from '@element-plus/icons-vue'
 import {
-  getNoticePage, getNoticeById, createNotice, updateNotice, deleteNotice, publishNotice, unpublishNotice,
-  type NoticeVO, type NoticeQuery, type NoticeSaveDTO,
+  getNoticePage, getNoticeById, createNotice, updateNotice, deleteNotice,
+  publishNotice, unpublishNotice, markNoticeRead, getNoticeReadStats,
+  type NoticeVO, type NoticeQuery, type NoticeSaveDTO, type NoticeReadStatsVO,
 } from '@/api/base/notice'
 import { useAppStore } from '@/store/modules/app'
 
@@ -210,6 +232,27 @@ async function handlePublish(id: number) {
 
 async function handleUnpublish(id: number) {
   try { await unpublishNotice(id); ElMessage.success('下架成功'); fetchList() } catch {}
+}
+
+// ─────────── 已读追踪 ───────────
+const readStatsMap = reactive<Record<number, NoticeReadStatsVO>>({})
+
+async function loadReadStats(id: number) {
+  if (readStatsMap[id]) return // 已缓存则不重复请求
+  try {
+    const stats = await getNoticeReadStats(id)
+    readStatsMap[id] = stats
+  } catch {}
+}
+
+async function handleMarkRead(id: number) {
+  try {
+    await markNoticeRead(id)
+    ElMessage.success('已标记为已读')
+    // 刷新该条统计
+    delete readStatsMap[id]
+    await loadReadStats(id)
+  } catch {}
 }
 
 onMounted(() => fetchList())

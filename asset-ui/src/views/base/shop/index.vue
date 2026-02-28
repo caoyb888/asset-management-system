@@ -84,6 +84,8 @@
       <div class="toolbar">
         <el-button type="primary" :icon="Plus" @click="handleAdd">新增商铺</el-button>
         <el-button type="success" @click="openMergeDialog">合并商铺</el-button>
+        <el-button :icon="Upload" @click="importDialogVisible = true">批量导入</el-button>
+        <el-button :icon="Download" @click="handleDownloadTemplate">下载模板</el-button>
       </div>
 
       <el-table v-loading="loading" :data="tableData" border stripe row-key="id" style="width: 100%">
@@ -413,6 +415,63 @@
       </template>
     </el-dialog>
 
+    <!-- 批量导入 Dialog -->
+    <el-dialog
+      v-model="importDialogVisible"
+      title="批量导入商铺"
+      width="560px"
+      :close-on-click-modal="false"
+      destroy-on-close
+      @close="resetImport"
+    >
+      <el-alert type="info" :closable="false" style="margin-bottom: 12px">
+        请先下载模板，按模板格式填写后上传。项目编码、楼栋编码、楼层编码必须与系统中一致。
+      </el-alert>
+      <el-upload
+        ref="importUploadRef"
+        drag
+        :auto-upload="false"
+        accept=".xlsx,.xls"
+        :limit="1"
+        :on-change="onImportFileChange"
+        :on-remove="() => (importFile = null)"
+        style="width: 100%"
+      >
+        <el-icon style="font-size: 48px; color: #c0c4cc"><Upload /></el-icon>
+        <div style="margin-top: 8px">将文件拖到此处，或 <em>点击上传</em></div>
+        <template #tip>
+          <div style="font-size: 12px; color: #909399; margin-top: 4px">
+            仅支持 .xlsx / .xls 格式
+          </div>
+        </template>
+      </el-upload>
+
+      <div v-if="importResult" class="import-result">
+        <el-alert
+          :type="importResult.failCount === 0 ? 'success' : 'warning'"
+          :title="`导入完成：成功 ${importResult.successCount} 条，失败 ${importResult.failCount} 条`"
+          :closable="false"
+        />
+        <el-table
+          v-if="importResult.errors.length"
+          :data="importResult.errors.map((e, i) => ({ index: i, msg: e }))"
+          size="small"
+          max-height="200"
+          style="margin-top: 8px"
+        >
+          <el-table-column type="index" width="50" />
+          <el-table-column prop="msg" label="错误信息" show-overflow-tooltip />
+        </el-table>
+      </div>
+
+      <template #footer>
+        <el-button @click="importDialogVisible = false">关闭</el-button>
+        <el-button type="primary" :loading="importing" :disabled="!importFile" @click="handleImport">
+          开始导入
+        </el-button>
+      </template>
+    </el-dialog>
+
     <!-- 合并商铺 Dialog -->
     <el-dialog v-model="mergeDialogVisible" title="合并商铺" width="520px" :close-on-click-modal="false" destroy-on-close>
       <el-form ref="mergeFormRef" :model="mergeForm" :rules="mergeFormRules" label-width="100px">
@@ -439,7 +498,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { Search, Refresh, Plus } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Upload, Download } from '@element-plus/icons-vue'
 import {
   getShopPage,
   createShop,
@@ -447,6 +506,8 @@ import {
   deleteShop,
   splitShop,
   mergeShop,
+  importShops,
+  downloadShopTemplate,
   type ShopVO,
   type ShopQuery,
   type ShopSaveDTO,
@@ -754,6 +815,54 @@ async function handleSplit() {
   } finally { splitSaving.value = false }
 }
 
+// ─────────── Excel 批量导入 ───────────
+const importDialogVisible = ref(false)
+const importing = ref(false)
+const importFile = ref<File | null>(null)
+const importResult = ref<{ successCount: number; failCount: number; errors: string[] } | null>(null)
+const importUploadRef = ref()
+
+function onImportFileChange(uploadFile: any) {
+  importFile.value = uploadFile.raw ?? null
+}
+
+function resetImport() {
+  importFile.value = null
+  importResult.value = null
+  importUploadRef.value?.clearFiles()
+}
+
+async function handleImport() {
+  if (!importFile.value) return
+  importing.value = true
+  try {
+    const res = await importShops(importFile.value)
+    importResult.value = res
+    if (res.failCount === 0) {
+      ElMessage.success(`导入成功，共 ${res.successCount} 条`)
+    } else {
+      ElMessage.warning(`导入完成，成功 ${res.successCount} 条，失败 ${res.failCount} 条`)
+    }
+    fetchList()
+  } finally {
+    importing.value = false
+  }
+}
+
+async function handleDownloadTemplate() {
+  try {
+    const blob = await downloadShopTemplate() as Blob
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'shop_import_template.xlsx'
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch {
+    ElMessage.error('模板下载失败')
+  }
+}
+
 // ─────────── 合并商铺 ───────────
 const mergeDialogVisible = ref(false)
 const mergeSaving = ref(false)
@@ -807,5 +916,9 @@ async function handleMerge() {
     display: flex;
     justify-content: flex-end;
   }
+}
+
+.import-result {
+  margin-top: 12px;
 }
 </style>

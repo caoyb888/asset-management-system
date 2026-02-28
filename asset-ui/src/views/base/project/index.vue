@@ -192,6 +192,26 @@
       destroy-on-close
     >
       <el-tabs v-model="detailTab" @tab-change="onDetailTabChange">
+        <!-- Tab0: 项目图片 -->
+        <el-tab-pane label="项目图片" name="images">
+          <div class="tab-toolbar">
+            <el-button type="primary" size="small" :icon="Upload" :loading="imageUploading" @click="imageInputRef?.click()">上传图片</el-button>
+            <input ref="imageInputRef" type="file" accept="image/*" style="display:none" @change="handleImageFileChange" />
+          </div>
+          <div v-if="currentProjectImages.length" class="image-list">
+            <div v-for="(img, idx) in currentProjectImages" :key="idx" class="image-item">
+              <el-image :src="img.url" fit="cover" style="width:140px;height:100px;border-radius:4px;display:block" :preview-src-list="currentProjectImages.map(i => i.url)" :initial-index="idx" />
+              <div class="image-item-name" :title="img.name">{{ img.name }}</div>
+              <el-popconfirm title="确认删除该图片？" @confirm="handleDeleteImage(idx)">
+                <template #reference>
+                  <el-button link type="danger" size="small" style="margin-top:2px">删除</el-button>
+                </template>
+              </el-popconfirm>
+            </div>
+          </div>
+          <el-empty v-else description="暂无图片" :image-size="80" />
+        </el-tab-pane>
+
         <!-- Tab1: 合同甲方信息 -->
         <el-tab-pane label="合同甲方" name="contract">
           <div class="tab-toolbar">
@@ -356,15 +376,17 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { Search, Refresh, Plus } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Upload } from '@element-plus/icons-vue'
 import {
-  getProjectPage, createProject, updateProject, deleteProject,
+  getProjectPage, getProjectById, createProject, updateProject, deleteProject,
   getProjectContract, saveProjectContract,
   getProjectFinanceContacts, addProjectFinanceContact, updateProjectFinanceContact, deleteProjectFinanceContact,
   getProjectBanks, addProjectBank, updateProjectBank, deleteProjectBank,
-  type ProjectVO, type ProjectQuery, type ProjectSaveDTO,
+  addProjectImage, deleteProjectImage,
+  type ProjectVO, type ProjectQuery, type ProjectSaveDTO, type ImageUrl,
   type ProjectContractVO, type ProjectFinanceContactVO, type ProjectBankVO,
 } from '@/api/base/project'
+import { uploadFile } from '@/api/file'
 import { getCompanyList, type CompanyOption } from '@/api/base/company'
 import { getUserList, type UserOption } from '@/api/base/user'
 import { useAppStore } from '@/store/modules/app'
@@ -492,17 +514,63 @@ const currentProject = ref<ProjectVO | null>(null)
 
 async function handleDetail(row: ProjectVO) {
   currentProject.value = row
-  detailTab.value = 'contract'
+  detailTab.value = 'images'
   detailDrawerVisible.value = true
-  await loadContractInfo(row.id)
+  syncProjectImages()
 }
 
 async function onDetailTabChange(tab: string | number) {
   const id = currentProject.value?.id
   if (!id) return
-  if (tab === 'contract') await loadContractInfo(id)
+  if (tab === 'images') {
+    // 刷新图片列表（从详情接口重新获取确保最新）
+    try {
+      const latest = await getProjectById(id)
+      currentProject.value = latest
+    } catch {}
+    syncProjectImages()
+  } else if (tab === 'contract') await loadContractInfo(id)
   else if (tab === 'financeContacts') await loadFinanceContacts(id)
   else if (tab === 'banks') await loadBanks(id)
+}
+
+// ─────────── 项目图片 ───────────
+const currentProjectImages = ref<ImageUrl[]>([])
+const imageUploading = ref(false)
+const imageInputRef = ref<HTMLInputElement>()
+
+function syncProjectImages() {
+  currentProjectImages.value = currentProject.value?.imageUrls ?? []
+}
+
+async function handleImageFileChange(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  imageUploading.value = true
+  try {
+    const url = await uploadFile(file)
+    await addProjectImage(currentProject.value!.id, { url, name: file.name.replace(/\.[^.]+$/, '') })
+    // 重新加载项目详情以同步图片列表
+    const latest = await getProjectById(currentProject.value!.id)
+    currentProject.value = latest
+    syncProjectImages()
+    ElMessage.success('图片上传成功')
+  } catch {
+    ElMessage.error('图片上传失败')
+  } finally {
+    imageUploading.value = false
+    if (imageInputRef.value) imageInputRef.value.value = ''
+  }
+}
+
+async function handleDeleteImage(index: number) {
+  try {
+    await deleteProjectImage(currentProject.value!.id, index)
+    const latest = await getProjectById(currentProject.value!.id)
+    currentProject.value = latest
+    syncProjectImages()
+    ElMessage.success('删除成功')
+  } catch {}
 }
 
 // ─────────── 合同甲方 ───────────
@@ -652,4 +720,27 @@ async function deleteBank(bid: number) {
 }
 
 .detail-form { margin-top: 8px; }
+
+.image-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.image-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 140px;
+}
+
+.image-item-name {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 </style>

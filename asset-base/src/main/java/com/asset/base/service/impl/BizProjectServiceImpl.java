@@ -12,6 +12,7 @@ import com.asset.base.mapper.BizProjectMapper;
 import com.asset.base.model.dto.ProjectBankDTO;
 import com.asset.base.model.dto.ProjectContractDTO;
 import com.asset.base.model.dto.ProjectFinanceContactDTO;
+import com.asset.base.model.dto.ProjectImageDTO;
 import com.asset.base.model.dto.ProjectQuery;
 import com.asset.base.model.dto.ProjectSaveDTO;
 import com.asset.base.model.vo.ProjectBankVO;
@@ -29,6 +30,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -313,5 +315,51 @@ public class BizProjectServiceImpl
             throw new BizException("银行账号不存在或已删除");
         }
         bankMapper.deleteById(bankId);
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* 项目图片                                                             */
+    /* ------------------------------------------------------------------ */
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void addProjectImage(Long id, ProjectImageDTO dto) {
+        BizProject project = getById(id);
+        if (project == null || project.getIsDeleted() == 1) {
+            throw new BizException("项目不存在或已删除");
+        }
+        List<BizProject.ImageUrl> images = project.getImageUrls();
+        if (images == null) {
+            images = new ArrayList<>();
+        }
+        BizProject.ImageUrl img = new BizProject.ImageUrl();
+        img.setUrl(dto.getUrl());
+        img.setName(dto.getName() != null ? dto.getName() : "图片" + (images.size() + 1));
+        img.setSort(images.size() + 1);
+        images.add(img);
+
+        BizProject update = new BizProject();
+        update.setId(id);
+        update.setImageUrls(images);
+        updateById(update);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteProjectImage(Long id, Integer index) {
+        BizProject project = getById(id);
+        if (project == null || project.getIsDeleted() == 1) {
+            throw new BizException("项目不存在或已删除");
+        }
+        List<BizProject.ImageUrl> images = project.getImageUrls();
+        if (images == null || index < 0 || index >= images.size()) {
+            throw new BizException("图片索引无效");
+        }
+        images.remove((int) index);
+
+        BizProject update = new BizProject();
+        update.setId(id);
+        update.setImageUrls(images);
+        updateById(update);
     }
 }

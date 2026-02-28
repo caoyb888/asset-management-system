@@ -65,3 +65,19 @@ export function publishNotice(id: number) {
 export function unpublishNotice(id: number) {
   return request.put<void, void>(`/base/notices/${id}/unpublish`)
 }
+
+export interface NoticeReadStatsVO {
+  noticeId: number
+  readCount: number
+  currentUserRead: boolean
+}
+
+/** 标记公告已读（当前用户） */
+export function markNoticeRead(id: number) {
+  return request.post<void, void>(`/base/notices/${id}/read`)
+}
+
+/** 查询公告已读统计 */
+export function getNoticeReadStats(id: number) {
+  return request.get<NoticeReadStatsVO, NoticeReadStatsVO>(`/base/notices/${id}/read-stats`)
+}
