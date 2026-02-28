@@ -92,45 +92,45 @@ export interface AdjustmentDTO {
 
 /** 分页查询应收明细 */
 export function getReceivablePage(params: ReceivableQueryDTO) {
-  return request.get('/api/fin/receivables', { params })
+  return request.get('/fin/receivables', { params })
 }
 
 /** 按合同汇总应收 */
 export function getReceivableSummary(params: { contractId?: number; projectId?: number; merchantId?: number }) {
-  return request.get('/api/fin/receivables/summary', { params })
+  return request.get('/fin/receivables/summary', { params })
 }
 
 /** 欠费统计 */
 export function getOverdueStatistics(params?: { projectId?: number }) {
-  return request.get('/api/fin/receivables/overdue-statistics', { params })
+  return request.get('/fin/receivables/overdue-statistics', { params })
 }
 
 /** 导出应收明细 Excel */
 export function exportReceivable(params: ReceivableQueryDTO) {
-  return request.get('/api/fin/receivables/export', { params, responseType: 'blob' })
+  return request.get('/fin/receivables/export', { params, responseType: 'blob' })
 }
 
 /** 从营运应收计划同步 */
 export function syncFromPlan(planId: number) {
-  return request.post(`/api/fin/receivables/sync-from-plan/${planId}`)
+  return request.post(`/fin/receivables/sync-from-plan/${planId}`)
 }
 
 /** 手动刷新欠费金额 */
 export function refreshOverdueDays() {
-  return request.post('/api/fin/receivables/refresh-overdue')
+  return request.post('/fin/receivables/refresh-overdue')
 }
 
 /** 申请减免 */
 export function applyDeduction(data: DeductionDTO) {
-  return request.post('/api/fin/receivables/deduction', data)
+  return request.post('/fin/receivables/deduction', data)
 }
 
 /** 申请调整 */
 export function applyAdjustment(data: AdjustmentDTO) {
-  return request.post('/api/fin/receivables/adjustment', data)
+  return request.post('/fin/receivables/adjustment', data)
 }
 
 /** 标记账单为已打印 */
 export function markPrinted(ids: number[]) {
-  return request.post('/api/fin/receivables/mark-printed', ids)
+  return request.post('/fin/receivables/mark-printed', ids)
 }

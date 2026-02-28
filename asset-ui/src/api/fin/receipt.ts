@@ -76,30 +76,30 @@ export interface ReceiptCreateDTO {
 
 /** 收款单分页列表 */
 export function getReceiptPage(params: ReceiptQueryDTO) {
-  return request.get('/api/fin/receipts', { params })
+  return request.get('/fin/receipts', { params })
 }
 
 /** 收款单详情（含拆分明细） */
 export function getReceiptDetail(id: number) {
-  return request.get(`/api/fin/receipts/${id}`)
+  return request.get(`/fin/receipts/${id}`)
 }
 
 /** 新增收款单 */
 export function createReceipt(data: ReceiptCreateDTO) {
-  return request.post('/api/fin/receipts', data)
+  return request.post('/fin/receipts', data)
 }
 
 /** 编辑收款单 */
 export function updateReceipt(id: number, data: ReceiptCreateDTO) {
-  return request.put(`/api/fin/receipts/${id}`, data)
+  return request.put(`/fin/receipts/${id}`, data)
 }
 
 /** 作废收款单 */
 export function cancelReceipt(id: number, reason?: string) {
-  return request.put(`/api/fin/receipts/${id}/cancel`, { reason })
+  return request.put(`/fin/receipts/${id}/cancel`, { reason })
 }
 
 /** 未名款项归名 */
 export function bindReceipt(id: number, contractId: number) {
-  return request.put(`/api/fin/receipts/${id}/bind`, { contractId })
+  return request.put(`/fin/receipts/${id}/bind`, { contractId })
 }

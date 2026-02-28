@@ -53,36 +53,36 @@ export interface PassengerFlowStatisticsVO {
 
 /** 分页查询客流列表 */
 export function getFlowPage(params: PassengerFlowQueryDTO) {
-  return request.get('/api/opr/passenger-flows', { params })
+  return request.get('/opr/passenger-flows', { params })
 }
 
 /** 新增客流 */
 export function createFlow(data: PassengerFlowCreateDTO) {
-  return request.post('/api/opr/passenger-flows', data)
+  return request.post('/opr/passenger-flows', data)
 }
 
 /** 编辑客流 */
 export function updateFlow(id: number, data: PassengerFlowCreateDTO) {
-  return request.put(`/api/opr/passenger-flows/${id}`, data)
+  return request.put(`/opr/passenger-flows/${id}`, data)
 }
 
 /** 删除客流 */
 export function deleteFlow(id: number) {
-  return request.delete(`/api/opr/passenger-flows/${id}`)
+  return request.delete(`/opr/passenger-flows/${id}`)
 }
 
 /** 导入 Excel */
 export function importFlowExcel(file: File) {
   const form = new FormData()
   form.append('file', file)
-  return request.post('/api/opr/passenger-flows/import', form, {
+  return request.post('/opr/passenger-flows/import', form, {
     headers: { 'Content-Type': 'multipart/form-data' }
   })
 }
 
 /** 导出 Excel */
 export function exportFlowExcel(params: PassengerFlowQueryDTO) {
-  return request.get('/api/opr/passenger-flows/export', {
+  return request.get('/opr/passenger-flows/export', {
     params,
     responseType: 'blob'
   })
@@ -90,5 +90,5 @@ export function exportFlowExcel(params: PassengerFlowQueryDTO) {
 
 /** 统计分析（日/周环比+趋势） */
 export function getFlowStatistics(params: { projectId?: number; buildingId?: number; floorId?: number }) {
-  return request.get('/api/opr/passenger-flows/statistics', { params })
+  return request.get('/opr/passenger-flows/statistics', { params })
 }

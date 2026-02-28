@@ -94,40 +94,40 @@ export interface ChangeImpactVO {
 
 /** 分页查询变更列表 */
 export function getChangePage(params: ChangeQueryDTO) {
-  return request.get('/api/opr/contract-changes', { params })
+  return request.get('/opr/contract-changes', { params })
 }
 
 /** 变更详情（含明细/快照） */
 export function getChangeById(id: number) {
-  return request.get<ChangeDetailVO>(`/api/opr/contract-changes/${id}`)
+  return request.get<ChangeDetailVO>(`/opr/contract-changes/${id}`)
 }
 
 /** 新增变更单 */
 export function createChange(data: ChangeCreateDTO) {
-  return request.post<number>('/api/opr/contract-changes', data)
+  return request.post<number>('/opr/contract-changes', data)
 }
 
 /** 编辑变更单 */
 export function updateChange(id: number, data: ChangeCreateDTO) {
-  return request.put(`/api/opr/contract-changes/${id}`, data)
+  return request.put(`/opr/contract-changes/${id}`, data)
 }
 
 /** 预览变更影响 */
 export function previewImpact(id: number) {
-  return request.post<ChangeImpactVO>(`/api/opr/contract-changes/${id}/preview-impact`)
+  return request.post<ChangeImpactVO>(`/opr/contract-changes/${id}/preview-impact`)
 }
 
 /** 提交审批 */
 export function submitChangeApproval(id: number) {
-  return request.post(`/api/opr/contract-changes/${id}/submit-approval`)
+  return request.post(`/opr/contract-changes/${id}/submit-approval`)
 }
 
 /** 审批回调（管理员手动触发或 OA 回调） */
 export function approvalCallback(id: number, data: ApprovalCallbackDTO) {
-  return request.post(`/api/opr/contract-changes/${id}/approval-callback`, data)
+  return request.post(`/opr/contract-changes/${id}/approval-callback`, data)
 }
 
 /** 合同变更历史时间线 */
 export function getChangeHistory(contractId: number) {
-  return request.get<ChangeDetailVO[]>(`/api/opr/contract-changes/history/${contractId}`)
+  return request.get<ChangeDetailVO[]>(`/opr/contract-changes/history/${contractId}`)
 }

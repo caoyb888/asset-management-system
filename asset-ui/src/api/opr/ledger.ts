@@ -72,42 +72,42 @@ export interface OprReceivablePlan {
 
 /** 分页查询台账列表 */
 export function getLedgerPage(params: LedgerQueryDTO) {
-  return request.get('/api/opr/ledgers', { params })
+  return request.get('/opr/ledgers', { params })
 }
 
 /** 台账详情 */
 export function getLedgerById(id: number) {
-  return request.get(`/api/opr/ledgers/${id}`)
+  return request.get(`/opr/ledgers/${id}`)
 }
 
 /** 双签确认 */
 export function doubleSign(id: number) {
-  return request.put(`/api/opr/ledgers/${id}/double-sign`)
+  return request.put(`/opr/ledgers/${id}/double-sign`)
 }
 
 /** 生成应收计划 */
 export function generateReceivable(id: number) {
-  return request.post(`/api/opr/ledgers/${id}/generate-receivable`)
+  return request.post(`/opr/ledgers/${id}/generate-receivable`)
 }
 
 /** 审核台账 */
 export function auditLedger(id: number, data: { auditStatus: number; comment?: string }) {
-  return request.put(`/api/opr/ledgers/${id}/audit`, data)
+  return request.put(`/opr/ledgers/${id}/audit`, data)
 }
 
 /** 手动推送应收 */
 export function pushReceivable(id: number) {
-  return request.post(`/api/opr/ledgers/${id}/push-receivable`)
+  return request.post(`/opr/ledgers/${id}/push-receivable`)
 }
 
 /** 一次性首款录入 */
 export function addOneTimePayment(id: number, data: unknown) {
-  return request.post(`/api/opr/ledgers/${id}/one-time-payment`, data)
+  return request.post(`/opr/ledgers/${id}/one-time-payment`, data)
 }
 
 /** 查询应收计划列表 */
 export function listReceivables(id: number) {
-  return request.get(`/api/opr/ledgers/${id}/receivables`)
+  return request.get(`/opr/ledgers/${id}/receivables`)
 }
 
 /** 选择器简化 VO */
@@ -124,5 +124,5 @@ export interface LedgerSelectorVO {
 
 /** 选择器模糊搜索（按台账编号/合同编号/商家名） */
 export function searchLedgers(keyword?: string, pageSize = 10) {
-  return request.get<LedgerSelectorVO[]>('/api/opr/ledgers/search', { params: { keyword, pageSize } })
+  return request.get<LedgerSelectorVO[]>('/opr/ledgers/search', { params: { keyword, pageSize } })
 }

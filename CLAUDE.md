@@ -335,5 +335,39 @@ CI/CD：Jenkins / GitLab CI
 - [ ] 编码阶段
 
 ## 参考文档
-- 数据库设计：docs/基础数据管理模块数据库设计.md  
+- 数据库设计：docs/基础数据管理模块数据库设计.md
 - 技术分析报告：docs/基础数据管理模块_技术分析报告.docx
+
+---
+
+## ⚠️ 已知 Bug 与规范
+
+### 前端 API 路径规范：禁止在请求路径中重复 /api 前缀
+
+**问题描述：** `src/api/request.ts` 已配置 `baseURL: '/api'`，Axios 会将 baseURL 与请求路径拼接。若请求路径再次包含 `/api/` 前缀，最终 URL 会变成 `/api/api/opr/...`，导致 Vite 代理无法正确匹配具体微服务规则，请求错误路由到 `asset-base`（端口 8001），返回 500 错误。
+
+**曾出错的模块：** 招商管理（inv）、营运管理（opr）、财务管理（fin）
+
+**错误写法：**
+```ts
+// ❌ 错误：baseURL 已是 /api，路径不能再加 /api/
+request.get('/api/opr/contract-changes', { params })
+request.get('/api/fin/receivables', { params })
+request.get('/api/inv/contracts', { params })
+```
+
+**正确写法：**
+```ts
+// ✅ 正确：路径直接从模块前缀开始，不含 /api
+request.get('/opr/contract-changes', { params })
+request.get('/fin/receivables', { params })
+request.get('/inv/contracts', { params })
+```
+
+**Vite 代理规则（vite.config.ts）：**
+- `/api/opr/*` → `asset-operation`（端口 8003）
+- `/api/fin/*` → `asset-finance`（端口 8004）
+- `/api/inv/*` → `asset-investment`（端口 8002）
+- `/api/*`     → `asset-base`（端口 8001）
+
+**新增 API 文件时必须检查：** 路径以 `/opr/`、`/fin/`、`/inv/` 或其他模块前缀开头，而非 `/api/opr/` 等。
