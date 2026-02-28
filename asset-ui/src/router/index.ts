@@ -238,6 +238,12 @@ const routes: RouteRecordRaw[] = [
       },
       // ── 财务管理 ──
       {
+        path: 'fin/dashboard',
+        name: 'FinDashboard',
+        component: () => import('@/views/fin/dashboard/index.vue'),
+        meta: { title: '财务看板', icon: 'DataAnalysis' },
+      },
+      {
         path: 'fin/receivables',
         name: 'FinReceivable',
         component: () => import('@/views/fin/receivable/index.vue'),

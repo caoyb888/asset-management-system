@@ -11,4 +11,5 @@ public class OpenApiGroupConfig {
     @Bean public GroupedOpenApi depositApi() { return GroupedOpenApi.builder().group("04-保证金管理").addOpenApiCustomizer(o -> o.info(new Info().title("保证金管理").version("1.0"))).pathsToMatch("/fin/deposits/**").build(); }
     @Bean public GroupedOpenApi prepaymentApi() { return GroupedOpenApi.builder().group("05-预收款管理").addOpenApiCustomizer(o -> o.info(new Info().title("预收款管理").version("1.0"))).pathsToMatch("/fin/prepayments/**").build(); }
     @Bean public GroupedOpenApi deductionApi() { return GroupedOpenApi.builder().group("06-减免调整").addOpenApiCustomizer(o -> o.info(new Info().title("减免与调整单").version("1.0"))).pathsToMatch("/fin/deductions/**", "/fin/adjustments/**").build(); }
+    @Bean public GroupedOpenApi dashboardApi() { return GroupedOpenApi.builder().group("07-财务看板").addOpenApiCustomizer(o -> o.info(new Info().title("财务看板").version("1.0"))).pathsToMatch("/fin/dashboard/**").build(); }
 }

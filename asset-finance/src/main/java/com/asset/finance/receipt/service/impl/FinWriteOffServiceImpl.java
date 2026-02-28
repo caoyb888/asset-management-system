@@ -361,8 +361,8 @@ public class FinWriteOffServiceImpl extends ServiceImpl<FinWriteOffMapper, FinWr
             vo.setStatusName(STATUS_NAMES[wo.getStatus()]);
         }
         vo.setApprovalId(wo.getApprovalId());
-        vo.setCreateTime(wo.getCreateTime());
-        vo.setUpdateTime(wo.getUpdateTime());
+        vo.setCreateTime(wo.getCreatedAt());
+        vo.setUpdateTime(wo.getUpdatedAt());
 
         if (fetchNames) {
             try {

@@ -11,15 +11,15 @@ import org.apache.ibatis.annotations.Select;
 @Mapper
 public interface FinPrepayAccountMapper extends BaseMapper<FinPrepayAccount> {
 
-    /**
-     * 按合同ID查询预收款账户（通用账户，fee_item_id 为空）
-     */
+    /** 按合同ID查询通用预收款账户（fee_item_id 为空） */
     @Select("SELECT * FROM fin_prepay_account WHERE contract_id=#{contractId} AND fee_item_id IS NULL AND is_deleted=0 LIMIT 1")
     FinPrepayAccount selectByContractId(Long contractId);
 
-    /**
-     * 行级锁查询（余额更新事务内使用）
-     */
+    /** 按合同ID加行级锁查询（余额更新事务内使用） */
+    @Select("SELECT * FROM fin_prepay_account WHERE contract_id=#{contractId} AND fee_item_id IS NULL AND is_deleted=0 FOR UPDATE")
+    FinPrepayAccount selectByContractIdForUpdate(Long contractId);
+
+    /** 按ID加行级锁查询 */
     @Select("SELECT * FROM fin_prepay_account WHERE id=#{id} AND is_deleted=0 FOR UPDATE")
     FinPrepayAccount selectByIdForUpdate(Long id);
 }

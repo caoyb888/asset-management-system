@@ -1,6 +1,6 @@
 package com.asset.finance.receipt.dto;
 
-import com.asset.common.model.PageQuery;
+import com.asset.common.model.dto.PageQuery;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
