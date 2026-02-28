@@ -1,7 +1,7 @@
 <template>
   <div class="floor-page">
     <!-- 搜索栏 -->
-    <el-card shadow="never" class="search-card">
+    <el-card shadow="never" class="filter-card">
       <el-form :model="query" inline @keyup.enter="handleSearch">
         <el-form-item label="所属项目">
           <el-select
@@ -60,10 +60,17 @@
 
     <!-- 操作栏 + 表格 -->
     <el-card shadow="never" class="table-card">
-      <div class="toolbar">
-        <el-button type="primary" :icon="Plus" @click="handleAdd">新增楼层</el-button>
+      <div class="card-header">
+        <div class="header-left">
+          <span class="header-title">楼层列表</span>
+          <span class="count-tag">共 {{ total }} 条</span>
+        </div>
+        <div class="header-actions">
+          <el-button type="primary" :icon="Plus" @click="handleAdd">新增楼层</el-button>
+        </div>
       </div>
 
+      <div class="table-body">
       <el-table v-loading="loading" :data="tableData" border stripe row-key="id" style="width: 100%">
         <el-table-column type="index" label="序号" width="60" align="center" />
         <el-table-column prop="buildingName" label="所属楼栋" min-width="140" show-overflow-tooltip />
@@ -117,6 +124,7 @@
           @size-change="fetchList"
           @current-change="fetchList"
         />
+      </div>
       </div>
     </el-card>
 
@@ -468,23 +476,106 @@ async function handleDelete(id: number) {
 .floor-page {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+}
 
-  .search-card {
-    :deep(.el-form-item) {
-      margin-bottom: 0;
+.filter-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  transition: box-shadow 0.2s;
+  &:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important; }
+  :deep(.el-card__body) { padding: 14px 20px; }
+  :deep(.el-form-item) { margin-bottom: 0; }
+}
+
+.table-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  overflow: hidden;
+  :deep(.el-card__body) { padding: 0; }
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fff;
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .header-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    &::before {
+      content: '';
+      display: inline-block;
+      width: 3px;
+      height: 16px;
+      background: linear-gradient(180deg, #3b82f6, #60a5fa);
+      border-radius: 2px;
     }
   }
 
-  .toolbar {
-    margin-bottom: 12px;
+  .count-tag {
+    font-size: 12px;
+    background: #eff6ff;
+    color: #3b82f6;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    padding: 2px 10px;
+    font-weight: 500;
   }
 
-  .pagination {
-    margin-top: 16px;
+  .header-actions {
     display: flex;
-    justify-content: flex-end;
+    gap: 8px;
+    align-items: center;
   }
+}
+
+.table-body {
+  padding: 16px 20px;
+
+  :deep(.el-table) {
+    border-radius: 8px;
+    overflow: hidden;
+
+    .el-table__header-wrapper th.el-table__cell {
+      background: #f8fafc;
+      color: #64748b;
+      font-weight: 600;
+      font-size: 13px;
+      border-bottom: 1px solid #e8edf3;
+    }
+
+    .el-table__row:hover > td.el-table__cell {
+      background-color: #f0f7ff !important;
+    }
+
+    .el-table__row--striped > td.el-table__cell {
+      background-color: #fafbfc;
+    }
+
+    td.el-table__cell {
+      border-bottom: 1px solid #f4f6f9;
+    }
+  }
+}
+
+.pagination {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .image-upload-row {
