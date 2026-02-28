@@ -1,13 +1,16 @@
 <template>
-  <div class="page-container">
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <span>计租方案管理</span>
+  <div class="rent-scheme-page">
+    <el-card shadow="never" class="table-card">
+      <div class="card-header">
+        <div class="header-left">
+          <span class="header-title">计租方案管理</span>
+        </div>
+        <div class="header-actions">
           <el-button type="primary" :icon="Plus" @click="handleCreate">新增方案</el-button>
         </div>
-      </template>
+      </div>
 
+      <div class="table-body">
       <el-table v-loading="loading" :data="list" border stripe>
         <el-table-column prop="schemeCode" label="方案编码" width="120" />
         <el-table-column prop="schemeName" label="方案名称" min-width="140" />
@@ -41,6 +44,7 @@
           </template>
         </el-table-column>
       </el-table>
+      </div>
     </el-card>
 
     <!-- 新增/编辑弹窗 -->
@@ -294,6 +298,84 @@ async function handleDelete(row: RentSchemeVO) {
 onMounted(fetchList)
 </script>
 
-<style scoped>
-.card-header { display: flex; justify-content: space-between; align-items: center; }
+<style scoped lang="scss">
+.rent-scheme-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.table-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  overflow: hidden;
+  :deep(.el-card__body) { padding: 0; }
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fff;
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .header-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    &::before {
+      content: '';
+      display: inline-block;
+      width: 3px;
+      height: 16px;
+      background: linear-gradient(180deg, #3b82f6, #60a5fa);
+      border-radius: 2px;
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+}
+
+.table-body {
+  padding: 16px 20px;
+
+  :deep(.el-table) {
+    border-radius: 8px;
+    overflow: hidden;
+
+    .el-table__header-wrapper th.el-table__cell {
+      background: #f8fafc;
+      color: #64748b;
+      font-weight: 600;
+      font-size: 13px;
+      border-bottom: 1px solid #e8edf3;
+    }
+
+    .el-table__row:hover > td.el-table__cell {
+      background-color: #f0f7ff !important;
+    }
+
+    .el-table__row--striped > td.el-table__cell {
+      background-color: #fafbfc;
+    }
+
+    td.el-table__cell {
+      border-bottom: 1px solid #f4f6f9;
+    }
+  }
+}
 </style>

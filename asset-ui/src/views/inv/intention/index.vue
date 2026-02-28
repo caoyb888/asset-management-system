@@ -1,15 +1,8 @@
 <template>
-  <div class="page-container">
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <span>意向协议列表</span>
-          <el-button type="primary" :icon="Plus" @click="handleCreate">新增意向</el-button>
-        </div>
-      </template>
-
-      <!-- 搜索栏 -->
-      <el-form :model="query" inline class="search-form">
+  <div class="intention-page">
+    <!-- 搜索栏 -->
+    <el-card shadow="never" class="filter-card">
+      <el-form :model="query" inline @keyup.enter="fetchList">
         <el-form-item label="关键词">
           <el-input v-model="query.keyword" placeholder="意向名称/编号" clearable />
         </el-form-item>
@@ -27,8 +20,21 @@
           <el-button :icon="Refresh" @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
+    </el-card>
 
-      <!-- 表格 -->
+    <!-- 表格 -->
+    <el-card shadow="never" class="table-card">
+      <div class="card-header">
+        <div class="header-left">
+          <span class="header-title">意向协议列表</span>
+          <span class="count-tag">共 {{ total }} 条</span>
+        </div>
+        <div class="header-actions">
+          <el-button type="primary" :icon="Plus" @click="handleCreate">新增意向</el-button>
+        </div>
+      </div>
+
+      <div class="table-body">
       <el-table v-loading="loading" :data="list" border stripe>
         <el-table-column prop="intentionCode" label="意向编号" width="160" />
         <el-table-column prop="projectName" label="项目" />
@@ -54,16 +60,18 @@
         </el-table-column>
       </el-table>
 
-      <!-- 分页 -->
-      <el-pagination
-        v-model:current-page="query.pageNum"
-        v-model:page-size="query.pageSize"
-        :total="total"
-        :page-sizes="[10, 20, 50]"
-        layout="total, sizes, prev, pager, next"
-        class="mt-4"
-        @change="fetchList"
-      />
+      <div class="pagination">
+        <el-pagination
+          v-model:current-page="query.pageNum"
+          v-model:page-size="query.pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50]"
+          layout="total, sizes, prev, pager, next, jumper"
+          background
+          @change="fetchList"
+        />
+      </div>
+      </div>
     </el-card>
   </div>
 </template>
@@ -139,8 +147,109 @@ async function handleDelete(row: IntentionVO) {
 onMounted(fetchList)
 </script>
 
-<style scoped>
-.card-header { display: flex; justify-content: space-between; align-items: center; }
-.search-form { margin-bottom: 12px; }
-.mt-4 { margin-top: 16px; }
+<style scoped lang="scss">
+.intention-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.filter-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  transition: box-shadow 0.2s;
+  &:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important; }
+  :deep(.el-card__body) { padding: 14px 20px; }
+  :deep(.el-form-item) { margin-bottom: 0; }
+}
+
+.table-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  overflow: hidden;
+  :deep(.el-card__body) { padding: 0; }
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fff;
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .header-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    &::before {
+      content: '';
+      display: inline-block;
+      width: 3px;
+      height: 16px;
+      background: linear-gradient(180deg, #3b82f6, #60a5fa);
+      border-radius: 2px;
+    }
+  }
+
+  .count-tag {
+    font-size: 12px;
+    background: #eff6ff;
+    color: #3b82f6;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    padding: 2px 10px;
+    font-weight: 500;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+}
+
+.table-body {
+  padding: 16px 20px;
+
+  :deep(.el-table) {
+    border-radius: 8px;
+    overflow: hidden;
+
+    .el-table__header-wrapper th.el-table__cell {
+      background: #f8fafc;
+      color: #64748b;
+      font-weight: 600;
+      font-size: 13px;
+      border-bottom: 1px solid #e8edf3;
+    }
+
+    .el-table__row:hover > td.el-table__cell {
+      background-color: #f0f7ff !important;
+    }
+
+    .el-table__row--striped > td.el-table__cell {
+      background-color: #fafbfc;
+    }
+
+    td.el-table__cell {
+      border-bottom: 1px solid #f4f6f9;
+    }
+  }
+}
+
+.pagination {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+}
 </style>

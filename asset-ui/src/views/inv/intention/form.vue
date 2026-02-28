@@ -1,13 +1,11 @@
 <template>
-  <div class="page-container">
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <el-button :icon="ArrowLeft" text @click="router.back()">返回</el-button>
-          <span>{{ isEdit ? '编辑意向协议' : '新增意向协议' }}</span>
-          <div />
-        </div>
-      </template>
+  <div class="form-page">
+    <el-card shadow="never" class="form-card">
+      <div class="card-header">
+        <el-button :icon="ArrowLeft" text @click="router.back()">返回</el-button>
+        <span class="header-title">{{ isEdit ? '编辑意向协议' : '新增意向协议' }}</span>
+        <div />
+      </div>
 
       <!-- 向导步骤条 -->
       <el-steps :active="currentStep" align-center class="mb-6" finish-status="success">
@@ -1193,10 +1191,26 @@ onMounted(async () => {
   margin-bottom: 24px;
 }
 
+.form-page {
+  padding-bottom: 24px;
+}
+
+.form-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 4px 0;
+
+  .header-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+  }
 }
 .timeline-wrap { max-width: 600px; padding: 0 4px 16px; }
 </style>

@@ -1,13 +1,11 @@
 <template>
-  <div class="page-container">
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <el-button :icon="ArrowLeft" text @click="router.back()">返回</el-button>
-          <span>{{ isEdit ? '编辑租金分解' : '新增租金分解' }}</span>
-          <div />
-        </div>
-      </template>
+  <div class="form-page">
+    <el-card shadow="never" class="form-card">
+      <div class="card-header">
+        <el-button :icon="ArrowLeft" text @click="router.back()">返回</el-button>
+        <span class="header-title">{{ isEdit ? '编辑租金分解' : '新增租金分解' }}</span>
+        <div />
+      </div>
 
       <!-- 基础信息 -->
       <el-form ref="formRef" :model="form" label-width="120px" class="base-form">
@@ -461,7 +459,10 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.card-header { display: flex; justify-content: space-between; align-items: center; }
+.form-page { padding-bottom: 24px; }
+.form-card { border-radius: 12px !important; border: 1px solid rgba(0, 0, 0, 0.06) !important; }
+.card-header { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
+.card-header .header-title { font-size: 16px; font-weight: 600; color: #1e293b; }
 .base-form { max-width: 960px; margin-bottom: 0; }
 .base-actions {
   display: flex; gap: 12px;

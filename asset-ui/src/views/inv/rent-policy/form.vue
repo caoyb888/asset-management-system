@@ -1,13 +1,11 @@
 <template>
-  <div class="page-container">
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <el-button :icon="ArrowLeft" text @click="router.back()">返回</el-button>
-          <span>{{ isEdit ? '编辑租决政策' : '新增租决政策' }}</span>
-          <div />
-        </div>
-      </template>
+  <div class="form-page">
+    <el-card shadow="never" class="form-card">
+      <div class="card-header">
+        <el-button :icon="ArrowLeft" text @click="router.back()">返回</el-button>
+        <span class="header-title">{{ isEdit ? '编辑租决政策' : '新增租决政策' }}</span>
+        <div />
+      </div>
 
       <el-tabs v-model="activeTab">
 
@@ -409,7 +407,10 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.card-header { display: flex; justify-content: space-between; align-items: center; }
+.form-page { padding-bottom: 24px; }
+.form-card { border-radius: 12px !important; border: 1px solid rgba(0, 0, 0, 0.06) !important; }
+.card-header { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
+.card-header .header-title { font-size: 16px; font-weight: 600; color: #1e293b; }
 .form-section { max-width: 960px; }
 .toolbar { margin-bottom: 10px; }
 .tab-actions {
