@@ -317,9 +317,10 @@ function transTypeLabel(t?: number) {
   return t ? m[t] ?? '-' : '-'
 }
 
-function transTypeTag(t?: number) {
-  const m: Record<number, string> = { 1: 'success', 2: 'primary', 3: 'warning', 4: 'danger' }
-  return t ? m[t] ?? '' : ''
+type TagType = 'success' | 'primary' | 'warning' | 'info' | 'danger' | undefined
+function transTypeTag(t?: number): TagType {
+  const m: Record<number, TagType> = { 1: 'success', 2: 'primary', 3: 'warning', 4: 'danger' }
+  return t ? m[t] : undefined
 }
 
 function statusLabel(s?: number) {
@@ -327,9 +328,9 @@ function statusLabel(s?: number) {
   return s !== undefined ? m[s] ?? '-' : '-'
 }
 
-function statusTag(s?: number) {
-  const m: Record<number, string> = { 0: 'warning', 1: 'success', 2: 'danger' }
-  return s !== undefined ? m[s] ?? '' : ''
+function statusTag(s?: number): TagType {
+  const m: Record<number, TagType> = { 0: 'warning', 1: 'success', 2: 'danger' }
+  return s !== undefined ? m[s] : undefined
 }
 
 // 缴纳

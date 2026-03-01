@@ -243,7 +243,7 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item label="审批意见">
-          <el-input v-model="approveForm.comment" type="textarea" rows="3" />
+          <el-input v-model="approveForm.comment" type="textarea" :rows="3" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -282,6 +282,7 @@ const query = reactive({
   contractId: undefined as number | undefined,
   writeOffType: undefined as number | undefined,
   status: undefined as number | undefined,
+  receiptId: undefined as number | undefined,
   pageNum: 1,
   pageSize: 20,
 })
@@ -321,12 +322,15 @@ onMounted(() => {
 })
 
 // ─── 标签颜色 ─────────────────────────────────────────────────────────────────
-function statusTagType(status: number) {
-  return ({ 0: 'warning', 1: 'success', 2: 'info' } as Record<number, string>)[status] ?? ''
+type TagType = 'success' | 'primary' | 'warning' | 'info' | 'danger' | undefined
+function statusTagType(status: number): TagType {
+  const m: Record<number, TagType> = { 0: 'warning', 1: 'success', 2: 'info' }
+  return m[status]
 }
 
-function typeTagType(type: number) {
-  return ({ 1: '', 2: 'warning', 3: 'success', 4: 'danger' } as Record<number, string>)[type] ?? ''
+function typeTagType(type: number): TagType {
+  const m: Record<number, TagType> = { 1: undefined, 2: 'warning', 3: 'success', 4: 'danger' }
+  return m[type]
 }
 
 // ─── 撤销 ─────────────────────────────────────────────────────────────────────

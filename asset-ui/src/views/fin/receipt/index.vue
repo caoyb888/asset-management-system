@@ -306,9 +306,10 @@ function calcWriteOffPercent(row: ReceiptDetailVO) {
   return Math.round(((row.writeOffAmount || 0) / row.totalAmount) * 100)
 }
 
-function statusTagType(status: number) {
-  const map: Record<number, string> = { 0: 'warning', 1: '', 2: 'success', 3: 'info' }
-  return map[status] ?? ''
+type TagType = 'success' | 'primary' | 'warning' | 'info' | 'danger' | undefined
+function statusTagType(status: number): TagType {
+  const map: Record<number, TagType> = { 0: 'warning', 1: undefined, 2: 'success', 3: 'info' }
+  return map[status]
 }
 </script>
 

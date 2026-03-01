@@ -413,7 +413,7 @@
             <el-table-column prop="billingEnd" label="账期结束" width="120" />
             <el-table-column label="账期类型" width="100" align="center">
               <template #default="{ row }">
-                <el-tag :type="row.billingType === 1 ? 'warning' : ''">
+                <el-tag :type="row.billingType === 1 ? 'warning' : undefined">
                   {{ row.billingType === 1 ? '首账期' : '普通' }}
                 </el-tag>
               </template>

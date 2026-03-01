@@ -29,6 +29,7 @@ export interface ContractVO {
   paymentCycle: number
   billingMode: number
   totalAmount: number
+  contractText?: string
   createdAt: string
   updatedAt: string
 }

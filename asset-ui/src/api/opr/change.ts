@@ -40,7 +40,9 @@ export interface OprContractChange {
   reason?: string
   approvalId?: string
   changeTypeCodes?: string[]  // 后端填充
+  createdBy?: string
   createdAt?: string
+  updatedAt?: string
 }
 
 /** 变更字段明细 */

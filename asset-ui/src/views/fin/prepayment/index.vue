@@ -248,9 +248,10 @@ function transTypeLabel(t?: number) {
   return t ? m[t] ?? '-' : '-'
 }
 
-function transTypeTag(t?: number) {
-  const m: Record<number, string> = { 1: 'success', 2: 'primary', 3: 'warning' }
-  return t ? m[t] ?? '' : ''
+type TagType = 'success' | 'primary' | 'warning' | 'info' | 'danger' | undefined
+function transTypeTag(t?: number): TagType {
+  const m: Record<number, TagType> = { 1: 'success', 2: 'primary', 3: 'warning' }
+  return t ? m[t] : undefined
 }
 
 // 录入预收款

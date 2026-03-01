@@ -354,9 +354,10 @@ function formatAmount(v?: number | null) {
   return Number(v).toFixed(2)
 }
 
-function statusTag(s?: number) {
-  const m: Record<number, string> = { 0: 'warning', 1: 'primary', 2: 'success' }
-  return s !== undefined ? m[s] ?? '' : ''
+type TagType = 'success' | 'primary' | 'warning' | 'info' | 'danger' | undefined
+function statusTag(s?: number): TagType {
+  const m: Record<number, TagType> = { 0: 'warning', 1: 'primary', 2: 'success' }
+  return s !== undefined ? m[s] : undefined
 }
 
 function sourceTypeLabel(t?: number | null) {

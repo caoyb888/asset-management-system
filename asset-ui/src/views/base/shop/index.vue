@@ -859,7 +859,7 @@ async function handleImport() {
 
 async function handleDownloadTemplate() {
   try {
-    const blob = await downloadShopTemplate() as Blob
+    const blob = await downloadShopTemplate() as unknown as Blob
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
