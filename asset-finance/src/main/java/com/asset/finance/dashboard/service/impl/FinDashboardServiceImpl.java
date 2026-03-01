@@ -67,7 +67,7 @@ public class FinDashboardServiceImpl implements FinDashboardService {
         // ── 本月核销笔数（已通过 status=1）──────────────────────────────────
         Long writeOffCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM fin_write_off " +
-                "WHERE status = 1 AND DATE_FORMAT(create_time, '%Y-%m') = ? AND is_deleted = 0",
+                "WHERE status = 1 AND DATE_FORMAT(created_at, '%Y-%m') = ? AND is_deleted = 0",
                 Long.class, currentMonth);
         vo.setMonthWriteOffCount(writeOffCount != null ? writeOffCount : 0L);
 
@@ -118,14 +118,15 @@ public class FinDashboardServiceImpl implements FinDashboardService {
 
     @Override
     public List<OverdueTopVO> getOverdueTop() {
-        // 按商家聚合欠费，取TOP10，merchant_name 冗余字段直接从应收表查
-        String sql = "SELECT merchant_id, " +
-                "       MIN(COALESCE(payer_name, CONCAT('商家', merchant_id))) AS merchant_name, " +
-                "       SUM(outstanding_amount) AS overdue_amount " +
-                "FROM fin_receivable " +
-                "WHERE status IN (0, 1) AND due_date < CURDATE() " +
-                "  AND is_deleted = 0 AND outstanding_amount > 0 " +
-                "GROUP BY merchant_id " +
+        // 按商家聚合欠费，取TOP10
+        String sql = "SELECT r.merchant_id, " +
+                "       COALESCE(MIN(p.payer_name), CONCAT('商家', r.merchant_id)) AS merchant_name, " +
+                "       SUM(r.outstanding_amount) AS overdue_amount " +
+                "FROM fin_receivable r " +
+                "LEFT JOIN fin_receipt p ON p.merchant_id = r.merchant_id AND p.is_deleted = 0 " +
+                "WHERE r.status IN (0, 1) AND r.due_date < CURDATE() " +
+                "  AND r.is_deleted = 0 AND r.outstanding_amount > 0 " +
+                "GROUP BY r.merchant_id " +
                 "ORDER BY overdue_amount DESC " +
                 "LIMIT 10";
 
