@@ -1,7 +1,7 @@
 <template>
   <div class="fin-voucher-page">
     <!-- 搜索栏 -->
-    <el-card class="mb-4">
+    <el-card class="filter-card" shadow="never">
       <el-form :model="query" inline>
         <el-form-item label="凭证编号">
           <el-input v-model="query.voucherCode" placeholder="凭证编号" clearable style="width:160px" />
@@ -32,77 +32,87 @@
         </el-form-item>
         <el-form-item>
           <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
-          <el-button @click="resetQuery">重置</el-button>
+          <el-button :icon="Refresh" @click="resetQuery">重置</el-button>
         </el-form-item>
       </el-form>
     </el-card>
 
-    <!-- 操作栏 -->
-    <el-card class="mb-4">
-      <el-space>
-        <el-button type="primary" :icon="Plus" @click="openCreateDialog">手动创建凭证</el-button>
-        <el-button type="success" :icon="MagicStick" @click="openGenerateDialog">从收款单生成</el-button>
-      </el-space>
-    </el-card>
-
     <!-- 凭证列表 -->
-    <el-card>
-      <el-table :data="list" v-loading="loading" stripe>
-        <el-table-column label="凭证编号" prop="voucherCode" width="180" />
-        <el-table-column label="项目" prop="projectName" min-width="120" show-overflow-tooltip />
-        <el-table-column label="账套" prop="accountSet" width="110" />
-        <el-table-column label="类型" width="80">
-          <template #default="{ row }">
-            <el-tag :type="row.payType === 1 ? 'success' : 'warning'" size="small">
-              {{ row.payTypeName }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="凭证日期" prop="voucherDate" width="110" />
-        <el-table-column label="借方合计" align="right" width="120">
-          <template #default="{ row }">{{ formatAmount(row.totalDebit) }}</template>
-        </el-table-column>
-        <el-table-column label="贷方合计" align="right" width="120">
-          <template #default="{ row }">{{ formatAmount(row.totalCredit) }}</template>
-        </el-table-column>
-        <el-table-column label="状态" width="90">
-          <template #default="{ row }">
-            <el-tag :type="statusTag(row.status)" size="small">{{ row.statusName }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="上传时间" prop="uploadTime" width="160" show-overflow-tooltip />
-        <el-table-column label="摘要" prop="remark" min-width="140" show-overflow-tooltip />
-        <el-table-column label="操作" width="200" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="openDetail(row)">详情</el-button>
-            <el-button
-              v-if="row.status === 0"
-              link type="success" size="small"
-              @click="doAudit(row)"
-            >审核</el-button>
-            <el-button
-              v-if="row.status === 1"
-              link type="warning" size="small"
-              @click="doUpload(row)"
-            >上传</el-button>
-            <el-button
-              v-if="row.status === 0"
-              link type="danger" size="small"
-              @click="doDelete(row)"
-            >删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+    <el-card shadow="never" class="table-card">
+      <div class="card-header">
+        <div class="header-left">
+          <span class="header-title">凭证列表</span>
+          <span class="count-tag">共 {{ total }} 条</span>
+        </div>
+        <div class="header-actions">
+          <el-button type="primary" :icon="Plus" @click="openCreateDialog">手动创建凭证</el-button>
+          <el-button type="success" :icon="MagicStick" @click="openGenerateDialog">从收款单生成</el-button>
+        </div>
+      </div>
 
-      <div class="pagination-wrap">
-        <el-pagination
-          v-model:current-page="query.pageNum"
-          v-model:page-size="query.pageSize"
-          :total="total"
-          :page-sizes="[10, 20, 50]"
-          layout="total, sizes, prev, pager, next"
-          @change="loadList"
-        />
+      <div class="table-body">
+        <el-table :data="list" v-loading="loading" stripe border style="width:100%">
+          <el-table-column label="凭证编号" prop="voucherCode" width="180" />
+          <el-table-column label="项目" prop="projectName" min-width="120" show-overflow-tooltip />
+          <el-table-column label="账套" prop="accountSet" width="110" />
+          <el-table-column label="类型" width="80" align="center">
+            <template #default="{ row }">
+              <el-tag :type="row.payType === 1 ? 'success' : 'warning'" size="small">
+                {{ row.payTypeName }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="凭证日期" prop="voucherDate" width="110" align="center" />
+          <el-table-column label="借方合计" align="right" width="120">
+            <template #default="{ row }">
+              <span class="text-blue">{{ formatAmount(row.totalDebit) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="贷方合计" align="right" width="120">
+            <template #default="{ row }">
+              <span class="text-orange">{{ formatAmount(row.totalCredit) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" width="90" align="center">
+            <template #default="{ row }">
+              <el-tag :type="statusTag(row.status)" size="small">{{ row.statusName }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="上传时间" prop="uploadTime" width="160" show-overflow-tooltip />
+          <el-table-column label="摘要" prop="remark" min-width="140" show-overflow-tooltip />
+          <el-table-column label="操作" width="200" fixed="right" align="center">
+            <template #default="{ row }">
+              <el-button link type="primary" size="small" @click="openDetail(row)">详情</el-button>
+              <el-button
+                v-if="row.status === 0"
+                link type="success" size="small"
+                @click="doAudit(row)"
+              >审核</el-button>
+              <el-button
+                v-if="row.status === 1"
+                link type="warning" size="small"
+                @click="doUpload(row)"
+              >上传</el-button>
+              <el-button
+                v-if="row.status === 0"
+                link type="danger" size="small"
+                @click="doDelete(row)"
+              >删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <div class="pagination">
+          <el-pagination
+            v-model:current-page="query.pageNum"
+            v-model:page-size="query.pageSize"
+            :total="total"
+            :page-sizes="[10, 20, 50]"
+            layout="total, sizes, prev, pager, next"
+            background
+            @change="loadList"
+          />
+        </div>
       </div>
     </el-card>
 
@@ -148,7 +158,6 @@
           <el-table-column label="摘要" prop="summary" min-width="160" show-overflow-tooltip />
         </el-table>
 
-        <!-- 分录底部合计 -->
         <div class="entry-total">
           <span>借方合计：<strong class="text-blue">{{ formatAmount(detailVO.totalDebit) }}</strong></span>
           <span class="ml-4">贷方合计：<strong class="text-orange">{{ formatAmount(detailVO.totalCredit) }}</strong></span>
@@ -160,16 +169,8 @@
         </div>
 
         <div class="drawer-actions">
-          <el-button
-            v-if="detailVO.status === 0"
-            type="success"
-            @click="doAuditDetail"
-          >审核</el-button>
-          <el-button
-            v-if="detailVO.status === 1"
-            type="warning"
-            @click="doUploadDetail"
-          >上传到财务系统</el-button>
+          <el-button v-if="detailVO.status === 0" type="success" @click="doAuditDetail">审核</el-button>
+          <el-button v-if="detailVO.status === 1" type="warning" @click="doUploadDetail">上传到财务系统</el-button>
         </div>
       </template>
       <el-skeleton v-else :rows="6" animated />
@@ -211,7 +212,6 @@
           </el-col>
         </el-row>
 
-        <!-- 分录列表 -->
         <div class="section-title">
           分录明细
           <el-button type="primary" link :icon="Plus" @click="addEntry">添加分录</el-button>
@@ -249,7 +249,6 @@
           </el-table-column>
         </el-table>
 
-        <!-- 合计校验行 -->
         <div class="entry-total mt-2">
           <span>借方合计：<strong class="text-blue">{{ formatAmount(calcTotalDebit) }}</strong></span>
           <span class="ml-4">贷方合计：<strong class="text-orange">{{ formatAmount(calcTotalCredit) }}</strong></span>
@@ -291,7 +290,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Plus, Delete, MagicStick } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Delete, MagicStick } from '@element-plus/icons-vue'
 import {
   getVoucherPage,
   getVoucherDetail,
@@ -524,41 +523,122 @@ async function submitGenerate() {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .fin-voucher-page {
-  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
+
+.filter-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  transition: box-shadow 0.2s;
+  &:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important; }
+  :deep(.el-card__body) { padding: 14px 20px; }
+  :deep(.el-form-item) { margin-bottom: 0; }
+}
+
+.table-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  overflow: hidden;
+  :deep(.el-card__body) { padding: 0; }
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fff;
+
+  .header-left { display: flex; align-items: center; gap: 10px; }
+
+  .header-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    &::before {
+      content: '';
+      display: inline-block;
+      width: 3px;
+      height: 16px;
+      background: linear-gradient(180deg, #3b82f6, #60a5fa);
+      border-radius: 2px;
+    }
+  }
+
+  .count-tag {
+    font-size: 12px;
+    background: #eff6ff;
+    color: #3b82f6;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    padding: 2px 10px;
+    font-weight: 500;
+  }
+
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+}
+
+.table-body {
+  padding: 16px 20px;
+
+  :deep(.el-table) {
+    border-radius: 8px;
+    overflow: hidden;
+
+    .el-table__header-wrapper th.el-table__cell {
+      background: #f8fafc;
+      color: #64748b;
+      font-weight: 600;
+      font-size: 13px;
+      border-bottom: 1px solid #e8edf3;
+    }
+
+    .el-table__row:hover > td.el-table__cell { background-color: #f0f7ff !important; }
+    .el-table__row--striped > td.el-table__cell { background-color: #fafbfc; }
+    td.el-table__cell { border-bottom: 1px solid #f4f6f9; }
+  }
+}
+
+.pagination { margin-top: 14px; display: flex; justify-content: flex-end; }
+
 .mb-4 { margin-bottom: 16px; }
 .mt-2 { margin-top: 8px; }
 .ml-4 { margin-left: 16px; }
+
 .section-title {
   font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  color: #1e293b;
   padding: 8px 0 12px;
   display: flex;
   align-items: center;
   gap: 12px;
 }
+
 .entry-total {
   display: flex;
   align-items: center;
   padding: 10px 0;
   font-size: 14px;
-  color: #606266;
+  color: #64748b;
 }
+
 .drawer-actions {
   display: flex;
   justify-content: flex-end;
   padding-top: 16px;
   gap: 12px;
 }
-.text-blue   { color: #409eff; font-weight: 600; }
+
+.text-blue   { color: #3b82f6; font-weight: 600; }
 .text-orange { color: #e6a23c; font-weight: 600; }
-.text-muted  { color: #c0c4cc; }
-.pagination-wrap {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 16px;
-}
+.text-muted  { color: #cbd5e1; }
 </style>

@@ -35,88 +35,95 @@
           />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
+          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
+          <el-button :icon="Refresh" @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
     </el-card>
 
     <!-- 列表卡片 -->
-    <el-card shadow="never" style="margin-top:12px">
-      <template #header>
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span>收款单列表</span>
-          <el-button type="primary" @click="handleCreate">新增收款单</el-button>
+    <el-card shadow="never" class="table-card">
+      <div class="card-header">
+        <div class="header-left">
+          <span class="header-title">收款单列表</span>
+          <span class="count-tag">共 {{ total }} 条</span>
         </div>
-      </template>
+        <div class="header-actions">
+          <el-button type="primary" :icon="Plus" @click="handleCreate">新增收款单</el-button>
+        </div>
+      </div>
 
-      <el-table :data="tableData" v-loading="loading" stripe border>
-        <el-table-column prop="receiptCode" label="收款单号" width="180" fixed />
-        <el-table-column prop="contractName" label="合同" min-width="150" show-overflow-tooltip />
-        <el-table-column prop="merchantName" label="商家" width="120" show-overflow-tooltip />
-        <el-table-column prop="payerName" label="付款方" width="140" show-overflow-tooltip />
-        <el-table-column prop="totalAmount" label="收款金额(元)" width="130" align="right">
-          <template #default="{ row }">
-            <span class="amount-text">{{ formatAmount(row.totalAmount) }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="核销进度" width="160">
-          <template #default="{ row }">
-            <div class="write-off-progress">
-              <el-progress
-                :percentage="calcWriteOffPercent(row)"
-                :status="row.status === 2 ? 'success' : ''"
-                :stroke-width="10"
-              />
-              <span class="progress-text">{{ formatAmount(row.writeOffAmount) }} / {{ formatAmount(row.totalAmount) }}</span>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="paymentMethodName" label="收款方式" width="100" />
-        <el-table-column prop="receiptDate" label="收款日期" width="110" />
-        <el-table-column label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="statusTagType(row.status)" size="small">{{ row.statusName }}</el-tag>
-            <el-tag v-if="row.isUnnamed === 1" type="warning" size="small" style="margin-left:4px">未名</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="180" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="handleView(row)">查看</el-button>
-            <el-button
-              v-if="row.status !== 3"
-              link type="primary"
-              @click="handleEdit(row)"
-              :disabled="row.status !== 0"
-            >编辑</el-button>
-            <el-button
-              v-if="row.isUnnamed === 1 && row.status !== 3"
-              link type="warning"
-              @click="handleBind(row)"
-            >归名</el-button>
-            <el-button
-              v-if="row.status !== 3 && (row.status === 0 || row.status === 1)"
-              link type="success"
-              @click="goWriteOff(row)"
-            >核销</el-button>
-            <el-button
-              v-if="row.status === 0"
-              link type="danger"
-              @click="handleCancel(row)"
-            >作废</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div class="table-body">
+        <el-table :data="tableData" v-loading="loading" stripe border style="width:100%">
+          <el-table-column prop="receiptCode" label="收款单号" width="180" fixed />
+          <el-table-column prop="contractName" label="合同" min-width="150" show-overflow-tooltip />
+          <el-table-column prop="merchantName" label="商家" width="120" show-overflow-tooltip />
+          <el-table-column prop="payerName" label="付款方" width="140" show-overflow-tooltip />
+          <el-table-column prop="totalAmount" label="收款金额(元)" width="130" align="right">
+            <template #default="{ row }">
+              <span class="amount-text">{{ formatAmount(row.totalAmount) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="核销进度" width="160">
+            <template #default="{ row }">
+              <div class="write-off-progress">
+                <el-progress
+                  :percentage="calcWriteOffPercent(row)"
+                  :status="row.status === 2 ? 'success' : ''"
+                  :stroke-width="8"
+                />
+                <span class="progress-text">{{ formatAmount(row.writeOffAmount) }} / {{ formatAmount(row.totalAmount) }}</span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column prop="paymentMethodName" label="收款方式" width="100" />
+          <el-table-column prop="receiptDate" label="收款日期" width="110" align="center" />
+          <el-table-column label="状态" width="130" align="center">
+            <template #default="{ row }">
+              <el-tag :type="statusTagType(row.status)" size="small">{{ row.statusName }}</el-tag>
+              <el-tag v-if="row.isUnnamed === 1" type="warning" size="small" style="margin-left:4px">未名</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="200" fixed="right" align="center">
+            <template #default="{ row }">
+              <el-button link type="primary" size="small" @click="handleView(row)">查看</el-button>
+              <el-button
+                v-if="row.status !== 3"
+                link type="primary" size="small"
+                @click="handleEdit(row)"
+                :disabled="row.status !== 0"
+              >编辑</el-button>
+              <el-button
+                v-if="row.isUnnamed === 1 && row.status !== 3"
+                link type="warning" size="small"
+                @click="handleBind(row)"
+              >归名</el-button>
+              <el-button
+                v-if="row.status !== 3 && (row.status === 0 || row.status === 1)"
+                link type="success" size="small"
+                @click="goWriteOff(row)"
+              >核销</el-button>
+              <el-button
+                v-if="row.status === 0"
+                link type="danger" size="small"
+                @click="handleCancel(row)"
+              >作废</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
 
-      <el-pagination
-        style="margin-top:16px;justify-content:flex-end"
-        v-model:current-page="query.pageNum"
-        v-model:page-size="query.pageSize"
-        :total="total"
-        :page-sizes="[20, 50, 100]"
-        layout="total, sizes, prev, pager, next"
-        @change="loadData"
-      />
+        <div class="pagination">
+          <el-pagination
+            v-model:current-page="query.pageNum"
+            v-model:page-size="query.pageSize"
+            :total="total"
+            :page-sizes="[20, 50, 100]"
+            layout="total, sizes, prev, pager, next"
+            background
+            @change="loadData"
+          />
+        </div>
+      </div>
     </el-card>
 
     <!-- 详情/新增/编辑 抽屉 -->
@@ -156,9 +163,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { Search, Refresh, Plus } from '@element-plus/icons-vue'
 import { getReceiptPage, cancelReceipt, bindReceipt, type ReceiptQueryDTO, type ReceiptDetailVO } from '@/api/fin/receipt'
 import ReceiptForm from './form.vue'
 
@@ -304,9 +312,93 @@ function statusTagType(status: number) {
 }
 </script>
 
-<style scoped>
-.filter-card { margin-bottom: 0; }
-.amount-text { font-weight: 600; color: #303133; }
+<style scoped lang="scss">
+.fin-receipt-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.filter-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  transition: box-shadow 0.2s;
+  &:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important; }
+  :deep(.el-card__body) { padding: 14px 20px; }
+  :deep(.el-form-item) { margin-bottom: 0; }
+}
+
+.table-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  overflow: hidden;
+  :deep(.el-card__body) { padding: 0; }
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fff;
+
+  .header-left { display: flex; align-items: center; gap: 10px; }
+
+  .header-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    &::before {
+      content: '';
+      display: inline-block;
+      width: 3px;
+      height: 16px;
+      background: linear-gradient(180deg, #3b82f6, #60a5fa);
+      border-radius: 2px;
+    }
+  }
+
+  .count-tag {
+    font-size: 12px;
+    background: #eff6ff;
+    color: #3b82f6;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    padding: 2px 10px;
+    font-weight: 500;
+  }
+
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+}
+
+.table-body {
+  padding: 16px 20px;
+
+  :deep(.el-table) {
+    border-radius: 8px;
+    overflow: hidden;
+
+    .el-table__header-wrapper th.el-table__cell {
+      background: #f8fafc;
+      color: #64748b;
+      font-weight: 600;
+      font-size: 13px;
+      border-bottom: 1px solid #e8edf3;
+    }
+
+    .el-table__row:hover > td.el-table__cell { background-color: #f0f7ff !important; }
+    .el-table__row--striped > td.el-table__cell { background-color: #fafbfc; }
+    td.el-table__cell { border-bottom: 1px solid #f4f6f9; }
+  }
+}
+
+.pagination { margin-top: 14px; display: flex; justify-content: flex-end; }
+
+.amount-text { font-weight: 600; color: #1e293b; }
 .write-off-progress { display: flex; flex-direction: column; gap: 2px; }
-.progress-text { font-size: 11px; color: #909399; }
+.progress-text { font-size: 11px; color: #94a3b8; }
 </style>

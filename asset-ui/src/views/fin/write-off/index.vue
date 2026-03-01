@@ -1,5 +1,5 @@
 <template>
-  <div class="page-container">
+  <div class="fin-writeoff-page">
     <!-- 筛选栏 -->
     <el-card class="filter-card" shadow="never">
       <el-form :model="query" inline>
@@ -31,80 +31,79 @@
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
+          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
+          <el-button :icon="Refresh" @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
     </el-card>
 
-    <!-- 操作栏 -->
-    <el-card class="table-card" shadow="never">
-      <template #header>
-        <div class="card-header">
-          <span>核销单列表</span>
-          <el-button type="primary" @click="openCreateDialog">+ 新增核销</el-button>
+    <!-- 列表卡片 -->
+    <el-card shadow="never" class="table-card">
+      <div class="card-header">
+        <div class="header-left">
+          <span class="header-title">核销单列表</span>
+          <span class="count-tag">共 {{ total }} 条</span>
         </div>
-      </template>
+        <div class="header-actions">
+          <el-button type="primary" :icon="Plus" @click="openCreateDialog">新增核销</el-button>
+        </div>
+      </div>
 
-      <el-table v-loading="loading" :data="tableData" border stripe>
-        <el-table-column label="核销单号" prop="writeOffCode" min-width="160" />
-        <el-table-column label="收款单号" prop="receiptCode" min-width="160" />
-        <el-table-column label="合同名称" prop="contractName" min-width="160" show-overflow-tooltip />
-        <el-table-column label="商家名称" prop="merchantName" min-width="120" show-overflow-tooltip />
-        <el-table-column label="核销类型" prop="writeOffTypeName" width="110">
-          <template #default="{ row }">
-            <el-tag :type="typeTagType(row.writeOffType)" size="small">
-              {{ row.writeOffTypeName || '-' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="核销总金额" prop="totalAmount" width="130" align="right">
-          <template #default="{ row }">
-            <span :class="row.totalAmount < 0 ? 'amount-negative' : 'amount-positive'">
-              ¥{{ row.totalAmount?.toFixed(2) }}
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" prop="statusName" width="100">
-          <template #default="{ row }">
-            <el-tag :type="statusTagType(row.status)" size="small">{{ row.statusName }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="创建时间" prop="createTime" width="160" />
-        <el-table-column label="操作" width="160" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="viewDetail(row)">详情</el-button>
-            <el-button
-              v-if="row.status === 0"
-              link
-              type="warning"
-              size="small"
-              @click="handleCancel(row)"
-            >
-              撤销
-            </el-button>
-            <el-button
-              v-if="row.status === 0 && row.approvalId"
-              link
-              type="success"
-              size="small"
-              @click="openApproveDialog(row)"
-            >
-              审批
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div class="table-body">
+        <el-table v-loading="loading" :data="tableData" border stripe style="width:100%">
+          <el-table-column label="核销单号" prop="writeOffCode" min-width="160" />
+          <el-table-column label="收款单号" prop="receiptCode" min-width="160" />
+          <el-table-column label="合同名称" prop="contractName" min-width="160" show-overflow-tooltip />
+          <el-table-column label="商家名称" prop="merchantName" min-width="120" show-overflow-tooltip />
+          <el-table-column label="核销类型" prop="writeOffTypeName" width="110" align="center">
+            <template #default="{ row }">
+              <el-tag :type="typeTagType(row.writeOffType)" size="small">
+                {{ row.writeOffTypeName || '-' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="核销总金额" prop="totalAmount" width="130" align="right">
+            <template #default="{ row }">
+              <span :class="row.totalAmount < 0 ? 'amount-negative' : 'amount-positive'">
+                ¥{{ row.totalAmount?.toFixed(2) }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" prop="statusName" width="100" align="center">
+            <template #default="{ row }">
+              <el-tag :type="statusTagType(row.status)" size="small">{{ row.statusName }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="创建时间" prop="createTime" width="160" align="center" />
+          <el-table-column label="操作" width="160" fixed="right" align="center">
+            <template #default="{ row }">
+              <el-button link type="primary" size="small" @click="viewDetail(row)">详情</el-button>
+              <el-button
+                v-if="row.status === 0"
+                link type="warning" size="small"
+                @click="handleCancel(row)"
+              >撤销</el-button>
+              <el-button
+                v-if="row.status === 0 && row.approvalId"
+                link type="success" size="small"
+                @click="openApproveDialog(row)"
+              >审批</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
 
-      <el-pagination
-        v-model:current-page="query.pageNum"
-        v-model:page-size="query.pageSize"
-        :total="total"
-        :page-sizes="[10, 20, 50]"
-        layout="total, sizes, prev, pager, next"
-        style="margin-top:16px;justify-content:flex-end"
-        @change="loadData"
-      />
+        <div class="pagination">
+          <el-pagination
+            v-model:current-page="query.pageNum"
+            v-model:page-size="query.pageSize"
+            :total="total"
+            :page-sizes="[10, 20, 50]"
+            layout="total, sizes, prev, pager, next"
+            background
+            @change="loadData"
+          />
+        </div>
+      </div>
     </el-card>
 
     <!-- 新增核销弹窗 -->
@@ -137,13 +136,12 @@
           </el-col>
         </el-row>
 
-        <!-- 可核销应收列表 -->
         <el-divider content-position="left">
           选择应收明细
-          <span style="color:#909399;font-size:12px;margin-left:8px">（可勾选多条，填写本次核销金额）</span>
+          <span style="color:#94a3b8;font-size:12px;margin-left:8px">（可勾选多条，填写本次核销金额）</span>
         </el-divider>
 
-        <div v-if="createForm.receiptId && writableList.length === 0" style="color:#909399;padding:12px 0">
+        <div v-if="createForm.receiptId && writableList.length === 0" style="color:#94a3b8;padding:12px 0">
           该收款单对应合同暂无可核销应收记录
         </div>
 
@@ -178,17 +176,14 @@
                 size="small"
                 style="width:100%"
               />
-              <span v-else style="color:#c0c4cc">-</span>
+              <span v-else style="color:#cbd5e1">-</span>
             </template>
           </el-table-column>
         </el-table>
 
-        <!-- 核销合计 -->
-        <div v-if="selectedIds.size > 0" style="text-align:right;margin-top:12px;font-size:14px">
+        <div v-if="selectedIds.size > 0" class="writeoff-total">
           本次核销合计：
-          <span style="font-weight:600;color:#2E75B6;font-size:16px">
-            ¥{{ totalWriteOff.toFixed(2) }}
-          </span>
+          <span class="total-amount">¥{{ totalWriteOff.toFixed(2) }}</span>
         </div>
       </el-form>
 
@@ -264,6 +259,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
+import { Search, Refresh, Plus } from '@element-plus/icons-vue'
 import {
   getWriteOffPage,
   getWritableReceivables,
@@ -417,14 +413,10 @@ async function onReceiptChange(val: number | undefined) {
     writableList.value = []
     return
   }
-  // 需要先知道收款单对应的合同ID，这里简化为直接用 receiptId 查接口，
-  // 后端 queryWritableReceivables 实际按 contractId 查，
-  // 此处先用 receiptId 作为 contractId 的替代（联调时替换为真实合同ID查询）
   try {
     const res = await getWritableReceivables(val)
     writableList.value = res.data || []
     selectedIds.value = new Set()
-    // 初始化金额为欠费全额
     writableList.value.forEach(r => {
       writeOffAmounts[r.id] = r.outstandingAmount
     })
@@ -471,10 +463,106 @@ async function handleSubmit() {
 }
 </script>
 
-<style scoped>
-.page-container { padding: 16px; }
-.filter-card { margin-bottom: 16px; }
-.card-header { display: flex; align-items: center; justify-content: space-between; }
-.amount-positive { color: #67c23a; font-weight: 600; }
+<style scoped lang="scss">
+.fin-writeoff-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.filter-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  transition: box-shadow 0.2s;
+  &:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important; }
+  :deep(.el-card__body) { padding: 14px 20px; }
+  :deep(.el-form-item) { margin-bottom: 0; }
+}
+
+.table-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  overflow: hidden;
+  :deep(.el-card__body) { padding: 0; }
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fff;
+
+  .header-left { display: flex; align-items: center; gap: 10px; }
+
+  .header-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    &::before {
+      content: '';
+      display: inline-block;
+      width: 3px;
+      height: 16px;
+      background: linear-gradient(180deg, #3b82f6, #60a5fa);
+      border-radius: 2px;
+    }
+  }
+
+  .count-tag {
+    font-size: 12px;
+    background: #eff6ff;
+    color: #3b82f6;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    padding: 2px 10px;
+    font-weight: 500;
+  }
+
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+}
+
+.table-body {
+  padding: 16px 20px;
+
+  :deep(.el-table) {
+    border-radius: 8px;
+    overflow: hidden;
+
+    .el-table__header-wrapper th.el-table__cell {
+      background: #f8fafc;
+      color: #64748b;
+      font-weight: 600;
+      font-size: 13px;
+      border-bottom: 1px solid #e8edf3;
+    }
+
+    .el-table__row:hover > td.el-table__cell { background-color: #f0f7ff !important; }
+    .el-table__row--striped > td.el-table__cell { background-color: #fafbfc; }
+    td.el-table__cell { border-bottom: 1px solid #f4f6f9; }
+  }
+}
+
+.pagination { margin-top: 14px; display: flex; justify-content: flex-end; }
+
+.amount-positive { color: #22c55e; font-weight: 600; }
 .amount-negative { color: #f56c6c; font-weight: 600; }
+
+.writeoff-total {
+  text-align: right;
+  margin-top: 12px;
+  font-size: 14px;
+  color: #64748b;
+
+  .total-amount {
+    font-weight: 700;
+    color: #3b82f6;
+    font-size: 16px;
+    margin-left: 4px;
+  }
+}
 </style>
