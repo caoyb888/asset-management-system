@@ -33,6 +33,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import com.asset.system.common.datascope.DataScopeContext;
+import com.asset.system.common.datascope.DataScopeInfo;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -61,6 +64,31 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
                 .eq(query.getStatus() != null, SysUser::getStatus, query.getStatus())
                 .eq(query.getDeptId() != null, SysUser::getDeptId, query.getDeptId())
                 .orderByDesc(SysUser::getId);
+
+        // ─── 数据权限过滤 ───────────────────────────────────────────────────────
+        DataScopeInfo scope = DataScopeContext.get();
+        if (scope != null && !scope.isAdmin()) {
+            if (scope.isSelfOnly()) {
+                // 仅本人：过滤 created_by = userId
+                wrapper.eq(SysUser::getCreatedBy, scope.getUserId());
+            } else if (scope.getDeptIds() != null) {
+                if (scope.getDeptIds().isEmpty()) {
+                    // 无任何部门权限：返回空
+                    wrapper.apply("1 = 0");
+                } else {
+                    // 限定部门范围（前端传入 deptId 再交集）
+                    if (query.getDeptId() == null) {
+                        wrapper.in(SysUser::getDeptId, scope.getDeptIds());
+                    } else {
+                        // 前端筛了具体部门，若不在权限范围内则强制无结果
+                        if (!scope.getDeptIds().contains(query.getDeptId())) {
+                            wrapper.apply("1 = 0");
+                        }
+                    }
+                }
+            }
+        }
+        // ────────────────────────────────────────────────────────────────────────
 
         IPage<SysUser> page = baseMapper.selectPage(
                 new Page<>(query.getPageNum(), query.getPageSize()), wrapper);

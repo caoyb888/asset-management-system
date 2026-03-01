@@ -2,6 +2,7 @@ package com.asset.system.user.controller;
 
 import com.asset.common.model.R;
 import com.asset.common.security.util.SecurityUtil;
+import com.asset.system.common.datascope.DataScope;
 import com.asset.system.user.dto.ChangePasswordDTO;
 import com.asset.system.user.dto.ResetPwdDTO;
 import com.asset.system.user.dto.UserCreateDTO;
@@ -26,6 +27,7 @@ public class SysUserController {
 
     private final SysUserService userService;
 
+    @DataScope
     @Operation(summary = "用户列表（分页）")
     @GetMapping
     public R<?> page(UserQueryDTO query) { return R.ok(userService.pageQuery(query)); }
