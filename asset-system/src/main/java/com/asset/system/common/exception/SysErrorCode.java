@@ -9,6 +9,7 @@ public enum SysErrorCode {
     USER_DISABLED(6003, "用户已停用"),
     USER_DELETE_SELF_FORBIDDEN(6004, "不能删除当前登录用户"),
     USER_HAS_ADMIN_ROLE(6005, "超级管理员不允许操作"),
+    USER_OLD_PWD_WRONG(6006, "原密码错误"),
     // 部门相关
     DEPT_NOT_FOUND(6011, "部门不存在"),
     DEPT_HAS_CHILDREN(6012, "存在子部门，不允许删除"),

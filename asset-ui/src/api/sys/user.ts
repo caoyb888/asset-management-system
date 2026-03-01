@@ -44,12 +44,23 @@ export interface UserQueryDTO {
   phone?: string
   status?: number
   deptId?: number
-  roleId?: number
 }
 
 export interface ResetPwdDTO {
   userId: number
   newPassword: string
+}
+
+export interface ChangePasswordDTO {
+  oldPassword: string
+  newPassword: string
+}
+
+export interface UserProfileDTO {
+  realName?: string
+  phone?: string
+  email?: string
+  avatar?: string
 }
 
 // ─── API ────────────────────────────────────────────────────────────────────
@@ -65,8 +76,18 @@ export const userApi = {
   update: (id: number, data: UserCreateDTO) => request.put(`/sys/users/${id}`, data),
   /** 删除用户 */
   delete: (id: number) => request.delete(`/sys/users/${id}`),
-  /** 重置密码 */
+  /** 重置密码（管理员操作） */
   resetPassword: (data: ResetPwdDTO) => request.put('/sys/users/reset-password', data),
   /** 修改用户状态 */
   changeStatus: (id: number, status: number) => request.put(`/sys/users/${id}/status`, { status }),
+  /** 分配角色 */
+  assignRoles: (id: number, roleIds: number[]) => request.post(`/sys/users/${id}/roles`, { roleIds }),
+  /** 分配岗位 */
+  assignPosts: (id: number, postIds: number[]) => request.post(`/sys/users/${id}/posts`, { postIds }),
+  /** 强制下线 */
+  forceOffline: (id: number) => request.delete(`/sys/users/${id}/token`),
+  /** 修改个人资料 */
+  updateProfile: (data: UserProfileDTO) => request.put('/sys/users/profile', data),
+  /** 修改自身密码 */
+  changePassword: (data: ChangePasswordDTO) => request.put('/sys/users/profile/password', data),
 }

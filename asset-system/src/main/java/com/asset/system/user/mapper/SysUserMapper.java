@@ -23,4 +23,8 @@ public interface SysUserMapper extends BaseMapper<SysUser> {
     /** 查询岗位关联的用户数量 */
     @Select("SELECT COUNT(*) FROM sys_user_post WHERE post_id=#{postId}")
     long countByPostId(@Param("postId") Long postId);
+
+    /** 根据ID查询（含密码字段，用于校验原密码） */
+    @Select("SELECT * FROM sys_user WHERE id=#{id} AND is_deleted=0 LIMIT 1")
+    SysUser selectByIdWithPwd(@Param("id") Long id);
 }
