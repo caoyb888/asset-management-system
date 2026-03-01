@@ -13,7 +13,8 @@ public class OpenApiGroupConfig {
     @Bean public GroupedOpenApi roleApi() { return GroupedOpenApi.builder().group("04-角色管理").addOpenApiCustomizer(o -> o.info(new Info().title("角色管理").version("1.0"))).pathsToMatch("/sys/roles/**").build(); }
     @Bean public GroupedOpenApi menuApi() { return GroupedOpenApi.builder().group("05-菜单管理").addOpenApiCustomizer(o -> o.info(new Info().title("菜单管理").version("1.0"))).pathsToMatch("/sys/menus/**").build(); }
     @Bean public GroupedOpenApi dictApi() { return GroupedOpenApi.builder().group("06-业务字典").addOpenApiCustomizer(o -> o.info(new Info().title("业务字典").version("1.0"))).pathsToMatch("/sys/dict/**").build(); }
-    @Bean public GroupedOpenApi logApi()  { return GroupedOpenApi.builder().group("07-操作日志").addOpenApiCustomizer(o -> o.info(new Info().title("操作日志").version("1.0"))).pathsToMatch("/sys/logs/**").build(); }
+    @Bean public GroupedOpenApi logApi()      { return GroupedOpenApi.builder().group("07-操作日志").addOpenApiCustomizer(o -> o.info(new Info().title("操作日志").version("1.0"))).pathsToMatch("/sys/logs/**").build(); }
+    @Bean public GroupedOpenApi loginLogApi() { return GroupedOpenApi.builder().group("07b-登录日志").addOpenApiCustomizer(o -> o.info(new Info().title("登录日志").version("1.0"))).pathsToMatch("/sys/login-logs/**").build(); }
     @Bean public GroupedOpenApi codeApi() { return GroupedOpenApi.builder().group("08-编码规则管理").addOpenApiCustomizer(o -> o.info(new Info().title("编码规则管理").version("1.0"))).pathsToMatch("/sys/code-rules/**").build(); }
     @Bean public GroupedOpenApi algoApi()   { return GroupedOpenApi.builder().group("09-租费算法管理").addOpenApiCustomizer(o -> o.info(new Info().title("租费算法管理").version("1.0"))).pathsToMatch("/sys/fee-algorithms/**").build(); }
     @Bean public GroupedOpenApi configApi() { return GroupedOpenApi.builder().group("10-系统参数配置").addOpenApiCustomizer(o -> o.info(new Info().title("系统参数配置").version("1.0"))).pathsToMatch("/sys/configs/**").build(); }

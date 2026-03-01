@@ -102,7 +102,7 @@ public class OperLogAspect {
         r.setRequestParam(params);
         r.setOperUser(username);
         r.setOperIp(ip);
-        r.setStatus(error == null ? 1 : 0);
+        r.setStatus(error == null ? 0 : 1);  // 0=成功 1=失败，与 sys_login_log 保持一致
         r.setErrorMsg(error != null ? truncate(error.getMessage(), 500) : null);
         r.setCostTime(costMs);
         r.setOperTime(LocalDateTime.now());

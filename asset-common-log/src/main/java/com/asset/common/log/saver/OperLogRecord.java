@@ -38,7 +38,7 @@ public class OperLogRecord {
     /** 操作来源 IP */
     private String operIp;
 
-    /** 执行状态: 1成功 0失败 */
+    /** 执行状态: 0成功 1失败（与 sys_login_log 保持一致） */
     private Integer status;
 
     /** 错误消息（失败时） */

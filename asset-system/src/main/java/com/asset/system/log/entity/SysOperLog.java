@@ -40,7 +40,7 @@ public class SysOperLog {
     /** 操作IP */
     private String operIp;
 
-    /** 状态: 0失败 1成功 */
+    /** 状态: 0成功 1失败 */
     private Integer status;
 
     /** 错误消息 */

@@ -1,5 +1,6 @@
 package com.asset.system.sysconfig.controller;
 
+import com.asset.common.log.annotation.OperLog;
 import com.asset.common.model.R;
 import com.asset.system.sysconfig.dto.SysConfigCreateDTO;
 import com.asset.system.sysconfig.dto.SysConfigQueryDTO;
@@ -39,12 +40,14 @@ public class SysConfigController {
     }
 
     @Operation(summary = "新增参数")
+    @OperLog(module = "系统配置", action = "新增参数", type = OperLog.OperType.CREATE)
     @PostMapping
     public R<?> create(@Valid @RequestBody SysConfigCreateDTO dto) {
         return R.ok(configService.createConfig(dto));
     }
 
     @Operation(summary = "更新参数")
+    @OperLog(module = "系统配置", action = "更新参数", type = OperLog.OperType.UPDATE)
     @PutMapping("/{id}")
     public R<?> update(@PathVariable Long id, @Valid @RequestBody SysConfigCreateDTO dto) {
         dto.setId(id);
@@ -53,6 +56,7 @@ public class SysConfigController {
     }
 
     @Operation(summary = "删除参数（内置参数禁止删除）")
+    @OperLog(module = "系统配置", action = "删除参数", type = OperLog.OperType.DELETE)
     @DeleteMapping("/{id}")
     public R<?> delete(@PathVariable Long id) {
         configService.deleteConfig(id);
@@ -60,6 +64,7 @@ public class SysConfigController {
     }
 
     @Operation(summary = "刷新所有参数缓存")
+    @OperLog(module = "系统配置", action = "刷新缓存", type = OperLog.OperType.OTHER)
     @PostMapping("/refresh")
     public R<?> refresh() {
         configService.refreshCache();
