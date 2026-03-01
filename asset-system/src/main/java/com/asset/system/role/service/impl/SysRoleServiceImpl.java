@@ -6,9 +6,12 @@ import com.asset.system.role.dto.RoleCreateDTO;
 import com.asset.system.role.dto.RoleDetailVO;
 import com.asset.system.role.dto.RoleQueryDTO;
 import com.asset.system.role.entity.SysRole;
+import com.asset.system.role.entity.SysRoleData;
 import com.asset.system.role.entity.SysRoleMenu;
+import com.asset.system.role.mapper.SysRoleDataMapper;
 import com.asset.system.role.mapper.SysRoleMapper;
 import com.asset.system.role.mapper.SysRoleMenuMapper;
+import com.asset.system.role.mapper.SysUserRoleMapper;
 import com.asset.system.role.service.SysRoleService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -31,6 +34,8 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole>
         implements SysRoleService {
 
     private final SysRoleMenuMapper roleMenuMapper;
+    private final SysRoleDataMapper roleDataMapper;
+    private final SysUserRoleMapper userRoleMapper;
 
     @Override
     public IPage<SysRole> pageQuery(RoleQueryDTO query) {
@@ -44,11 +49,21 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole>
     }
 
     @Override
+    public List<SysRole> listEnabled() {
+        return list(new LambdaQueryWrapper<SysRole>()
+                .eq(SysRole::getStatus, 1)
+                .orderByAsc(SysRole::getSortOrder));
+    }
+
+    @Override
     public RoleDetailVO getDetailById(Long id) {
         SysRole role = baseMapper.selectById(id);
         if (role == null) throw new SysBizException(SysErrorCode.ROLE_NOT_FOUND);
         RoleDetailVO vo = toDetailVO(role);
         vo.setMenuIds(roleMenuMapper.selectMenuIdsByRoleId(id));
+        if (Integer.valueOf(2).equals(role.getDataScope())) {
+            vo.setDeptIds(roleDataMapper.selectDeptIdsByRoleId(id));
+        }
         return vo;
     }
 
@@ -96,8 +111,10 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole>
     public void deleteRole(Long id) {
         SysRole role = getOrThrow(id);
         if ("SUPER_ADMIN".equals(role.getRoleCode())) throw new SysBizException(SysErrorCode.ROLE_IS_ADMIN);
+        if (userRoleMapper.countByRoleId(id) > 0) throw new SysBizException(SysErrorCode.ROLE_HAS_USERS);
         removeById(id);
         roleMenuMapper.deleteByRoleId(id);
+        roleDataMapper.deleteByRoleId(id);
     }
 
     @Override
@@ -113,6 +130,35 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole>
         roleMenuMapper.deleteByRoleId(roleId);
         if (menuIds != null && !menuIds.isEmpty()) saveRoleMenus(roleId, menuIds);
         log.info("[角色] 分配菜单 roleId={} menuCount={}", roleId, menuIds != null ? menuIds.size() : 0);
+    }
+
+    @Override
+    public List<Long> getMenuIds(Long roleId) {
+        getOrThrow(roleId);
+        return roleMenuMapper.selectMenuIdsByRoleId(roleId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void setDataScope(Long roleId, Integer dataScope, List<Long> deptIds) {
+        getOrThrow(roleId);
+        update(new LambdaUpdateWrapper<SysRole>().eq(SysRole::getId, roleId).set(SysRole::getDataScope, dataScope));
+        roleDataMapper.deleteByRoleId(roleId);
+        if (Integer.valueOf(2).equals(dataScope) && deptIds != null && !deptIds.isEmpty()) {
+            deptIds.forEach(deptId -> {
+                SysRoleData rd = new SysRoleData();
+                rd.setRoleId(roleId);
+                rd.setDeptId(deptId);
+                roleDataMapper.insert(rd);
+            });
+        }
+        log.info("[角色] 设置数据权限 roleId={} dataScope={} deptCount={}", roleId, dataScope,
+                deptIds != null ? deptIds.size() : 0);
+    }
+
+    @Override
+    public List<Long> getDeptIds(Long roleId) {
+        return roleDataMapper.selectDeptIdsByRoleId(roleId);
     }
 
     // ─── 私有辅助 ─────────────────────────────────────────────────────────────

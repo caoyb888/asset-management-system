@@ -14,6 +14,7 @@ export interface SysRole {
 
 export interface RoleDetailVO extends SysRole {
   menuIds?: number[]
+  deptIds?: number[]
   createdAt?: string
 }
 
@@ -28,13 +29,22 @@ export interface RoleCreateDTO {
   menuIds?: number[]
 }
 
+export interface DataScopeDTO {
+  dataScope: number
+  deptIds?: number[]
+}
+
 export const roleApi = {
   page: (params?: object) => request.get('/sys/roles', { params }),
   list: () => request.get('/sys/roles/list'),
+  dropdown: () => request.get('/sys/roles/dropdown'),
   getById: (id: number) => request.get(`/sys/roles/${id}`),
   create: (data: RoleCreateDTO) => request.post('/sys/roles', data),
   update: (id: number, data: RoleCreateDTO) => request.put(`/sys/roles/${id}`, data),
   delete: (id: number) => request.delete(`/sys/roles/${id}`),
   changeStatus: (id: number, status: number) => request.put(`/sys/roles/${id}/status`, { status }),
   grantMenus: (id: number, menuIds: number[]) => request.put(`/sys/roles/${id}/menus`, { menuIds }),
+  getMenuIds: (id: number) => request.get(`/sys/roles/${id}/menu-ids`),
+  setDataScope: (id: number, data: DataScopeDTO) => request.put(`/sys/roles/${id}/data-scope`, data),
+  getDeptIds: (id: number) => request.get(`/sys/roles/${id}/dept-ids`),
 }

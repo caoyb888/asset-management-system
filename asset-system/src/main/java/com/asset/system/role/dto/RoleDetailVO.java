@@ -20,4 +20,6 @@ public class RoleDetailVO {
     private LocalDateTime createdAt;
     /** 已分配的菜单ID列表 */
     private List<Long> menuIds;
+    /** 自定义数据权限部门ID（dataScope=2时有值）*/
+    private List<Long> deptIds;
 }

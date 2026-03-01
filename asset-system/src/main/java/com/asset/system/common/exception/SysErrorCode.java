@@ -22,6 +22,7 @@ public enum SysErrorCode {
     ROLE_NOT_FOUND(6031, "角色不存在"),
     ROLE_CODE_EXISTS(6032, "角色编码已存在"),
     ROLE_IS_ADMIN(6033, "超级管理员角色不允许修改"),
+    ROLE_HAS_USERS(6034, "角色下存在用户，不允许删除"),
     // 菜单相关
     MENU_NOT_FOUND(6041, "菜单不存在"),
     MENU_HAS_CHILDREN(6042, "存在子菜单，不允许删除"),

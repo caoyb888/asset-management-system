@@ -16,6 +16,12 @@
         <el-form-item label="角色编码">
           <el-input v-model="query.roleCode" placeholder="角色编码" clearable style="width:140px" />
         </el-form-item>
+        <el-form-item label="状态">
+          <el-select v-model="query.status" placeholder="全部" clearable style="width:100px">
+            <el-option label="正常" :value="1" />
+            <el-option label="停用" :value="0" />
+          </el-select>
+        </el-form-item>
         <el-form-item>
           <el-button type="primary" :icon="Search" @click="loadData">查询</el-button>
           <el-button :icon="Refresh" @click="resetQuery">重置</el-button>
@@ -26,11 +32,11 @@
     <el-card class="table-card" shadow="never">
       <el-table :data="tableData" v-loading="loading" stripe border>
         <el-table-column prop="id"        label="ID"    width="70" />
-        <el-table-column prop="roleName"  label="角色名称" width="160" />
-        <el-table-column prop="roleCode"  label="角色编码" width="160" />
-        <el-table-column prop="dataScope" label="数据范围" width="130">
+        <el-table-column prop="roleName"  label="角色名称" min-width="140" />
+        <el-table-column prop="roleCode"  label="角色编码" min-width="140" />
+        <el-table-column prop="dataScope" label="数据范围" width="140">
           <template #default="{ row }">
-            {{ dataScopeMap[row.dataScope] ?? '-' }}
+            <el-tag size="small" type="info">{{ dataScopeMap[row.dataScope] ?? '-' }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="sortOrder" label="排序" width="80" align="center" />
@@ -41,10 +47,12 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="240" fixed="right" align="center">
+        <el-table-column prop="createdAt" label="创建时间" width="170" />
+        <el-table-column label="操作" width="260" fixed="right" align="center">
           <template #default="{ row }">
             <el-button type="primary" link size="small" @click="openEdit(row.id)">编辑</el-button>
             <el-button type="warning" link size="small" @click="openGrantMenu(row.id)">授权菜单</el-button>
+            <el-button type="success" link size="small" @click="openDataScope(row.id)">数据权限</el-button>
             <el-button
               :type="row.status === 1 ? 'info' : 'success'" link size="small"
               @click="toggleStatus(row)">{{ row.status === 1 ? '停用' : '启用' }}</el-button>
@@ -52,8 +60,15 @@
           </template>
         </el-table-column>
       </el-table>
-      <el-pagination v-model:current-page="query.pageNum" v-model:page-size="query.pageSize"
-        :total="total" layout="total, prev, pager, next" class="mt-16" @change="loadData" />
+      <el-pagination
+        v-model:current-page="query.pageNum"
+        v-model:page-size="query.pageSize"
+        :page-sizes="[10, 20, 50, 100]"
+        :total="total"
+        layout="total, sizes, prev, pager, next"
+        class="mt-16"
+        @change="loadData"
+      />
     </el-card>
 
     <!-- 新增/编辑弹窗 -->
@@ -99,11 +114,39 @@
         show-checkbox
         :default-checked-keys="checkedMenuIds"
         highlight-current
-        style="max-height:400px; overflow:auto"
+        style="max-height:420px; overflow:auto"
       />
       <template #footer>
         <el-button @click="menuDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="submitting" @click="doGrantMenu">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 数据权限弹窗 -->
+    <el-dialog v-model="scopeDialogVisible" title="数据权限配置" width="480px" destroy-on-close>
+      <el-form label-width="100px">
+        <el-form-item label="数据范围">
+          <el-select v-model="scopeForm.dataScope" style="width:100%" @change="onScopeChange">
+            <el-option v-for="(label, val) in dataScopeMap" :key="val" :label="label" :value="Number(val)" />
+          </el-select>
+        </el-form-item>
+        <el-form-item v-if="scopeForm.dataScope === 2" label="自定义部门">
+          <div style="border:1px solid #e4e7ed; border-radius:4px; padding:8px; max-height:320px; overflow:auto; width:100%">
+            <el-tree
+              ref="deptTreeRef"
+              :data="deptTree"
+              node-key="id"
+              :props="{ label: 'deptName', children: 'children' }"
+              show-checkbox
+              :default-checked-keys="scopeForm.deptIds"
+              highlight-current
+            />
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="scopeDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="submitting" @click="doSetDataScope">确定</el-button>
       </template>
     </el-dialog>
   </div>
@@ -115,15 +158,17 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, Refresh } from '@element-plus/icons-vue'
 import { roleApi, type SysRole, type RoleCreateDTO } from '@/api/sys/role'
 import { menuApi, type MenuTreeVO } from '@/api/sys/menu'
+import { deptApi, type DeptTreeVO } from '@/api/sys/dept'
 
 const loading = ref(false)
 const submitting = ref(false)
 const tableData = ref<SysRole[]>([])
 const total = ref(0)
-const query = reactive({ pageNum: 1, pageSize: 20, roleName: '', roleCode: '' })
+const query = reactive({ pageNum: 1, pageSize: 20, roleName: '', roleCode: '', status: undefined as number | undefined })
 
 const dataScopeMap: Record<number, string> = { 1: '全部数据', 2: '自定义', 3: '本部门', 4: '本部门及以下', 5: '仅本人' }
 
+// ─── 新增/编辑弹窗 ─────────────────────────────────────────────────────────
 const dialogVisible = ref(false)
 const dialogTitle = ref('')
 const form = reactive<RoleCreateDTO>({ roleName: '', roleCode: '', dataScope: 1, sortOrder: 0, status: 1 })
@@ -133,11 +178,18 @@ const formRules = {
   roleCode: [{ required: true, message: '请输入角色编码', trigger: 'blur' }],
 }
 
+// ─── 授权菜单弹窗 ──────────────────────────────────────────────────────────
 const menuDialogVisible = ref(false)
 const menuTree = ref<MenuTreeVO[]>([])
 const checkedMenuIds = ref<number[]>([])
 const currentRoleId = ref<number>(0)
 const menuTreeRef = ref()
+
+// ─── 数据权限弹窗 ──────────────────────────────────────────────────────────
+const scopeDialogVisible = ref(false)
+const scopeForm = reactive<{ dataScope: number; deptIds: number[] }>({ dataScope: 1, deptIds: [] })
+const deptTree = ref<DeptTreeVO[]>([])
+const deptTreeRef = ref()
 
 async function loadData() {
   loading.value = true
@@ -151,7 +203,7 @@ async function loadData() {
 }
 
 function resetQuery() {
-  Object.assign(query, { pageNum: 1, roleName: '', roleCode: '' })
+  Object.assign(query, { pageNum: 1, roleName: '', roleCode: '', status: undefined })
   loadData()
 }
 
@@ -202,6 +254,37 @@ async function doGrantMenu() {
   }
 }
 
+async function openDataScope(roleId: number) {
+  currentRoleId.value = roleId
+  const [detail, deptTreeData]: any[] = await Promise.all([
+    roleApi.getById(roleId),
+    deptApi.tree(1),
+  ])
+  scopeForm.dataScope = detail.dataScope ?? 1
+  scopeForm.deptIds = detail.deptIds ?? []
+  deptTree.value = deptTreeData ?? []
+  scopeDialogVisible.value = true
+}
+
+function onScopeChange() {
+  if (scopeForm.dataScope !== 2) scopeForm.deptIds = []
+}
+
+async function doSetDataScope() {
+  const deptIds = scopeForm.dataScope === 2
+    ? [...(deptTreeRef.value?.getCheckedKeys() ?? []), ...(deptTreeRef.value?.getHalfCheckedKeys() ?? [])]
+    : []
+  submitting.value = true
+  try {
+    await roleApi.setDataScope(currentRoleId.value, { dataScope: scopeForm.dataScope, deptIds })
+    ElMessage.success('数据权限设置成功')
+    scopeDialogVisible.value = false
+    loadData()
+  } finally {
+    submitting.value = false
+  }
+}
+
 async function toggleStatus(row: SysRole) {
   const s = row.status === 1 ? 0 : 1
   await roleApi.changeStatus(row.id, s)
@@ -210,7 +293,7 @@ async function toggleStatus(row: SysRole) {
 }
 
 async function doDelete(id: number) {
-  await ElMessageBox.confirm('确认删除该角色？超级管理员角色不可删除', '警告', { type: 'warning' })
+  await ElMessageBox.confirm('确认删除该角色？若角色下有用户或为超级管理员角色则不可删除', '警告', { type: 'warning' })
   await roleApi.delete(id)
   ElMessage.success('删除成功')
   loadData()

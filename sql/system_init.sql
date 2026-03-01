@@ -367,3 +367,16 @@ CREATE TABLE IF NOT EXISTS sys_login_log (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='登录日志表';
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- ─── TASK-SYS-05 补丁：角色自定义数据权限表 ─────────────────────────────────
+CREATE TABLE IF NOT EXISTS sys_role_data (
+    id          BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    role_id     BIGINT UNSIGNED NOT NULL  COMMENT '角色ID',
+    dept_id     BIGINT UNSIGNED NOT NULL  COMMENT '部门ID（自定义数据权限）',
+    created_by  BIGINT UNSIGNED DEFAULT 0,
+    created_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by  BIGINT UNSIGNED DEFAULT 0,
+    updated_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    is_deleted  TINYINT         NOT NULL DEFAULT 0,
+    INDEX idx_role_id (role_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色自定义数据权限（部门）';
