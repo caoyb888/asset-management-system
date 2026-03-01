@@ -71,9 +71,9 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept>
                 .set(dto.getDeptName() != null, SysDept::getDeptName, dto.getDeptName())
                 .set(dto.getDeptCode() != null, SysDept::getDeptCode, dto.getDeptCode())
                 .set(dto.getSortOrder() != null, SysDept::getSortOrder, dto.getSortOrder())
-                .set(dto.getLeader() != null, SysDept::setLeader, dto.getLeader())
-                .set(dto.getPhone() != null, SysDept::setPhone, dto.getPhone())
-                .set(dto.getEmail() != null, SysDept::setEmail, dto.getEmail())
+                .set(dto.getLeader() != null, SysDept::getLeader, dto.getLeader())
+                .set(dto.getPhone() != null, SysDept::getPhone, dto.getPhone())
+                .set(dto.getEmail() != null, SysDept::getEmail, dto.getEmail())
                 .set(dto.getStatus() != null, SysDept::getStatus, dto.getStatus());
         update(wrapper);
         log.info("[部门] 更新部门 id={}", dto.getId());

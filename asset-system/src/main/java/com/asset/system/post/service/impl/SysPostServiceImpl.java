@@ -64,7 +64,7 @@ public class SysPostServiceImpl extends ServiceImpl<SysPostMapper, SysPost>
                 .set(StringUtils.hasText(dto.getPostName()), SysPost::getPostName, dto.getPostName())
                 .set(dto.getSortOrder() != null, SysPost::getSortOrder, dto.getSortOrder())
                 .set(dto.getStatus() != null, SysPost::getStatus, dto.getStatus())
-                .set(dto.getRemark() != null, SysPost::setRemark, dto.getRemark()));
+                .set(dto.getRemark() != null, SysPost::getRemark, dto.getRemark()));
     }
 
     @Override

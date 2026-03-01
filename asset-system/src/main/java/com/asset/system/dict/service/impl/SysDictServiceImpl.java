@@ -66,7 +66,7 @@ public class SysDictServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDictTy
                 .eq(SysDictType::getId, dto.getId())
                 .set(StringUtils.hasText(dto.getDictName()), SysDictType::getDictName, dto.getDictName())
                 .set(dto.getStatus() != null, SysDictType::getStatus, dto.getStatus())
-                .set(dto.getRemark() != null, SysDictType::setRemark, dto.getRemark()));
+                .set(dto.getRemark() != null, SysDictType::getRemark, dto.getRemark()));
     }
 
     @Override

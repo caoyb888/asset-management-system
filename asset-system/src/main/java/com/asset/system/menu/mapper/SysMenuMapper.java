@@ -20,6 +20,10 @@ public interface SysMenuMapper extends BaseMapper<SysMenu> {
     @Select("SELECT DISTINCT m.* FROM sys_menu m JOIN sys_role_menu rm ON m.id=rm.menu_id JOIN sys_user_role ur ON rm.role_id=ur.role_id WHERE ur.user_id=#{userId} AND m.menu_type IN ('M','C') AND m.status=1 AND m.visible=1 ORDER BY m.parent_id, m.sort_order")
     List<SysMenu> selectRoutesByUserId(@Param("userId") Long userId);
 
+    /** 超级管理员查询所有可见菜单（目录+页面） */
+    @Select("SELECT * FROM sys_menu WHERE menu_type IN ('M','C') AND status=1 AND visible=1 ORDER BY parent_id, sort_order")
+    List<SysMenu> selectAllVisibleRoutes();
+
     /** 查询子菜单数量 */
     @Select("SELECT COUNT(*) FROM sys_menu WHERE parent_id=#{parentId}")
     long countChildren(@Param("parentId") Long parentId);

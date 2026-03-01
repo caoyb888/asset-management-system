@@ -84,7 +84,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole>
                 .set(dto.getDataScope() != null, SysRole::getDataScope, dto.getDataScope())
                 .set(dto.getSortOrder() != null, SysRole::getSortOrder, dto.getSortOrder())
                 .set(dto.getStatus() != null, SysRole::getStatus, dto.getStatus())
-                .set(dto.getRemark() != null, SysRole::setRemark, dto.getRemark()));
+                .set(dto.getRemark() != null, SysRole::getRemark, dto.getRemark()));
         if (dto.getMenuIds() != null) {
             roleMenuMapper.deleteByRoleId(dto.getId());
             if (!dto.getMenuIds().isEmpty()) saveRoleMenus(dto.getId(), dto.getMenuIds());

@@ -25,6 +25,12 @@ export default defineConfig({
         target: 'http://localhost:8012',
         changeOrigin: true,
       },
+      // /api/auth/* → asset-system (8006) - 认证接口，必须在 /api 规则之前
+      '/api/auth': {
+        target: 'http://localhost:8006',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
       // /api/sys/* → asset-system (8006) - 必须在 /api 规则之前
       '/api/sys': {
         target: 'http://localhost:8006',

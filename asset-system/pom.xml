@@ -8,6 +8,7 @@
     <dependencies>
         <dependency><groupId>com.asset</groupId><artifactId>asset-common-security</artifactId></dependency>
         <dependency><groupId>com.asset</groupId><artifactId>asset-common-mybatis</artifactId></dependency>
+        <dependency><groupId>com.asset</groupId><artifactId>asset-common-redis</artifactId></dependency>
         <dependency><groupId>com.asset</groupId><artifactId>asset-common-log</artifactId></dependency>
         <dependency><groupId>org.springdoc</groupId><artifactId>springdoc-openapi-starter-webmvc-ui</artifactId></dependency>
         <dependency><groupId>com.alibaba.cloud</groupId><artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId></dependency>

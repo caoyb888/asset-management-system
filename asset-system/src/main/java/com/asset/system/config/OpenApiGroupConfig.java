@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Configuration;
 /** 系统管理模块 API 分组配置 */
 @Configuration
 public class OpenApiGroupConfig {
+    @Bean public GroupedOpenApi authApi() { return GroupedOpenApi.builder().group("00-认证管理").addOpenApiCustomizer(o -> o.info(new Info().title("认证管理").version("1.0"))).pathsToMatch("/auth/**").build(); }
     @Bean public GroupedOpenApi userApi() { return GroupedOpenApi.builder().group("01-用户管理").addOpenApiCustomizer(o -> o.info(new Info().title("用户管理").version("1.0"))).pathsToMatch("/sys/users/**").build(); }
     @Bean public GroupedOpenApi deptApi() { return GroupedOpenApi.builder().group("02-机构管理").addOpenApiCustomizer(o -> o.info(new Info().title("机构管理").version("1.0"))).pathsToMatch("/sys/depts/**").build(); }
     @Bean public GroupedOpenApi postApi() { return GroupedOpenApi.builder().group("03-岗位管理").addOpenApiCustomizer(o -> o.info(new Info().title("岗位管理").version("1.0"))).pathsToMatch("/sys/posts/**").build(); }

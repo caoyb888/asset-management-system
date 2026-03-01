@@ -350,4 +350,20 @@ INSERT IGNORE INTO sys_dict_data (dict_type, dict_label, dict_value, css_class, 
 ('inv_payment_cycle', '半年付', '6', '', 3),
 ('inv_payment_cycle', '年付',   '12','', 4);
 
+-- ============================================================
+-- 13. 登录日志表 (sys_login_log)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS sys_login_log (
+    id          BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+    username    VARCHAR(64)  NOT NULL                     COMMENT '用户名',
+    ip_addr     VARCHAR(64)  DEFAULT ''                   COMMENT 'IP地址',
+    browser     VARCHAR(100) DEFAULT ''                   COMMENT '浏览器',
+    os          VARCHAR(100) DEFAULT ''                   COMMENT '操作系统',
+    status      TINYINT      NOT NULL DEFAULT 0           COMMENT '状态: 0成功 1失败',
+    msg         VARCHAR(255) DEFAULT ''                   COMMENT '消息/失败原因',
+    login_time  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '登录时间',
+    INDEX idx_username   (username),
+    INDEX idx_login_time (login_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='登录日志表';
+
 SET FOREIGN_KEY_CHECKS = 1;

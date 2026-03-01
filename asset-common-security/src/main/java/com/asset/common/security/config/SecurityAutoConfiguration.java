@@ -32,6 +32,7 @@ public class SecurityAutoConfiguration {
     /** 公开路径白名单 */
     private static final String[] PUBLIC_PATHS = {
             "/auth/login",
+            "/auth/refresh",
             "/auth/publicKey",
             "/v3/api-docs/**",
             "/swagger-ui/**",
