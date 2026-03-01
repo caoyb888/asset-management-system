@@ -25,6 +25,12 @@ export default defineConfig({
         target: 'http://localhost:8012',
         changeOrigin: true,
       },
+      // /api/sys/* → asset-system (8006) - 必须在 /api 规则之前
+      '/api/sys': {
+        target: 'http://localhost:8006',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
       // /api/fin/* → asset-finance (8004) - 必须在 /api 规则之前
       '/api/fin': {
         target: 'http://localhost:8004',

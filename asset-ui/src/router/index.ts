@@ -279,6 +279,49 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/fin/prepayment/index.vue'),
         meta: { title: '预收款管理', icon: 'CollectionTag' },
       },
+      // ── 系统管理 ──
+      {
+        path: 'sys/users',
+        name: 'SysUser',
+        component: () => import('@/views/sys/user/index.vue'),
+        meta: { title: '用户管理', icon: 'User' },
+      },
+      {
+        path: 'sys/depts',
+        name: 'SysDept',
+        component: () => import('@/views/sys/dept/index.vue'),
+        meta: { title: '机构管理', icon: 'Tree' },
+      },
+      {
+        path: 'sys/posts',
+        name: 'SysPost',
+        component: () => import('@/views/sys/post/index.vue'),
+        meta: { title: '岗位管理', icon: 'Briefcase' },
+      },
+      {
+        path: 'sys/roles',
+        name: 'SysRole',
+        component: () => import('@/views/sys/role/index.vue'),
+        meta: { title: '角色管理', icon: 'Key' },
+      },
+      {
+        path: 'sys/menus',
+        name: 'SysMenu',
+        component: () => import('@/views/sys/menu/index.vue'),
+        meta: { title: '菜单管理', icon: 'Menu' },
+      },
+      {
+        path: 'sys/dict',
+        name: 'SysDict',
+        component: () => import('@/views/sys/dict/index.vue'),
+        meta: { title: '业务字典', icon: 'Files' },
+      },
+      {
+        path: 'sys/logs',
+        name: 'SysLog',
+        component: () => import('@/views/sys/log/index.vue'),
+        meta: { title: '操作日志', icon: 'Document' },
+      },
     ],
   },
   {
