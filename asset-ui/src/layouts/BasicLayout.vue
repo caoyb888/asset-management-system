@@ -197,6 +197,14 @@
             <el-icon><Files /></el-icon>
             <template #title>业务字典</template>
           </el-menu-item>
+          <el-menu-item index="/sys/code-rules">
+            <el-icon><Tickets /></el-icon>
+            <template #title>编码规则</template>
+          </el-menu-item>
+          <el-menu-item index="/sys/categories">
+            <el-icon><FolderOpened /></el-icon>
+            <template #title>分类管理</template>
+          </el-menu-item>
           <el-menu-item index="/sys/logs">
             <el-icon><Document /></el-icon>
             <template #title>操作日志</template>
@@ -253,7 +261,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop, Star, User, Bell, Document, Briefcase, Setting, Coin, EditPen, Tickets, Checked, DataLine, PieChart, Operation, Memo, Switch, TrendCharts, UserFilled, CircleClose, Money, List, CreditCard, Postcard, Wallet, CollectionTag, Warning, CircleCheck, DataAnalysis, Key, Files, Menu } from '@element-plus/icons-vue'
+import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop, Star, User, Bell, Document, Briefcase, Setting, Coin, EditPen, Tickets, Checked, DataLine, PieChart, Operation, Memo, Switch, TrendCharts, UserFilled, CircleClose, Money, List, CreditCard, Postcard, Wallet, CollectionTag, Warning, CircleCheck, DataAnalysis, Key, Files, Menu, FolderOpened } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/modules/user'
 import { useAppStore } from '@/store/modules/app'
 

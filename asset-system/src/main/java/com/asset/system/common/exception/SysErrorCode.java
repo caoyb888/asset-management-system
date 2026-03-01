@@ -30,6 +30,14 @@ public enum SysErrorCode {
     DICT_TYPE_NOT_FOUND(6051, "字典类型不存在"),
     DICT_TYPE_EXISTS(6052, "字典类型标识已存在"),
     DICT_DATA_NOT_FOUND(6053, "字典数据不存在"),
+    // 编码规则相关
+    CODE_RULE_NOT_FOUND(6061, "编码规则不存在"),
+    CODE_RULE_KEY_EXISTS(6062, "规则标识已存在"),
+    CODE_RULE_DISABLED(6063, "编码规则已停用"),
+    // 分类相关
+    CATEGORY_NOT_FOUND(6071, "分类不存在"),
+    CATEGORY_HAS_CHILDREN(6072, "存在子分类，不允许删除"),
+    CATEGORY_CODE_EXISTS(6073, "同维度下分类编码已存在"),
     // 通用
     SYS_5001(6099, "系统操作失败");
 

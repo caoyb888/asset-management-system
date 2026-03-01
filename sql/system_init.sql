@@ -380,3 +380,68 @@ CREATE TABLE IF NOT EXISTS sys_role_data (
     is_deleted  TINYINT         NOT NULL DEFAULT 0,
     INDEX idx_role_id (role_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色自定义数据权限（部门）';
+
+-- ─── TASK-SYS-09 补丁：编码规则表 + 分类管理表 ────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS sys_code_rule (
+    id             BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    rule_key       VARCHAR(50)  NOT NULL                      COMMENT '规则唯一标识键，业务层调用',
+    rule_name      VARCHAR(100) NOT NULL                      COMMENT '规则名称',
+    prefix         VARCHAR(20)  NOT NULL DEFAULT ''           COMMENT '编码前缀，如 PRJ',
+    date_format    VARCHAR(20)  NOT NULL DEFAULT 'yyyyMM'     COMMENT '日期格式，留空则不拼日期',
+    sep            CHAR(1)      NOT NULL DEFAULT '-'          COMMENT '分隔符',
+    seq_length     INT          NOT NULL DEFAULT 4            COMMENT '序列号位数（前补零）',
+    reset_type     TINYINT      NOT NULL DEFAULT 1            COMMENT '重置周期：0不重置 1按年 2按月 3按日',
+    current_seq    BIGINT       NOT NULL DEFAULT 0            COMMENT '当前序列号',
+    current_period VARCHAR(20)  NOT NULL DEFAULT ''           COMMENT '当前周期，用于判断是否需要重置',
+    status         TINYINT      NOT NULL DEFAULT 1            COMMENT '状态：0停用 1启用',
+    remark         VARCHAR(200)                               COMMENT '备注',
+    created_by     BIGINT UNSIGNED,
+    created_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by     BIGINT UNSIGNED,
+    updated_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    is_deleted     TINYINT      NOT NULL DEFAULT 0,
+    UNIQUE KEY uk_rule_key (rule_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='业务编码规则表';
+
+-- 预置常用编码规则
+INSERT INTO sys_code_rule (rule_key, rule_name, prefix, date_format, sep, seq_length, reset_type, remark) VALUES
+('project',    '项目编码',   'PRJ',  'yyyyMM', '-', 4, 2, '项目基础信息编码'),
+('building',   '楼栋编码',   'BLD',  'yyyyMM', '-', 4, 2, '楼栋编码'),
+('shop',       '商铺编码',   'SHP',  'yyyyMM', '-', 4, 2, '商铺编码'),
+('contract',   '合同编码',   'CTR',  'yyyyMM', '-', 4, 2, '招商合同编码'),
+('intention',  '意向协议编码','INT',  'yyyyMM', '-', 4, 2, '意向协议编码'),
+('receipt',    '收款单编码', 'RCP',  'yyyyMM', '-', 4, 2, '财务收款单编码'),
+('writeoff',   '核销单编码', 'WOF',  'yyyyMM', '-', 4, 2, '核销单编码'),
+('voucher',    '凭证编码',   'VCH',  'yyyyMM', '-', 4, 2, '财务凭证编码');
+
+CREATE TABLE IF NOT EXISTS sys_category (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    category_type   VARCHAR(50)  NOT NULL                      COMMENT '分类维度，如 asset_type/format/area',
+    parent_id       BIGINT UNSIGNED NOT NULL DEFAULT 0         COMMENT '父节点ID，0=根节点',
+    ancestors       VARCHAR(500) NOT NULL DEFAULT '0'          COMMENT '祖级路径，逗号分隔',
+    category_code   VARCHAR(50)  NOT NULL                      COMMENT '分类编码',
+    category_name   VARCHAR(100) NOT NULL                      COMMENT '分类名称',
+    level           INT          NOT NULL DEFAULT 1            COMMENT '层级深度，从1开始',
+    sort_order      INT          NOT NULL DEFAULT 0            COMMENT '同级排序',
+    status          TINYINT      NOT NULL DEFAULT 1            COMMENT '状态：0停用 1启用',
+    remark          VARCHAR(200)                               COMMENT '备注',
+    created_by      BIGINT UNSIGNED,
+    created_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by      BIGINT UNSIGNED,
+    updated_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    is_deleted      TINYINT      NOT NULL DEFAULT 0,
+    INDEX idx_category_type (category_type),
+    INDEX idx_parent_id     (parent_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统分类管理表';
+
+-- 预置示例分类：资产分类
+INSERT INTO sys_category (category_type, parent_id, ancestors, category_code, category_name, level, sort_order) VALUES
+('asset_type', 0, '0', 'RE',      '不动产',         1, 1),
+('asset_type', 1, '0,1', 'RE-COM', '商业地产',       2, 1),
+('asset_type', 1, '0,1', 'RE-OFF', '办公地产',       2, 2),
+('asset_type', 1, '0,1', 'RE-IND', '工业地产',       2, 3),
+('asset_type', 0, '0', 'FA',      '固定资产',        1, 2),
+('asset_type', 5, '0,5', 'FA-EQ', '设备设施',        2, 1),
+('asset_type', 5, '0,5', 'FA-VH', '交通运输设备',    2, 2);
+

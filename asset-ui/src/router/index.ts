@@ -317,6 +317,18 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '业务字典', icon: 'Files' },
       },
       {
+        path: 'sys/code-rules',
+        name: 'SysCodeRule',
+        component: () => import('@/views/sys/code/index.vue'),
+        meta: { title: '编码规则', icon: 'Tickets' },
+      },
+      {
+        path: 'sys/categories',
+        name: 'SysCategory',
+        component: () => import('@/views/sys/category/index.vue'),
+        meta: { title: '分类管理', icon: 'FolderOpened' },
+      },
+      {
         path: 'sys/logs',
         name: 'SysLog',
         component: () => import('@/views/sys/log/index.vue'),
