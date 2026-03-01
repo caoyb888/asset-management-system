@@ -41,6 +41,10 @@ public enum SysErrorCode {
     // 租费算法相关
     ALGORITHM_NOT_FOUND(6081, "算法规则不存在"),
     ALGORITHM_CODE_EXISTS(6082, "算法编码已存在"),
+    // 系统参数配置相关
+    CONFIG_NOT_FOUND(6091, "系统参数不存在"),
+    CONFIG_KEY_EXISTS(6092, "配置键已存在"),
+    CONFIG_BUILT_IN(6093, "内置参数不允许删除"),
     // 通用
     SYS_5001(6099, "系统操作失败");
 

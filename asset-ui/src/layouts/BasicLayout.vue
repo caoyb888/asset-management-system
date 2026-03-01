@@ -209,6 +209,10 @@
             <el-icon><Coin /></el-icon>
             <template #title>租费算法</template>
           </el-menu-item>
+          <el-menu-item index="/sys/config">
+            <el-icon><Setting /></el-icon>
+            <template #title>系统配置</template>
+          </el-menu-item>
           <el-menu-item index="/sys/logs">
             <el-icon><Document /></el-icon>
             <template #title>操作日志</template>

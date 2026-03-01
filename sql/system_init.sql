@@ -510,3 +510,42 @@ INSERT INTO sys_fee_algorithm (algo_code, algo_name, algo_type, calc_mode, formu
  '{}',
  '实收 = max(固定租金, 提成租金)，适用两者取高模式');
 
+
+-- ============================================================
+-- TASK-SYS-11: sys_config 系统参数配置表
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS sys_config (
+    id            BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    config_key    VARCHAR(100) NOT NULL                     COMMENT '配置键（全局唯一）',
+    config_name   VARCHAR(100) NOT NULL                     COMMENT '配置名称',
+    config_value  VARCHAR(500) NOT NULL DEFAULT ''          COMMENT '配置值',
+    config_group  VARCHAR(50)  NOT NULL DEFAULT 'basic'     COMMENT '配置分组: basic/security/upload/other',
+    description   VARCHAR(200)                              COMMENT '说明',
+    is_built_in   TINYINT      NOT NULL DEFAULT 0           COMMENT '是否内置: 1是(不可删除) 0否',
+    created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_config_key (config_key),
+    INDEX idx_config_group (config_group)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统参数配置';
+
+-- 预置基础配置（basic 分组）
+INSERT IGNORE INTO sys_config (config_key, config_name, config_value, config_group, description, is_built_in) VALUES
+('system.name',          '系统名称',           '产城资产管理系统',    'basic',    '前端页面标题及登录页展示名称', 1),
+('system.version',       '系统版本',           '1.0.0',              'basic',    '当前系统版本号',              1),
+('system.copyright',     '版权信息',           '© 2025 产城公司',    'basic',    '底部版权文案',                1),
+('session.timeout',      '会话超时（分钟）',   '120',                'basic',    'JWT Token 有效期（分钟）',    1),
+('upload.max_size',      '上传文件大小上限(MB)','50',                 'basic',    '单文件最大上传大小',          1),
+('upload.allowed_types', '允许上传的文件类型', 'jpg,jpeg,png,pdf,doc,docx,xls,xlsx,zip','basic','逗号分隔的扩展名',0);
+
+-- 预置安全策略（security 分组）
+INSERT IGNORE INTO sys_config (config_key, config_name, config_value, config_group, description, is_built_in) VALUES
+('password.min_length',      '密码最短长度',         '8',     'security', '用户密码最少字符数',               1),
+('password.require_number',  '密码需含数字',         'true',  'security', '密码中必须包含至少一个数字',       1),
+('password.require_upper',   '密码需含大写字母',     'false', 'security', '密码中必须包含至少一个大写字母',   1),
+('password.require_special', '密码需含特殊字符',     'false', 'security', '密码中必须包含至少一个特殊字符',   1),
+('password.expire_days',     '密码有效期（天）',     '0',     'security', '0 = 永不过期',                     1),
+('login.max_fail_count',     '登录失败最大次数',     '5',     'security', '超过后账号临时锁定',               1),
+('login.lock_duration',      '账号锁定时长（分钟）', '30',    'security', '超过失败次数后的锁定时长',         1),
+('login.allow_multi',        '允许多端同时登录',     'true',  'security', '关闭后同一账号只保留最新 Token',   1),
+('login.captcha_enable',     '启用登录验证码',       'false', 'security', '启用后登录需输入图形验证码',       1);

@@ -335,6 +335,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '租费算法', icon: 'Coin' },
       },
       {
+        path: 'sys/config',
+        name: 'SysConfig',
+        component: () => import('@/views/sys/config/index.vue'),
+        meta: { title: '系统配置', icon: 'Setting' },
+      },
+      {
         path: 'sys/logs',
         name: 'SysLog',
         component: () => import('@/views/sys/log/index.vue'),
