@@ -25,9 +25,9 @@ public class SysPostController {
     @GetMapping
     public R<?> page(PostQueryDTO query) { return R.ok(postService.pageQuery(query)); }
 
-    @Operation(summary = "所有正常状态岗位（下拉用）")
-    @GetMapping("/list")
-    public R<?> list() { return R.ok(postService.list()); }
+    @Operation(summary = "启用状态岗位列表（下拉/选择器）")
+    @GetMapping({"/list", "/dropdown"})
+    public R<?> list() { return R.ok(postService.listEnabled()); }
 
     @Operation(summary = "新增岗位")
     @PostMapping

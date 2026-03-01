@@ -40,6 +40,13 @@ public class SysPostServiceImpl extends ServiceImpl<SysPostMapper, SysPost>
     }
 
     @Override
+    public java.util.List<SysPost> listEnabled() {
+        return list(new LambdaQueryWrapper<SysPost>()
+                .eq(SysPost::getStatus, 1)
+                .orderByAsc(SysPost::getSortOrder));
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createPost(PostCreateDTO dto) {
         Long count = baseMapper.selectCount(new LambdaQueryWrapper<SysPost>()

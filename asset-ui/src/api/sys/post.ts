@@ -7,6 +7,7 @@ export interface SysPost {
   sortOrder?: number
   status: number
   remark?: string
+  createdAt?: string
 }
 
 export interface PostCreateDTO {
