@@ -45,10 +45,16 @@ export const dictApi = {
   createType: (data: DictTypeCreateDTO) => request.post('/sys/dict/types', data),
   updateType: (id: number, data: DictTypeCreateDTO) => request.put(`/sys/dict/types/${id}`, data),
   deleteType: (id: number) => request.delete(`/sys/dict/types/${id}`),
+  changeStatusType: (id: number, status: number) => request.put(`/sys/dict/types/${id}/status`, { status }),
 
   // 字典数据
   listData: (dictType: string) => request.get(`/sys/dict/data/${dictType}`),
+  listAllData: (dictType: string) => request.get(`/sys/dict/data/${dictType}/all`),
   createData: (data: DictDataCreateDTO) => request.post('/sys/dict/data', data),
   updateData: (id: number, data: DictDataCreateDTO) => request.put(`/sys/dict/data/${id}`, data),
   deleteData: (id: number) => request.delete(`/sys/dict/data/${id}`),
+  changeStatusData: (id: number, status: number) => request.put(`/sys/dict/data/${id}/status`, { status }),
+
+  // 缓存管理
+  refreshCache: (dictType: string) => request.delete(`/sys/dict/cache/${dictType}`),
 }

@@ -29,6 +29,7 @@ public enum SysErrorCode {
     // 字典相关
     DICT_TYPE_NOT_FOUND(6051, "字典类型不存在"),
     DICT_TYPE_EXISTS(6052, "字典类型标识已存在"),
+    DICT_DATA_NOT_FOUND(6053, "字典数据不存在"),
     // 通用
     SYS_5001(6099, "系统操作失败");
 
