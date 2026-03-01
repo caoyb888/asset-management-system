@@ -18,4 +18,6 @@ public interface SysMenuService extends IService<SysMenu> {
     Long createMenu(MenuCreateDTO dto);
     void updateMenu(MenuCreateDTO dto);
     void deleteMenu(Long id);
+    void changeStatus(Long id, Integer status);
+    void changeVisible(Long id, Integer visible);
 }

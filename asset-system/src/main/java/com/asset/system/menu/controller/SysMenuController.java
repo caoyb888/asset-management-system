@@ -9,6 +9,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 /** 菜单管理接口 */
 @Tag(name = "05-菜单管理")
 @RestController
@@ -21,6 +23,10 @@ public class SysMenuController {
     @Operation(summary = "菜单树（全量）")
     @GetMapping
     public R<?> tree() { return R.ok(menuService.getMenuTree()); }
+
+    @Operation(summary = "菜单详情")
+    @GetMapping("/{id}")
+    public R<?> getById(@PathVariable Long id) { return R.ok(menuService.getById(id)); }
 
     @Operation(summary = "用户路由树（按userId）")
     @GetMapping("/routes")
@@ -43,4 +49,16 @@ public class SysMenuController {
     @Operation(summary = "删除菜单")
     @DeleteMapping("/{id}")
     public R<?> delete(@PathVariable Long id) { menuService.deleteMenu(id); return R.ok(); }
+
+    @Operation(summary = "修改菜单状态")
+    @PutMapping("/{id}/status")
+    public R<?> changeStatus(@PathVariable Long id, @RequestBody Map<String, Integer> body) {
+        menuService.changeStatus(id, body.get("status")); return R.ok();
+    }
+
+    @Operation(summary = "修改菜单显示状态")
+    @PutMapping("/{id}/visible")
+    public R<?> changeVisible(@PathVariable Long id, @RequestBody Map<String, Integer> body) {
+        menuService.changeVisible(id, body.get("visible")); return R.ok();
+    }
 }

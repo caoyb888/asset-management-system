@@ -8,6 +8,7 @@ import com.asset.system.menu.entity.SysMenu;
 import com.asset.system.menu.mapper.SysMenuMapper;
 import com.asset.system.menu.service.SysMenuService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -68,6 +69,7 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu>
         if (baseMapper.selectById(dto.getId()) == null) throw new SysBizException(SysErrorCode.MENU_NOT_FOUND);
         SysMenu menu = new SysMenu();
         menu.setId(dto.getId());
+        menu.setParentId(dto.getParentId());
         menu.setMenuName(dto.getMenuName());
         menu.setMenuType(dto.getMenuType());
         menu.setPath(dto.getPath());
@@ -79,6 +81,18 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu>
         menu.setStatus(dto.getStatus());
         menu.setRemark(dto.getRemark());
         baseMapper.updateById(menu);
+    }
+
+    @Override
+    public void changeStatus(Long id, Integer status) {
+        if (baseMapper.selectById(id) == null) throw new SysBizException(SysErrorCode.MENU_NOT_FOUND);
+        update(new LambdaUpdateWrapper<SysMenu>().eq(SysMenu::getId, id).set(SysMenu::getStatus, status));
+    }
+
+    @Override
+    public void changeVisible(Long id, Integer visible) {
+        if (baseMapper.selectById(id) == null) throw new SysBizException(SysErrorCode.MENU_NOT_FOUND);
+        update(new LambdaUpdateWrapper<SysMenu>().eq(SysMenu::getId, id).set(SysMenu::getVisible, visible));
     }
 
     @Override
