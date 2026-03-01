@@ -1,11 +1,18 @@
 <template>
-  <div class="page-container">
-    <el-page-header @back="$router.back()" title="返回" content="营收日历填报" />
+  <div class="revenue-form-page">
+    <!-- 页面头部 -->
+    <div class="page-header-bar">
+      <div class="bar-left">
+        <el-button :icon="ArrowLeft" text @click="$router.back()">返回</el-button>
+        <span class="bar-divider" />
+        <span class="bar-title">营收日历填报</span>
+      </div>
+    </div>
 
-    <el-row :gutter="16" style="margin-top:16px">
+    <el-row :gutter="16">
       <!-- 左侧：条件选择 + 日历 -->
       <el-col :span="17">
-        <el-card shadow="never">
+        <el-card shadow="never" class="calendar-card">
           <!-- 合同 + 月份选择 -->
           <el-form ref="formRef" :model="form" :rules="formRules" inline label-width="80px" style="margin-bottom:8px">
             <el-form-item label="合同ID" prop="contractId" required>
@@ -31,7 +38,7 @@
           </el-form>
 
           <!-- 图例说明 -->
-          <div style="display:flex;gap:16px;margin-bottom:12px;font-size:13px">
+          <div class="legend-row">
             <span><span class="dot dot-filled" />已填报</span>
             <span><span class="dot dot-missing" />未填报</span>
             <span><span class="dot dot-future" />未来日期</span>
@@ -66,8 +73,8 @@
 
       <!-- 右侧：月度汇总 -->
       <el-col :span="7">
-        <el-card shadow="never" style="position:sticky;top:20px">
-          <template #header><span style="font-weight:600">月度汇总</span></template>
+        <el-card shadow="never" class="summary-card">
+          <div class="summary-header">月度汇总</div>
           <el-descriptions :column="1" border size="small">
             <el-descriptions-item label="月份">{{ form.reportMonth || '—' }}</el-descriptions-item>
             <el-descriptions-item label="已填报天数">
@@ -82,9 +89,7 @@
               />
             </el-descriptions-item>
             <el-descriptions-item label="月累计营业额">
-              <span style="color:#2E75B6;font-weight:700;font-size:16px">
-                ¥ {{ formatAmount(monthlyTotal) }}
-              </span>
+              <span class="monthly-total">¥ {{ formatAmount(monthlyTotal) }}</span>
             </el-descriptions-item>
           </el-descriptions>
 
@@ -134,6 +139,7 @@
 import { ref, reactive, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
+import { ArrowLeft } from '@element-plus/icons-vue'
 import { revenueReportApi, floatingRentApi } from '@/api/opr/revenue'
 
 const router = useRouter()
@@ -268,27 +274,54 @@ function formatK(val: number) {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+.revenue-form-page { display: flex; flex-direction: column; gap: 16px; }
+
+.page-header-bar {
+  display: flex; align-items: center;
+  padding: 12px 20px; background: #fff;
+  border-radius: 12px; border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  .bar-left { display: flex; align-items: center; gap: 12px; }
+  .bar-divider { width: 1px; height: 16px; background: #e2e8f0; }
+  .bar-title { font-size: 16px; font-weight: 600; color: #1e293b; }
+}
+
+.calendar-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+.summary-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  position: sticky;
+  top: 20px;
+  .summary-header {
+    font-size: 15px; font-weight: 600; color: #1e293b;
+    margin-bottom: 14px; padding-left: 8px;
+    border-left: 3px solid #3b82f6;
+  }
+  .monthly-total { color: #2E75B6; font-weight: 700; font-size: 16px; }
+}
+
+.legend-row {
+  display: flex; gap: 16px; margin-bottom: 12px; font-size: 13px; color: #64748b;
+}
+
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 4px;
 }
 .cal-weekday {
-  text-align: center;
-  font-size: 12px;
-  color: #909399;
-  padding: 4px 0;
-  font-weight: 600;
+  text-align: center; font-size: 12px; color: #909399;
+  padding: 4px 0; font-weight: 600;
 }
 .cal-blank { background: transparent; }
 .cal-cell {
-  min-height: 64px;
-  border-radius: 6px;
-  padding: 6px 8px;
-  cursor: default;
-  border: 1px solid #EBEEF5;
-  transition: all 0.15s;
+  min-height: 64px; border-radius: 6px; padding: 6px 8px;
+  cursor: default; border: 1px solid #ebeef5; transition: all 0.15s;
 }
 .cal-clickable { cursor: pointer; }
 .cal-clickable:hover { border-color: #409EFF; box-shadow: 0 0 0 2px rgba(64,158,255,0.2); }
@@ -299,12 +332,8 @@ function formatK(val: number) {
 .cal-day-num { font-size: 13px; font-weight: 600; color: inherit; }
 .cal-amount  { font-size: 11px; color: #67C23A; margin-top: 2px; }
 .dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-right: 4px;
-  vertical-align: middle;
+  display: inline-block; width: 10px; height: 10px;
+  border-radius: 50%; margin-right: 4px; vertical-align: middle;
 }
 .dot-filled  { background: #67C23A; }
 .dot-missing { background: #F56C6C; }

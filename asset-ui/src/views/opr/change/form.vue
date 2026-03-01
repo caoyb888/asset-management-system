@@ -1,12 +1,15 @@
 <template>
-  <div class="page-container">
-    <el-page-header @back="router.back()" style="margin-bottom:16px">
-      <template #content>
-        <span class="page-title">{{ isEdit ? '编辑变更单' : '新增变更单' }}</span>
-      </template>
-    </el-page-header>
+  <div class="change-form-page">
+    <!-- 页面头部 -->
+    <div class="page-header-bar">
+      <div class="bar-left">
+        <el-button :icon="ArrowLeft" text @click="router.back()">返回</el-button>
+        <span class="bar-divider" />
+        <span class="bar-title">{{ isEdit ? '编辑变更单' : '新增变更单' }}</span>
+      </div>
+    </div>
 
-    <el-card shadow="never">
+    <el-card shadow="never" class="form-card">
       <!-- 步骤条 -->
       <el-steps :active="activeStep" finish-status="success" style="margin-bottom:32px">
         <el-step title="选择合同" />
@@ -279,7 +282,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Loading } from '@element-plus/icons-vue'
+import { Loading, ArrowLeft } from '@element-plus/icons-vue'
 import {
   CHANGE_TYPE_OPTIONS,
   createChange,
@@ -381,13 +384,10 @@ async function handleNext() {
     activeStep.value = 1
   } else if (activeStep.value === 1) {
     await step1Ref.value.validate()
-    // 保存草稿（新增或更新）
     await saveDraft()
     activeStep.value = 2
   } else if (activeStep.value === 2) {
-    // 保存内容字段
     await saveDraft()
-    // 触发影响预览
     activeStep.value = 3
     await loadImpact()
   }
@@ -446,7 +446,6 @@ async function loadEditData() {
     step1Form.effectiveDate = d.effectiveDate || ''
     step1Form.reason = d.reason || ''
     savedChangeId.value = editId
-    // 从 details 回填 changeFields
     for (const det of d.details || []) {
       if (det.newValue != null) changeFields[det.fieldName] = det.newValue
     }
@@ -458,17 +457,43 @@ async function loadEditData() {
 onMounted(() => { if (isEdit) loadEditData() })
 </script>
 
-<style scoped>
-.page-title { font-weight: 600; font-size: 16px; }
-.form-footer { margin-top: 32px; text-align: right; border-top: 1px solid #ebeef5; padding-top: 20px; }
+<style scoped lang="scss">
+.change-form-page { display: flex; flex-direction: column; gap: 16px; }
+
+.page-header-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px; background: #fff;
+  border-radius: 12px; border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  .bar-left { display: flex; align-items: center; gap: 12px; }
+  .bar-divider { width: 1px; height: 16px; background: #e2e8f0; }
+  .bar-title { font-size: 16px; font-weight: 600; color: #1e293b; }
+}
+
+.form-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  :deep(.el-card__body) { padding: 24px 32px; }
+}
+
+.form-footer {
+  margin-top: 32px; text-align: right;
+  border-top: 1px solid #f1f5f9; padding-top: 20px;
+  display: flex; justify-content: flex-end; gap: 8px;
+}
+
 .form-hint { margin-left: 8px; color: #909399; font-size: 12px; }
 .type-checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; }
 .type-checkbox { margin: 0 !important; }
 .type-checkbox-inner { display: flex; align-items: center; }
 
-.stat-card { text-align: center; }
-.stat-num { font-size: 22px; font-weight: 700; line-height: 1.3; }
-.stat-label { font-size: 12px; color: #909399; margin-top: 4px; }
+.stat-card {
+  text-align: center;
+  border-radius: 8px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  .stat-num { font-size: 22px; font-weight: 700; line-height: 1.3; }
+  .stat-label { font-size: 12px; color: #64748b; margin-top: 4px; }
+}
 .stat-up .stat-num { color: #f56c6c; }
 .stat-down .stat-num { color: #67c23a; }
 

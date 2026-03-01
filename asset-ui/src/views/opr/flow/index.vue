@@ -1,7 +1,7 @@
 <template>
-  <div class="page-container">
+  <div class="flow-page">
     <!-- 统计卡片 -->
-    <el-row :gutter="16" class="mb-16">
+    <el-row :gutter="16" class="stat-row">
       <el-col :span="6">
         <el-card shadow="never" class="stat-card">
           <div class="stat-title">今日客流</div>
@@ -45,63 +45,72 @@
     </el-row>
 
     <!-- 趋势图 -->
-    <el-card shadow="never" class="mb-16">
-      <template #header>
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-weight:600">近30天客流趋势</span>
-          <div style="display:flex;gap:8px;align-items:center">
-            <el-select v-model="statsFilter.projectId" placeholder="选择项目" clearable
-              style="width:160px" @change="loadStats">
-              <el-option v-for="p in projectList" :key="p.id" :label="p.projectName" :value="p.id" />
-            </el-select>
-          </div>
+    <el-card shadow="never" class="table-card">
+      <div class="card-header">
+        <div class="header-left">
+          <span class="header-title">近30天客流趋势</span>
         </div>
-      </template>
-      <div ref="chartRef" style="height:260px" />
+        <div class="header-actions">
+          <el-select v-model="statsFilter.projectId" placeholder="选择项目" clearable
+            style="width:160px" @change="loadStats">
+            <el-option v-for="p in projectList" :key="p.id" :label="p.projectName" :value="p.id" />
+          </el-select>
+        </div>
+      </div>
+      <div class="table-body">
+        <div ref="chartRef" style="height:260px" />
+      </div>
     </el-card>
 
-    <!-- 筛选 + 列表 -->
-    <el-card shadow="never">
-      <template #header>
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-          <el-form :model="query" inline style="margin:0">
-            <el-form-item label="项目">
-              <el-select v-model="query.projectId" placeholder="全部" clearable style="width:150px"
-                @change="onProjectChange">
-                <el-option v-for="p in projectList" :key="p.id" :label="p.projectName" :value="p.id" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="楼栋">
-              <el-select v-model="query.buildingId" placeholder="全部" clearable style="width:130px"
-                :disabled="!query.projectId" @change="onBuildingChange">
-                <el-option v-for="b in buildingList" :key="b.id" :label="b.buildingName" :value="b.id" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="楼层">
-              <el-select v-model="query.floorId" placeholder="全部" clearable style="width:110px"
-                :disabled="!query.buildingId">
-                <el-option v-for="f in floorList" :key="f.id" :label="f.floorName" :value="f.id" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="日期">
-              <el-date-picker v-model="dateRange" type="daterange" value-format="YYYY-MM-DD"
-                range-separator="~" start-placeholder="开始" end-placeholder="结束" style="width:220px" />
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" :icon="Search" @click="loadList">查询</el-button>
-              <el-button @click="resetQuery">重置</el-button>
-            </el-form-item>
-          </el-form>
-          <div style="display:flex;gap:8px">
-            <el-upload :show-file-list="false" accept=".xlsx,.xls" :before-upload="doImport">
-              <el-button :icon="Upload">导入</el-button>
-            </el-upload>
-            <el-button :icon="Download" @click="doExport">导出</el-button>
-            <el-button type="primary" :icon="Plus" @click="openForm(null)">新增填报</el-button>
-          </div>
-        </div>
-      </template>
+    <!-- 搜索栏 -->
+    <el-card shadow="never" class="filter-card">
+      <el-form :model="query" inline>
+        <el-form-item label="项目">
+          <el-select v-model="query.projectId" placeholder="全部" clearable style="width:150px"
+            @change="onProjectChange">
+            <el-option v-for="p in projectList" :key="p.id" :label="p.projectName" :value="p.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="楼栋">
+          <el-select v-model="query.buildingId" placeholder="全部" clearable style="width:130px"
+            :disabled="!query.projectId" @change="onBuildingChange">
+            <el-option v-for="b in buildingList" :key="b.id" :label="b.buildingName" :value="b.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="楼层">
+          <el-select v-model="query.floorId" placeholder="全部" clearable style="width:110px"
+            :disabled="!query.buildingId">
+            <el-option v-for="f in floorList" :key="f.id" :label="f.floorName" :value="f.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="日期">
+          <el-date-picker v-model="dateRange" type="daterange" value-format="YYYY-MM-DD"
+            range-separator="~" start-placeholder="开始" end-placeholder="结束" style="width:220px" />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" :icon="Search" @click="loadList">查询</el-button>
+          <el-button @click="resetQuery">重置</el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
 
+    <!-- 列表卡片 -->
+    <el-card shadow="never" class="table-card">
+      <div class="card-header">
+        <div class="header-left">
+          <span class="header-title">客流填报列表</span>
+          <span class="count-tag">共 {{ total }} 条</span>
+        </div>
+        <div class="header-actions">
+          <el-upload :show-file-list="false" accept=".xlsx,.xls" :before-upload="doImport">
+            <el-button :icon="Upload">导入</el-button>
+          </el-upload>
+          <el-button :icon="Download" @click="doExport">导出</el-button>
+          <el-button type="primary" :icon="Plus" @click="openForm(null)">新增填报</el-button>
+        </div>
+      </div>
+
+      <div class="table-body">
       <el-table v-loading="loading" :data="list" border stripe>
         <el-table-column type="index" label="序号" width="60" align="center" />
         <el-table-column label="项目" min-width="140" show-overflow-tooltip>
@@ -138,10 +147,17 @@
         </el-table-column>
       </el-table>
 
-      <div class="pagination-wrap">
-        <el-pagination v-model:current-page="query.pageNum" v-model:page-size="query.pageSize"
-          :total="total" :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next"
-          @change="loadList" />
+      <div class="pagination">
+        <el-pagination
+          v-model:current-page="query.pageNum"
+          v-model:page-size="query.pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50]"
+          layout="total, sizes, prev, pager, next, jumper"
+          background
+          @change="loadList"
+        />
+      </div>
       </div>
     </el-card>
 
@@ -561,21 +577,77 @@ onMounted(async () => {
 })
 </script>
 
-<style scoped>
-.mb-16 { margin-bottom: 16px; }
-.pagination-wrap { margin-top: 16px; display: flex; justify-content: flex-end; }
+<style scoped lang="scss">
+.flow-page { display: flex; flex-direction: column; gap: 16px; }
 
-.stat-card { text-align: center; padding: 4px 0; }
+.stat-row { margin-bottom: 0; }
+
+.stat-card {
+  text-align: center;
+  padding: 4px 0;
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  transition: box-shadow 0.2s;
+  &:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important; }
+}
 .stat-title { font-size: 13px; color: #909399; margin-bottom: 6px; }
 .stat-num { font-size: 30px; font-weight: 700; line-height: 1.1; }
-.stat-num.primary { color: #409eff; }
-.stat-num.success { color: #67c23a; }
-.stat-num.warning { color: #e6a23c; }
-.stat-num.info { color: #909399; }
+.stat-num.primary { color: #3b82f6; }
+.stat-num.success { color: #10b981; }
+.stat-num.warning { color: #f59e0b; }
+.stat-num.info { color: #8b5cf6; }
 .stat-sub { font-size: 12px; margin-top: 6px; color: #606266; }
 
+.filter-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  transition: box-shadow 0.2s;
+  &:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important; }
+  :deep(.el-card__body) { padding: 14px 20px; }
+  :deep(.el-form-item) { margin-bottom: 0; }
+}
+
+.table-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  overflow: hidden;
+  :deep(.el-card__body) { padding: 0; }
+}
+
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; border-bottom: 1px solid #f1f5f9; background: #fff;
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .header-title {
+    font-size: 15px; font-weight: 600; color: #1e293b;
+    display: flex; align-items: center; gap: 8px;
+    &::before { content: ''; display: inline-block; width: 3px; height: 16px;
+      background: linear-gradient(180deg, #3b82f6, #60a5fa); border-radius: 2px; }
+  }
+  .count-tag {
+    font-size: 12px; background: #eff6ff; color: #3b82f6;
+    border: 1px solid #bfdbfe; border-radius: 10px; padding: 2px 10px; font-weight: 500;
+  }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+}
+
+.table-body {
+  padding: 16px 20px;
+  :deep(.el-table) {
+    border-radius: 8px; overflow: hidden;
+    .el-table__header-wrapper th.el-table__cell {
+      background: #f8fafc; color: #64748b; font-weight: 600; font-size: 13px;
+      border-bottom: 1px solid #e8edf3;
+    }
+    .el-table__row:hover > td.el-table__cell { background-color: #f0f7ff !important; }
+    .el-table__row--striped > td.el-table__cell { background-color: #fafbfc; }
+    td.el-table__cell { border-bottom: 1px solid #f4f6f9; }
+  }
+}
+
+.pagination { margin-top: 14px; display: flex; justify-content: flex-end; }
 .rate-up { color: #f56c6c; font-weight: 600; }
-.rate-down { color: #67c23a; font-weight: 600; }
+.rate-down { color: #10b981; font-weight: 600; }
 .gray { color: #c0c4cc; }
 .error-item { font-size: 13px; color: #f56c6c; padding: 2px 0; line-height: 1.6; }
 </style>

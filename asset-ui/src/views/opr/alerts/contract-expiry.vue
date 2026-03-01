@@ -1,13 +1,7 @@
 <template>
-  <div class="page-container">
-    <el-page-header @back="router.back()" style="margin-bottom:16px">
-      <template #content>
-        <span style="font-weight:600;font-size:16px">合同到期预警</span>
-      </template>
-    </el-page-header>
-
+  <div class="expiry-page">
     <!-- 统计卡片 -->
-    <el-row :gutter="16" style="margin-bottom:16px">
+    <el-row :gutter="16" class="stat-row">
       <el-col :span="6">
         <el-card shadow="never" class="stat-card stat-danger">
           <div class="stat-num">{{ stats.expiring7 }}</div>
@@ -34,11 +28,14 @@
       </el-col>
     </el-row>
 
-    <!-- 搜索栏 -->
-    <el-card shadow="never">
-      <template #header>
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-weight:600">预警台账列表</span>
+    <!-- 预警列表 -->
+    <el-card shadow="never" class="table-card">
+      <div class="card-header">
+        <div class="header-left">
+          <span class="header-title">预警台账列表</span>
+          <span class="count-tag">共 {{ total }} 条</span>
+        </div>
+        <div class="header-actions">
           <el-radio-group v-model="daysFilter" size="small" @change="loadData">
             <el-radio-button :value="7">7天内</el-radio-button>
             <el-radio-button :value="15">15天内</el-radio-button>
@@ -46,8 +43,9 @@
             <el-radio-button :value="0">全部</el-radio-button>
           </el-radio-group>
         </div>
-      </template>
+      </div>
 
+      <div class="table-body">
       <el-table
         v-loading="loading"
         :data="tableData"
@@ -94,14 +92,17 @@
         </el-table-column>
       </el-table>
 
-      <el-pagination
-        v-model:current-page="queryForm.pageNum"
-        v-model:page-size="queryForm.pageSize"
-        :total="total"
-        layout="total, prev, pager, next"
-        style="margin-top:16px;justify-content:flex-end"
-        @change="loadData"
-      />
+      <div class="pagination">
+        <el-pagination
+          v-model:current-page="queryForm.pageNum"
+          v-model:page-size="queryForm.pageSize"
+          :total="total"
+          layout="total, prev, pager, next"
+          background
+          @change="loadData"
+        />
+      </div>
+      </div>
     </el-card>
   </div>
 </template>
@@ -218,29 +219,67 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+.expiry-page { display: flex; flex-direction: column; gap: 16px; }
+
+.stat-row { margin-bottom: 0; }
+
 .stat-card {
   text-align: center;
-  padding: 8px 0;
+  padding: 12px 0;
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  transition: box-shadow 0.2s, transform 0.2s;
+  &:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important; transform: translateY(-2px); }
 }
-.stat-num {
-  font-size: 28px;
-  font-weight: 700;
-  line-height: 1.2;
-}
-.stat-label {
-  font-size: 13px;
-  color: #909399;
-  margin-top: 4px;
-}
-.stat-danger .stat-num { color: #f56c6c; }
-.stat-warning .stat-num { color: #e6a23c; }
-.stat-info .stat-num { color: #409eff; }
-.stat-success .stat-num { color: #67c23a; }
+.stat-num { font-size: 32px; font-weight: 700; line-height: 1.2; }
+.stat-label { font-size: 13px; color: #64748b; margin-top: 6px; }
+.stat-danger { border-left: 3px solid #f56c6c !important; .stat-num { color: #f56c6c; } }
+.stat-warning { border-left: 3px solid #f59e0b !important; .stat-num { color: #f59e0b; } }
+.stat-info { border-left: 3px solid #3b82f6 !important; .stat-num { color: #3b82f6; } }
+.stat-success { border-left: 3px solid #10b981 !important; .stat-num { color: #10b981; } }
 
+.table-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  overflow: hidden;
+  :deep(.el-card__body) { padding: 0; }
+}
+
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; border-bottom: 1px solid #f1f5f9; background: #fff;
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .header-title {
+    font-size: 15px; font-weight: 600; color: #1e293b;
+    display: flex; align-items: center; gap: 8px;
+    &::before { content: ''; display: inline-block; width: 3px; height: 16px;
+      background: linear-gradient(180deg, #f56c6c, #fca5a5); border-radius: 2px; }
+  }
+  .count-tag {
+    font-size: 12px; background: #fff0f0; color: #f56c6c;
+    border: 1px solid #fca5a5; border-radius: 10px; padding: 2px 10px; font-weight: 500;
+  }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+}
+
+.table-body {
+  padding: 16px 20px;
+  :deep(.el-table) {
+    border-radius: 8px; overflow: hidden;
+    .el-table__header-wrapper th.el-table__cell {
+      background: #f8fafc; color: #64748b; font-weight: 600; font-size: 13px;
+      border-bottom: 1px solid #e8edf3;
+    }
+    .el-table__row:hover > td.el-table__cell { background-color: #f0f7ff !important; }
+    .el-table__row--striped > td.el-table__cell { background-color: #fafbfc; }
+    td.el-table__cell { border-bottom: 1px solid #f4f6f9; }
+  }
+}
+
+.pagination { margin-top: 14px; display: flex; justify-content: flex-end; }
 .expiry-red { color: #f56c6c; font-weight: 600; }
 .expiry-orange { color: #e6a23c; font-weight: 600; }
-
 :deep(.row-danger) { background-color: #fff0f0 !important; }
 :deep(.row-warning) { background-color: #fff8e1 !important; }
 </style>

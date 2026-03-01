@@ -1,7 +1,7 @@
 <template>
-  <div class="page-container">
+  <div class="termination-page">
     <!-- 筛选栏 -->
-    <el-card class="mb-16" shadow="never">
+    <el-card class="filter-card" shadow="never">
       <el-form :model="query" inline>
         <el-form-item label="解约单号">
           <el-input v-model="query.terminationCode" placeholder="请输入" clearable style="width:160px" />
@@ -29,14 +29,18 @@
     </el-card>
 
     <!-- 列表卡片 -->
-    <el-card shadow="never">
-      <template #header>
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span>合同解约列表</span>
+    <el-card shadow="never" class="table-card">
+      <div class="card-header">
+        <div class="header-left">
+          <span class="header-title">合同解约列表</span>
+          <span class="count-tag">共 {{ total }} 条</span>
+        </div>
+        <div class="header-actions">
           <el-button type="primary" :icon="Plus" @click="$router.push('/opr/terminations/form')">新增解约</el-button>
         </div>
-      </template>
+      </div>
 
+      <div class="table-body">
       <el-table v-loading="loading" :data="list" border stripe>
         <el-table-column label="解约单号" prop="terminationCode" min-width="140" />
         <el-table-column label="合同编号" prop="contractCode" min-width="140" />
@@ -80,15 +84,17 @@
         </el-table-column>
       </el-table>
 
-      <div class="pagination-wrap">
+      <div class="pagination">
         <el-pagination
           v-model:current-page="query.pageNum"
           v-model:page-size="query.pageSize"
           :total="total"
           :page-sizes="[10, 20, 50]"
-          layout="total, sizes, prev, pager, next"
+          layout="total, sizes, prev, pager, next, jumper"
+          background
           @change="loadList"
         />
+      </div>
       </div>
     </el-card>
 
@@ -243,9 +249,57 @@ function formatMoney(val: number) {
 onMounted(loadList)
 </script>
 
-<style scoped>
-.mb-16 { margin-bottom: 16px; }
-.pagination-wrap { margin-top: 16px; display: flex; justify-content: flex-end; }
+<style scoped lang="scss">
+.termination-page { display: flex; flex-direction: column; gap: 16px; }
+
+.filter-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  transition: box-shadow 0.2s;
+  &:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important; }
+  :deep(.el-card__body) { padding: 14px 20px; }
+  :deep(.el-form-item) { margin-bottom: 0; }
+}
+
+.table-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  overflow: hidden;
+  :deep(.el-card__body) { padding: 0; }
+}
+
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; border-bottom: 1px solid #f1f5f9; background: #fff;
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .header-title {
+    font-size: 15px; font-weight: 600; color: #1e293b;
+    display: flex; align-items: center; gap: 8px;
+    &::before { content: ''; display: inline-block; width: 3px; height: 16px;
+      background: linear-gradient(180deg, #3b82f6, #60a5fa); border-radius: 2px; }
+  }
+  .count-tag {
+    font-size: 12px; background: #eff6ff; color: #3b82f6;
+    border: 1px solid #bfdbfe; border-radius: 10px; padding: 2px 10px; font-weight: 500;
+  }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+}
+
+.table-body {
+  padding: 16px 20px;
+  :deep(.el-table) {
+    border-radius: 8px; overflow: hidden;
+    .el-table__header-wrapper th.el-table__cell {
+      background: #f8fafc; color: #64748b; font-weight: 600; font-size: 13px;
+      border-bottom: 1px solid #e8edf3;
+    }
+    .el-table__row:hover > td.el-table__cell { background-color: #f0f7ff !important; }
+    .el-table__row--striped > td.el-table__cell { background-color: #fafbfc; }
+    td.el-table__cell { border-bottom: 1px solid #f4f6f9; }
+  }
+}
+
+.pagination { margin-top: 14px; display: flex; justify-content: flex-end; }
 .text-danger { color: #f56c6c; font-weight: 600; }
 .text-success { color: #67c23a; font-weight: 600; }
 .text-gray { color: #909399; }

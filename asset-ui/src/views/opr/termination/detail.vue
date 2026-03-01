@@ -1,33 +1,33 @@
 <template>
-  <div class="page-container">
-    <el-card v-loading="loading" shadow="never">
-      <template #header>
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div style="display:flex;align-items:center;gap:12px">
-            <el-button :icon="ArrowLeft" text @click="$router.back()">返回</el-button>
-            <span>解约单详情</span>
-            <el-tag v-if="detail" :type="statusTagColor(detail.status)" size="small">
-              {{ detail.statusName || statusLabel(detail.status) }}
-            </el-tag>
-          </div>
-          <div v-if="detail">
-            <el-button v-if="detail.status === 0 || detail.status === 3" type="primary"
-              @click="$router.push(`/opr/terminations/form?id=${detail.id}`)">编辑</el-button>
-            <el-button v-if="detail.status === 0 && detail.settlementAmount == null"
-              type="warning" @click="doCalcSettlement">计算清算</el-button>
-            <el-button v-if="detail.status === 0 && detail.settlementAmount != null"
-              type="success" @click="doSubmitApproval">提交审批</el-button>
-            <el-button v-if="detail.status === 1" type="primary" plain @click="openCallback">
-              审批回调
-            </el-button>
-          </div>
-        </div>
-      </template>
+  <div class="termination-detail-page">
+    <!-- 页面头部 -->
+    <div class="page-header-bar">
+      <div class="bar-left">
+        <el-button :icon="ArrowLeft" text @click="$router.back()">返回</el-button>
+        <span class="bar-divider" />
+        <span class="bar-title">解约单详情</span>
+        <el-tag v-if="detail" :type="statusTagColor(detail.status)" size="small">
+          {{ detail.statusName || statusLabel(detail.status) }}
+        </el-tag>
+      </div>
+      <div v-if="detail" class="bar-right">
+        <el-button v-if="detail.status === 0 || detail.status === 3" type="primary"
+          @click="$router.push(`/opr/terminations/form?id=${detail.id}`)">编辑</el-button>
+        <el-button v-if="detail.status === 0 && detail.settlementAmount == null"
+          type="warning" @click="doCalcSettlement">计算清算</el-button>
+        <el-button v-if="detail.status === 0 && detail.settlementAmount != null"
+          type="success" @click="doSubmitApproval">提交审批</el-button>
+        <el-button v-if="detail.status === 1" type="primary" plain @click="openCallback">
+          审批回调
+        </el-button>
+      </div>
+    </div>
 
+    <el-card v-loading="loading" shadow="never" class="detail-card">
       <template v-if="detail">
         <!-- 基本信息 -->
         <div class="section-title">基本信息</div>
-        <el-descriptions :column="3" border class="mb-24">
+        <el-descriptions :column="3" border style="margin-bottom:24px">
           <el-descriptions-item label="解约单号">{{ detail.terminationCode }}</el-descriptions-item>
           <el-descriptions-item label="解约类型">
             <el-tag :type="typeTagColor(detail.terminationType)" size="small">
@@ -50,21 +50,15 @@
 
         <!-- 清算汇总 -->
         <div class="section-title">清算汇总</div>
-        <el-descriptions :column="4" border class="mb-24">
+        <el-descriptions :column="4" border style="margin-bottom:24px">
           <el-descriptions-item label="未结算应收">
-            <span class="money-text text-danger">
-              ¥ {{ formatMoney(detail.unsettledAmount) }}
-            </span>
+            <span class="money-text text-danger">¥ {{ formatMoney(detail.unsettledAmount) }}</span>
           </el-descriptions-item>
           <el-descriptions-item label="违约金">
-            <span class="money-text text-warning">
-              ¥ {{ formatMoney(detail.penaltyAmount) }}
-            </span>
+            <span class="money-text text-warning">¥ {{ formatMoney(detail.penaltyAmount) }}</span>
           </el-descriptions-item>
           <el-descriptions-item label="退还保证金">
-            <span class="money-text text-success">
-              ¥ {{ formatMoney(detail.refundDeposit) }}
-            </span>
+            <span class="money-text text-success">¥ {{ formatMoney(detail.refundDeposit) }}</span>
           </el-descriptions-item>
           <el-descriptions-item label="清算总额">
             <span v-if="detail.settlementAmount != null"
@@ -77,7 +71,7 @@
 
         <!-- 清算明细 -->
         <div class="section-title">清算明细</div>
-        <el-table :data="detail.settlements" border class="mb-24">
+        <el-table :data="detail.settlements" border style="margin-bottom:24px">
           <el-table-column label="明细类型" prop="itemType" width="120" align="center">
             <template #default="{ row }">
               <el-tag :type="itemTypeColor(row.itemType)" size="small">
@@ -102,7 +96,7 @@
         </el-alert>
 
         <!-- 审批进度时间线 -->
-        <div class="mt-24">
+        <div style="margin-top:24px">
           <div class="section-title">审批进度</div>
           <ApprovalTimeline
             :records="approvalRecords"
@@ -271,17 +265,32 @@ function formatMoney(val: number | undefined | null) {
 onMounted(loadDetail)
 </script>
 
-<style scoped>
-.mb-24 { margin-bottom: 24px; }
-.mt-24 { margin-top: 24px; }
-.section-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #303133;
-  margin-bottom: 12px;
-  padding-left: 8px;
-  border-left: 3px solid #2e75b6;
+<style scoped lang="scss">
+.termination-detail-page { display: flex; flex-direction: column; gap: 16px; }
+
+.page-header-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px; background: #fff;
+  border-radius: 12px; border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  .bar-left { display: flex; align-items: center; gap: 12px; }
+  .bar-divider { width: 1px; height: 16px; background: #e2e8f0; }
+  .bar-title { font-size: 16px; font-weight: 600; color: #1e293b; }
+  .bar-right { display: flex; gap: 8px; align-items: center; }
 }
+
+.detail-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  :deep(.el-card__body) { padding: 24px 28px; }
+}
+
+.section-title {
+  font-size: 14px; font-weight: 600; color: #1e293b;
+  margin-bottom: 12px; padding-left: 8px;
+  border-left: 3px solid #3b82f6;
+}
+
 .money-text { font-size: 15px; font-weight: 600; }
 .money-total { font-size: 18px; font-weight: 700; }
 .text-danger { color: #f56c6c; }

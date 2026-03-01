@@ -1,15 +1,17 @@
 <template>
-  <div class="page-container">
-    <el-card shadow="never">
-      <template #header>
-        <div style="display:flex;align-items:center;gap:12px">
-          <el-button :icon="ArrowLeft" text @click="$router.back()">返回</el-button>
-          <span>{{ isEdit ? '编辑解约单' : '新增解约单' }}</span>
-        </div>
-      </template>
+  <div class="termination-form-page">
+    <!-- 页面头部 -->
+    <div class="page-header-bar">
+      <div class="bar-left">
+        <el-button :icon="ArrowLeft" text @click="$router.back()">返回</el-button>
+        <span class="bar-divider" />
+        <span class="bar-title">{{ isEdit ? '编辑解约单' : '新增解约单' }}</span>
+      </div>
+    </div>
 
+    <el-card shadow="never" class="form-card">
       <!-- 步骤条 -->
-      <el-steps :active="step" finish-status="success" class="mb-32">
+      <el-steps :active="step" finish-status="success" style="margin-bottom:32px">
         <el-step title="选择合同" />
         <el-step title="解约信息" />
         <el-step title="清算确认" />
@@ -29,8 +31,8 @@
         </el-form>
 
         <!-- 合同搜索结果 -->
-        <el-table v-if="contractList.length" :data="contractList" border class="mt-16"
-          highlight-current-row @current-change="selectContract" style="max-width:900px">
+        <el-table v-if="contractList.length" :data="contractList" border style="max-width:900px;margin-top:16px"
+          highlight-current-row @current-change="selectContract">
           <el-table-column label="合同编号" prop="contractCode" width="160" />
           <el-table-column label="合同名称" prop="contractName" min-width="200" show-overflow-tooltip />
           <el-table-column label="商家名称" prop="merchantName" width="140" />
@@ -49,10 +51,10 @@
         </el-table>
 
         <!-- 已选合同展示 -->
-        <el-alert v-if="selectedContract" type="success" :closable="false" class="mt-16" style="max-width:900px">
+        <el-alert v-if="selectedContract" type="success" :closable="false" style="max-width:900px;margin-top:16px">
           <template #title>
             已选合同：{{ selectedContract.contractCode }} - {{ selectedContract.contractName }}
-            <el-button link type="primary" class="ml-8" @click="clearContract">重新选择</el-button>
+            <el-button link type="primary" style="margin-left:8px" @click="clearContract">重新选择</el-button>
           </template>
         </el-alert>
 
@@ -80,7 +82,7 @@
           <el-form-item v-if="step2.terminationType === 2" label="违约金比例">
             <el-input-number v-model="step2.penaltyRate" :min="0" :max="1" :step="0.05"
               :precision="2" placeholder="0.30" style="width:160px" />
-            <span class="ml-8 text-gray">（0~1，默认0.3即30%）</span>
+            <span style="margin-left:8px;color:#909399;font-size:13px">（0~1，默认0.3即30%）</span>
           </el-form-item>
           <el-form-item v-if="step2.terminationType === 3" label="新合同ID" prop="newContractId">
             <el-input-number v-model="step2.newContractId" :min="1" placeholder="填写新合同ID" style="width:200px" />
@@ -98,7 +100,7 @@
 
       <!-- Step 3：清算确认 -->
       <div v-if="step === 2">
-        <el-descriptions :column="2" border class="mb-24" style="max-width:800px">
+        <el-descriptions :column="2" border style="max-width:800px;margin-bottom:24px">
           <el-descriptions-item label="解约单号">{{ savedTermination?.terminationCode || '-' }}</el-descriptions-item>
           <el-descriptions-item label="合同编号">{{ selectedContract?.contractCode }}</el-descriptions-item>
           <el-descriptions-item label="合同名称">{{ selectedContract?.contractName }}</el-descriptions-item>
@@ -137,7 +139,7 @@
           <el-empty v-if="!settlements.length" description="暂无清算明细" style="padding:20px 0" />
         </div>
 
-        <el-alert v-if="settlements.length" class="mt-16" type="info" :closable="false">
+        <el-alert v-if="settlements.length" style="margin-top:16px" type="info" :closable="false">
           正数金额表示「应收（租方欠款）」，负数金额表示「应退（平台退款）」
         </el-alert>
 
@@ -314,14 +316,12 @@ async function loadEditData() {
     savedTermination.value = data
     settlements.value = data.settlements || []
 
-    // 回填 step2
     step2.terminationType = data.terminationType
     step2.terminationDate = data.terminationDate
     step2.reason = data.reason || ''
     step2.newContractId = data.newContractId || null
     step2.penaltyRate = data.penaltyAmount || 0.3
 
-    // 回填 selectedContract（模拟合同信息）
     selectedContract.value = {
       id: data.contractId,
       contractCode: data.contractCode,
@@ -358,24 +358,37 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
-.mb-32 { margin-bottom: 32px; }
-.mb-24 { margin-bottom: 24px; }
-.mt-16 { margin-top: 16px; }
-.ml-8 { margin-left: 8px; }
+<style scoped lang="scss">
+.termination-form-page { display: flex; flex-direction: column; gap: 16px; }
+
+.page-header-bar {
+  display: flex; align-items: center;
+  padding: 12px 20px; background: #fff;
+  border-radius: 12px; border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  .bar-left { display: flex; align-items: center; gap: 12px; }
+  .bar-divider { width: 1px; height: 16px; background: #e2e8f0; }
+  .bar-title { font-size: 16px; font-weight: 600; color: #1e293b; }
+}
+
+.form-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  :deep(.el-card__body) { padding: 24px 32px; }
+}
+
 .step-footer {
-  margin-top: 32px;
-  padding-top: 16px;
-  border-top: 1px solid #ebeef5;
-  display: flex;
-  gap: 12px;
+  margin-top: 32px; padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+  display: flex; gap: 12px;
 }
+
 .section-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #303133;
-  margin-bottom: 12px;
+  font-size: 14px; font-weight: 600; color: #1e293b;
+  margin-bottom: 12px; padding-left: 8px;
+  border-left: 3px solid #3b82f6;
 }
+
 .text-danger { color: #f56c6c; }
 .text-success { color: #67c23a; }
 .text-gray { color: #909399; font-size: 13px; }

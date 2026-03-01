@@ -1,49 +1,49 @@
 <template>
-  <div class="page-container">
-    <!-- 顶部操作栏 -->
-    <el-page-header @back="router.back()" style="margin-bottom:16px">
-      <template #content>
-        <span class="page-title">台账详情 · {{ detail?.ledgerCode }}</span>
-      </template>
-      <template #extra>
-        <el-space>
-          <el-button
-            v-if="detail?.doubleSignStatus === 0"
-            type="success"
-            @click="handleDoubleSign"
-          >双签确认</el-button>
-          <el-button
-            v-if="detail?.receivableStatus === 0 && detail?.doubleSignStatus === 1"
-            type="warning"
-            @click="handleGenerateReceivable"
-          >生成应收计划</el-button>
-          <el-button
-            v-if="detail?.auditStatus === 0 && detail?.receivableStatus === 1"
-            type="primary"
-            @click="handleAudit(1)"
-          >审核通过</el-button>
-          <el-button
-            v-if="detail?.auditStatus === 0 && detail?.receivableStatus === 1"
-            type="danger"
-            plain
-            @click="handleAudit(2)"
-          >驳回</el-button>
-          <el-button
-            v-if="detail?.auditStatus === 1 && detail?.receivableStatus >= 1"
-            type="primary"
-            plain
-            @click="handlePushReceivable"
-          >推送财务</el-button>
-          <el-button
-            v-if="detail?.receivableStatus >= 1"
-            @click="openOneTimePayment"
-          >录入首款</el-button>
-        </el-space>
-      </template>
-    </el-page-header>
+  <div class="ledger-detail-page">
+    <!-- 页面头部 -->
+    <div class="page-header-bar">
+      <div class="bar-left">
+        <el-button :icon="ArrowLeft" text @click="router.back()">返回</el-button>
+        <span class="bar-divider" />
+        <span class="bar-title">台账详情 · {{ detail?.ledgerCode }}</span>
+      </div>
+      <div class="bar-right">
+        <el-button
+          v-if="detail?.doubleSignStatus === 0"
+          type="success"
+          @click="handleDoubleSign"
+        >双签确认</el-button>
+        <el-button
+          v-if="detail?.receivableStatus === 0 && detail?.doubleSignStatus === 1"
+          type="warning"
+          @click="handleGenerateReceivable"
+        >生成应收计划</el-button>
+        <el-button
+          v-if="detail?.auditStatus === 0 && detail?.receivableStatus === 1"
+          type="primary"
+          @click="handleAudit(1)"
+        >审核通过</el-button>
+        <el-button
+          v-if="detail?.auditStatus === 0 && detail?.receivableStatus === 1"
+          type="danger"
+          plain
+          @click="handleAudit(2)"
+        >驳回</el-button>
+        <el-button
+          v-if="detail?.auditStatus === 1 && detail?.receivableStatus >= 1"
+          type="primary"
+          plain
+          @click="handlePushReceivable"
+        >推送财务</el-button>
+        <el-button
+          v-if="detail?.receivableStatus >= 1"
+          @click="openOneTimePayment"
+        >录入首款</el-button>
+      </div>
+    </div>
 
     <!-- Tab 内容 -->
-    <el-tabs v-model="activeTab" type="border-card" v-loading="loading">
+    <el-tabs v-model="activeTab" type="border-card" v-loading="loading" class="detail-tabs">
       <!-- Tab1: 合同信息 -->
       <el-tab-pane label="合同信息" name="info">
         <el-descriptions :column="3" border label-width="120px" size="small">
@@ -74,8 +74,8 @@
 
       <!-- Tab2: 应收计划 -->
       <el-tab-pane label="应收计划" name="receivables" lazy>
-        <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
-          <span style="color:#606266;font-size:13px">
+        <div class="tab-toolbar">
+          <span class="tab-stat">
             共 {{ detail?.receivablePlans?.length ?? 0 }} 条 ·
             待收: {{ pendingCount }} 条 ·
             应收合计: <strong>{{ totalAmount }}</strong> 元
@@ -301,7 +301,7 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, ArrowLeft } from '@element-plus/icons-vue'
 import {
   getLedgerById,
   doubleSign,
@@ -527,11 +527,35 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
-.page-title {
-  font-weight: 600;
-  font-size: 16px;
+<style scoped lang="scss">
+.ledger-detail-page { display: flex; flex-direction: column; gap: 16px; }
+
+.page-header-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px; background: #fff;
+  border-radius: 12px; border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  .bar-left { display: flex; align-items: center; gap: 12px; }
+  .bar-divider { width: 1px; height: 16px; background: #e2e8f0; }
+  .bar-title { font-size: 16px; font-weight: 600; color: #1e293b; }
+  .bar-right { display: flex; gap: 8px; align-items: center; }
 }
+
+.detail-tabs {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  box-shadow: none !important;
+  :deep(.el-tabs__header) { background: #f8fafc; }
+  :deep(.el-tabs__item.is-active) { color: #3b82f6; }
+  :deep(.el-tabs__content) { padding: 20px; }
+}
+
+.tab-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+  .tab-stat { color: #64748b; font-size: 13px; }
+}
+
 .expiry-red { color: #f56c6c; font-weight: 600; }
 .expiry-orange { color: #e6a23c; font-weight: 600; }
 .change-card { border: 1px solid #ebeef5; }

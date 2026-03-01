@@ -1,8 +1,8 @@
 <template>
-  <div class="page-container">
-    <!-- 查询区 -->
-    <el-card shadow="never">
-      <el-form :model="query" inline label-width="80px">
+  <div class="float-rent-page">
+    <!-- 搜索栏 -->
+    <el-card shadow="never" class="filter-card">
+      <el-form :model="query" inline>
         <el-form-item label="合同ID">
           <el-input-number
             v-model="query.contractId"
@@ -29,68 +29,81 @@
     </el-card>
 
     <!-- 浮动租金列表 -->
-    <el-card shadow="never" style="margin-top:12px">
-      <div style="font-size:15px;font-weight:600;margin-bottom:12px">浮动租金列表</div>
-      <el-table v-loading="loading" :data="tableData" border stripe @row-click="openDetail">
-        <el-table-column label="合同ID"     prop="contractId"     width="100" />
-        <el-table-column label="计算月份"   prop="calcMonth"      width="110" />
-        <el-table-column label="月营业额"   prop="monthlyRevenue" align="right">
-          <template #default="{ row }">¥{{ fmt(row.monthlyRevenue) }}</template>
-        </el-table-column>
-        <el-table-column label="固定租金"   prop="fixedRent"      align="right">
-          <template #default="{ row }">{{ row.fixedRent ? '¥' + fmt(row.fixedRent) : '—' }}</template>
-        </el-table-column>
-        <el-table-column label="提成率(%)"  prop="commissionRate" width="100" align="right" />
-        <el-table-column label="提成金额"   prop="commissionAmount" align="right">
-          <template #default="{ row }">¥{{ fmt(row.commissionAmount) }}</template>
-        </el-table-column>
-        <el-table-column label="浮动租金" align="right">
-          <template #default="{ row }">
-            <span style="color:#2E75B6;font-weight:700">¥{{ fmt(row.floatingRent) }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="应收状态" width="110" align="center">
-          <template #default="{ row }">
-            <el-tag v-if="row.receivableId" type="success" size="small">已生成应收</el-tag>
-            <el-tag v-else type="info" size="small">未生成</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" size="small" @click.stop="openDetail(row)">详情</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+    <el-card shadow="never" class="table-card">
+      <div class="card-header">
+        <div class="header-left">
+          <span class="header-title">浮动租金列表</span>
+          <span class="count-tag">共 {{ total }} 条</span>
+        </div>
+      </div>
+      <div class="table-body">
+        <el-table v-loading="loading" :data="tableData" border stripe @row-click="openDetail">
+          <el-table-column label="合同ID"     prop="contractId"     width="100" />
+          <el-table-column label="计算月份"   prop="calcMonth"      width="110" />
+          <el-table-column label="月营业额"   prop="monthlyRevenue" align="right">
+            <template #default="{ row }">¥{{ fmt(row.monthlyRevenue) }}</template>
+          </el-table-column>
+          <el-table-column label="固定租金"   prop="fixedRent"      align="right">
+            <template #default="{ row }">{{ row.fixedRent ? '¥' + fmt(row.fixedRent) : '—' }}</template>
+          </el-table-column>
+          <el-table-column label="提成率(%)"  prop="commissionRate" width="100" align="right" />
+          <el-table-column label="提成金额"   prop="commissionAmount" align="right">
+            <template #default="{ row }">¥{{ fmt(row.commissionAmount) }}</template>
+          </el-table-column>
+          <el-table-column label="浮动租金" align="right">
+            <template #default="{ row }">
+              <span class="floating-rent-val">¥{{ fmt(row.floatingRent) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="应收状态" width="110" align="center">
+            <template #default="{ row }">
+              <el-tag v-if="row.receivableId" type="success" size="small">已生成应收</el-tag>
+              <el-tag v-else type="info" size="small">未生成</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="120" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" size="small" @click.stop="openDetail(row)">详情</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
 
-      <el-pagination
-        v-model:current-page="query.pageNum"
-        v-model:page-size="query.pageSize"
-        :total="total"
-        layout="total, prev, pager, next"
-        style="margin-top:12px;justify-content:flex-end"
-        @change="loadList"
-      />
+        <div class="pagination">
+          <el-pagination
+            v-model:current-page="query.pageNum"
+            v-model:page-size="query.pageSize"
+            :total="total"
+            layout="total, prev, pager, next"
+            background
+            @change="loadList"
+          />
+        </div>
+      </div>
     </el-card>
 
     <!-- 触发计算区 -->
-    <el-card shadow="never" style="margin-top:12px">
-      <template #header>
-        <span style="font-weight:600">触发浮动租金计算</span>
-        <el-tooltip content="月度营业额填报完整后才可计算" placement="right">
-          <el-icon style="margin-left:4px;color:#909399"><QuestionFilled /></el-icon>
-        </el-tooltip>
-      </template>
-      <el-form :model="calcForm" inline label-width="80px">
-        <el-form-item label="合同ID" required>
-          <el-input-number v-model="calcForm.contractId" :min="1" :controls="false" style="width:150px" />
-        </el-form-item>
-        <el-form-item label="月份" required>
-          <el-date-picker v-model="calcForm.calcMonth" type="month" value-format="YYYY-MM" style="width:150px" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" :loading="calculating" @click="doCalculate">开始计算</el-button>
-        </el-form-item>
-      </el-form>
+    <el-card shadow="never" class="calc-card">
+      <div class="card-header">
+        <div class="header-left">
+          <span class="header-title">触发浮动租金计算</span>
+          <el-tooltip content="月度营业额填报完整后才可计算" placement="right">
+            <el-icon style="color:#909399"><QuestionFilled /></el-icon>
+          </el-tooltip>
+        </div>
+      </div>
+      <div class="calc-body">
+        <el-form :model="calcForm" inline>
+          <el-form-item label="合同ID" required>
+            <el-input-number v-model="calcForm.contractId" :min="1" :controls="false" style="width:150px" />
+          </el-form-item>
+          <el-form-item label="月份" required>
+            <el-date-picker v-model="calcForm.calcMonth" type="month" value-format="YYYY-MM" style="width:150px" />
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" :loading="calculating" @click="doCalculate">开始计算</el-button>
+          </el-form-item>
+        </el-form>
+      </div>
     </el-card>
 
     <!-- 详情抽屉 -->
@@ -273,3 +286,67 @@ onMounted(() => {
   loadList()
 })
 </script>
+
+<style scoped lang="scss">
+.float-rent-page { display: flex; flex-direction: column; gap: 16px; }
+
+.filter-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  transition: box-shadow 0.2s;
+  &:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important; }
+  :deep(.el-card__body) { padding: 14px 20px; }
+  :deep(.el-form-item) { margin-bottom: 0; }
+}
+
+.table-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  overflow: hidden;
+  :deep(.el-card__body) { padding: 0; }
+}
+
+.calc-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  overflow: hidden;
+  :deep(.el-card__body) { padding: 0; }
+  .calc-body {
+    padding: 16px 20px;
+    :deep(.el-form-item) { margin-bottom: 0; }
+  }
+}
+
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; border-bottom: 1px solid #f1f5f9; background: #fff;
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .header-title {
+    font-size: 15px; font-weight: 600; color: #1e293b;
+    display: flex; align-items: center; gap: 8px;
+    &::before { content: ''; display: inline-block; width: 3px; height: 16px;
+      background: linear-gradient(180deg, #3b82f6, #60a5fa); border-radius: 2px; }
+  }
+  .count-tag {
+    font-size: 12px; background: #eff6ff; color: #3b82f6;
+    border: 1px solid #bfdbfe; border-radius: 10px; padding: 2px 10px; font-weight: 500;
+  }
+}
+
+.table-body {
+  padding: 16px 20px;
+  :deep(.el-table) {
+    border-radius: 8px; overflow: hidden;
+    .el-table__header-wrapper th.el-table__cell {
+      background: #f8fafc; color: #64748b; font-weight: 600; font-size: 13px;
+      border-bottom: 1px solid #e8edf3;
+    }
+    .el-table__row:hover > td.el-table__cell { background-color: #f0f7ff !important; }
+    .el-table__row--striped > td.el-table__cell { background-color: #fafbfc; }
+    td.el-table__cell { border-bottom: 1px solid #f4f6f9; }
+  }
+}
+
+.pagination { margin-top: 14px; display: flex; justify-content: flex-end; }
+.floating-rent-val { color: #2E75B6; font-weight: 700; }
+</style>
