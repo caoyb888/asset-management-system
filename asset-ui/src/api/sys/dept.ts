@@ -36,4 +36,11 @@ export const deptApi = {
   delete: (id: number) => request.delete(`/sys/depts/${id}`),
   /** 修改状态 */
   changeStatus: (id: number, status: number) => request.put(`/sys/depts/${id}/status`, { status }),
+  /** 移动子树（变更上级） */
+  move: (id: number, targetParentId: number) => request.put(`/sys/depts/${id}/move`, { targetParentId }),
+  /** 查询机构下用户 */
+  getUsers: (id: number, includeChildren?: boolean) =>
+    request.get(`/sys/depts/${id}/users`, { params: { includeChildren: includeChildren ?? false } }),
+  /** 清除缓存 */
+  clearCache: () => request.delete('/sys/depts/cache'),
 }
