@@ -1,94 +1,63 @@
 <template>
   <div class="fin-prepayment-page">
-    <!-- 合同搜索区 -->
-    <el-card class="search-card mb-4">
+    <!-- 搜索栏 -->
+    <el-card class="filter-card" shadow="never">
       <el-form :model="searchForm" inline>
         <el-form-item label="合同ID">
           <el-input
             v-model.number="searchForm.contractId"
             placeholder="输入合同ID"
-            style="width: 180px"
+            style="width:180px"
             clearable
             @keyup.enter="loadAccount"
           />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" :icon="Search" @click="loadAccount">查询</el-button>
-          <el-button @click="resetSearch">重置</el-button>
+          <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
         </el-form-item>
       </el-form>
     </el-card>
 
-    <!-- 余额卡片区 -->
+    <!-- 账户信息区 -->
     <template v-if="account">
-      <el-row :gutter="16" class="mb-4">
-        <!-- 主余额卡片 -->
+      <!-- 余额卡片 -->
+      <el-row :gutter="16">
         <el-col :span="6">
-          <el-card shadow="hover" class="balance-card main-balance">
-            <div class="balance-label">可用余额（元）</div>
-            <div class="balance-amount">{{ formatAmount(account.balance) }}</div>
-            <div class="balance-sub">合同：{{ account.contractCode || account.contractId }}</div>
-          </el-card>
+          <div class="balance-stat-card main-balance">
+            <div class="bsc-label">可用余额（元）</div>
+            <div class="bsc-amount">{{ formatAmount(account.balance) }}</div>
+            <div class="bsc-sub">合同：{{ account.contractCode || account.contractId }}</div>
+          </div>
         </el-col>
-
-        <!-- 信息卡片 -->
         <el-col :span="6">
-          <el-card shadow="hover" class="info-card">
-            <div class="info-row">
-              <span class="info-label">商家</span>
-              <span class="info-value">{{ account.merchantName || '-' }}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">项目</span>
-              <span class="info-value">{{ account.projectName || '-' }}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">合同名称</span>
-              <span class="info-value">{{ account.contractName || '-' }}</span>
-            </div>
-          </el-card>
+          <div class="balance-stat-card info-block">
+            <div class="info-row"><span class="info-label">商家</span><span class="info-value">{{ account.merchantName || '-' }}</span></div>
+            <div class="info-row"><span class="info-label">项目</span><span class="info-value">{{ account.projectName || '-' }}</span></div>
+            <div class="info-row"><span class="info-label">合同名称</span><span class="info-value">{{ account.contractName || '-' }}</span></div>
+          </div>
         </el-col>
-
-        <!-- 操作快捷入口 -->
         <el-col :span="12">
-          <el-card shadow="hover" style="height: 100%">
-            <div class="action-grid">
-              <el-button
-                type="success"
-                :icon="Plus"
-                size="large"
-                class="action-btn"
-                @click="openDepositDialog"
-              >录入预收款</el-button>
-              <el-button
-                type="primary"
-                :icon="Connection"
-                size="large"
-                class="action-btn"
-                @click="openOffsetDialog"
-              >抵冲应收</el-button>
-              <el-button
-                type="warning"
-                :icon="Money"
-                size="large"
-                class="action-btn"
-                @click="openRefundDialog"
-              >申请退款</el-button>
-            </div>
-          </el-card>
+          <div class="balance-stat-card action-block">
+            <el-button type="success" :icon="Plus" size="large" @click="openDepositDialog">录入预收款</el-button>
+            <el-button type="primary" :icon="Connection" size="large" @click="openOffsetDialog">抵冲应收</el-button>
+            <el-button type="warning" :icon="Money" size="large" @click="openRefundDialog">申请退款</el-button>
+          </div>
         </el-col>
       </el-row>
 
       <!-- 流水明细 -->
-      <el-card>
-        <template #header>
-          <div class="card-header-row">
-            <span>预收款流水记录</span>
+      <el-card shadow="never" class="table-card">
+        <div class="card-header">
+          <div class="header-left">
+            <span class="header-title">预收款流水记录</span>
+          </div>
+          <div class="header-actions">
             <el-select
               v-model="txQuery.transType"
               placeholder="全部类型"
               clearable
-              style="width: 130px"
+              style="width:130px"
               @change="loadTransactions"
             >
               <el-option label="转入" :value="1" />
@@ -96,52 +65,50 @@
               <el-option label="退款" :value="3" />
             </el-select>
           </div>
-        </template>
+        </div>
 
-        <el-table :data="transactions" v-loading="txLoading" stripe>
-          <el-table-column label="交易日期" prop="transDate" width="110" />
-          <el-table-column label="交易类型" width="90">
-            <template #default="{ row }">
-              <el-tag :type="transTypeTag(row.transType)" size="small">
-                {{ transTypeLabel(row.transType) }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="金额（元）" align="right" width="130">
-            <template #default="{ row }">
-              <span :class="row.transType === 1 ? 'text-green' : 'text-orange'">
-                {{ row.transType === 1 ? '+' : '-' }}{{ formatAmount(row.amount) }}
-              </span>
-            </template>
-          </el-table-column>
-          <el-table-column label="余额快照（元）" align="right" width="130">
-            <template #default="{ row }">{{ formatAmount(row.balanceAfter) }}</template>
-          </el-table-column>
-          <el-table-column label="关联单据" prop="sourceCode" min-width="160" show-overflow-tooltip />
-          <el-table-column label="备注" prop="remark" min-width="180" show-overflow-tooltip />
-          <el-table-column label="创建时间" prop="createTime" width="160" />
-        </el-table>
+        <div class="table-body">
+          <el-table :data="transactions" v-loading="txLoading" stripe border style="width:100%">
+            <el-table-column label="交易日期" prop="transDate" width="110" align="center" />
+            <el-table-column label="交易类型" width="90" align="center">
+              <template #default="{ row }">
+                <el-tag :type="transTypeTag(row.transType)" size="small">{{ transTypeLabel(row.transType) }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="金额（元）" align="right" width="130">
+              <template #default="{ row }">
+                <span :class="row.transType === 1 ? 'amount-in' : 'amount-out'">
+                  {{ row.transType === 1 ? '+' : '-' }}{{ formatAmount(row.amount) }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="余额快照（元）" align="right" width="130">
+              <template #default="{ row }">{{ formatAmount(row.balanceAfter) }}</template>
+            </el-table-column>
+            <el-table-column label="关联单据" prop="sourceCode" min-width="160" show-overflow-tooltip />
+            <el-table-column label="备注" prop="remark" min-width="180" show-overflow-tooltip />
+            <el-table-column label="创建时间" prop="createTime" width="160" align="center" />
+          </el-table>
 
-        <div class="pagination-wrap">
-          <el-pagination
-            v-model:current-page="txQuery.pageNum"
-            v-model:page-size="txQuery.pageSize"
-            :total="txTotal"
-            :page-sizes="[10, 20, 50]"
-            layout="total, sizes, prev, pager, next"
-            @change="loadTransactions"
-          />
+          <div class="pagination">
+            <el-pagination
+              v-model:current-page="txQuery.pageNum"
+              v-model:page-size="txQuery.pageSize"
+              :total="txTotal"
+              :page-sizes="[10, 20, 50]"
+              layout="total, sizes, prev, pager, next"
+              background
+              @change="loadTransactions"
+            />
+          </div>
         </div>
       </el-card>
     </template>
 
-    <!-- 未查询到 -->
-    <el-card v-else-if="searched">
+    <el-card v-else-if="searched" shadow="never" class="empty-card">
       <el-empty description="该合同暂无预收款账户，录入后自动创建" :image-size="100" />
     </el-card>
-
-    <!-- 初始提示 -->
-    <el-card v-else>
+    <el-card v-else shadow="never" class="empty-card">
       <el-empty description="请输入合同ID查询预收款账户" :image-size="100" />
     </el-card>
 
@@ -149,15 +116,10 @@
     <el-dialog v-model="depositVisible" title="录入预收款" width="440px" destroy-on-close>
       <el-form ref="depositFormRef" :model="depositForm" :rules="depositRules" label-width="100px">
         <el-form-item label="合同ID" prop="contractId">
-          <el-input-number v-model="depositForm.contractId" :min="1" style="width: 100%" />
+          <el-input-number v-model="depositForm.contractId" :min="1" style="width:100%" />
         </el-form-item>
         <el-form-item label="录入金额" prop="amount">
-          <el-input-number
-            v-model="depositForm.amount"
-            :min="0.01"
-            :precision="2"
-            style="width: 100%"
-          />
+          <el-input-number v-model="depositForm.amount" :min="0.01" :precision="2" style="width:100%" />
         </el-form-item>
         <el-form-item label="关联单据号">
           <el-input v-model="depositForm.sourceCode" placeholder="收款单号、凭证号等" />
@@ -174,25 +136,13 @@
 
     <!-- ─── 抵冲应收弹窗 ─── -->
     <el-dialog v-model="offsetVisible" title="预收款抵冲应收" width="460px" destroy-on-close>
-      <el-alert
-        class="mb-3"
-        :title="`当前可用余额：¥ ${formatAmount(account?.balance)}`"
-        type="info"
-        show-icon
-        :closable="false"
-      />
+      <el-alert class="mb-3" :title="`当前可用余额：¥ ${formatAmount(account?.balance)}`" type="info" show-icon :closable="false" />
       <el-form ref="offsetFormRef" :model="offsetForm" :rules="offsetRules" label-width="100px">
         <el-form-item label="应收记录ID" prop="receivableId">
-          <el-input-number v-model="offsetForm.receivableId" :min="1" style="width: 100%" />
+          <el-input-number v-model="offsetForm.receivableId" :min="1" style="width:100%" />
         </el-form-item>
         <el-form-item label="抵冲金额" prop="amount">
-          <el-input-number
-            v-model="offsetForm.amount"
-            :min="0.01"
-            :max="account?.balance ?? 999999999"
-            :precision="2"
-            style="width: 100%"
-          />
+          <el-input-number v-model="offsetForm.amount" :min="0.01" :max="account?.balance ?? 999999999" :precision="2" style="width:100%" />
         </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="offsetForm.remark" type="textarea" :rows="2" />
@@ -206,22 +156,10 @@
 
     <!-- ─── 退款弹窗 ─── -->
     <el-dialog v-model="refundVisible" title="预收款退款" width="480px" destroy-on-close>
-      <el-alert
-        class="mb-3"
-        :title="`当前可用余额：¥ ${formatAmount(account?.balance)}`"
-        type="warning"
-        show-icon
-        :closable="false"
-      />
+      <el-alert class="mb-3" :title="`当前可用余额：¥ ${formatAmount(account?.balance)}`" type="warning" show-icon :closable="false" />
       <el-form ref="refundFormRef" :model="refundForm" :rules="refundRules" label-width="100px">
         <el-form-item label="退款金额" prop="amount">
-          <el-input-number
-            v-model="refundForm.amount"
-            :min="0.01"
-            :max="account?.balance ?? 999999999"
-            :precision="2"
-            style="width: 100%"
-          />
+          <el-input-number v-model="refundForm.amount" :min="0.01" :max="account?.balance ?? 999999999" :precision="2" style="width:100%" />
         </el-form-item>
         <el-form-item label="收款账号" prop="bankAccount">
           <el-input v-model="refundForm.bankAccount" placeholder="银行账号" />
@@ -247,7 +185,7 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Plus, Connection, Money } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Connection, Money } from '@element-plus/icons-vue'
 import {
   getPrepayAccount,
   getPrepayTransactions,
@@ -258,29 +196,19 @@ import {
   type PrepayTransaction,
 } from '@/api/fin/prepayment'
 
-// ─── 搜索 & 账户 ───────────────────────────────────────────────────────────
 const searchForm = reactive({ contractId: undefined as number | undefined })
 const account = ref<PrepayAccountVO | null>(null)
 const searched = ref(false)
 
 async function loadAccount() {
-  if (!searchForm.contractId) {
-    ElMessage.warning('请输入合同ID')
-    return
-  }
+  if (!searchForm.contractId) { ElMessage.warning('请输入合同ID'); return }
   searched.value = false
   try {
     const res: any = await getPrepayAccount(searchForm.contractId)
     account.value = res.data ?? null
     searched.value = true
-    if (account.value) {
-      txQuery.contractId = searchForm.contractId
-      loadTransactions()
-    }
-  } catch {
-    account.value = null
-    searched.value = true
-  }
+    if (account.value) { txQuery.contractId = searchForm.contractId; loadTransactions() }
+  } catch { account.value = null; searched.value = true }
 }
 
 function resetSearch() {
@@ -290,7 +218,6 @@ function resetSearch() {
   transactions.value = []
 }
 
-// ─── 流水列表 ──────────────────────────────────────────────────────────────
 const txLoading = ref(false)
 const transactions = ref<PrepayTransaction[]>([])
 const txTotal = ref(0)
@@ -308,12 +235,9 @@ async function loadTransactions() {
     const res: any = await getPrepayTransactions(txQuery)
     transactions.value = res.data?.records ?? []
     txTotal.value = res.data?.total ?? 0
-  } finally {
-    txLoading.value = false
-  }
+  } finally { txLoading.value = false }
 }
 
-// ─── 格式化工具 ────────────────────────────────────────────────────────────
 function formatAmount(v?: number | null) {
   if (v == null) return '0.00'
   return Number(v).toFixed(2)
@@ -329,7 +253,7 @@ function transTypeTag(t?: number) {
   return t ? m[t] ?? '' : ''
 }
 
-// ─── 录入预收款 ────────────────────────────────────────────────────────────
+// 录入预收款
 const depositVisible = ref(false)
 const depositLoading = ref(false)
 const depositFormRef = ref()
@@ -341,9 +265,7 @@ const depositRules = {
 
 function openDepositDialog() {
   depositForm.contractId = searchForm.contractId ?? 0
-  depositForm.amount = 0
-  depositForm.sourceCode = ''
-  depositForm.remark = ''
+  depositForm.amount = 0; depositForm.sourceCode = ''; depositForm.remark = ''
   depositVisible.value = true
 }
 
@@ -353,14 +275,11 @@ async function submitDeposit() {
   try {
     await depositPrepay({ ...depositForm })
     ElMessage.success('预收款录入成功')
-    depositVisible.value = false
-    loadAccount()
-  } finally {
-    depositLoading.value = false
-  }
+    depositVisible.value = false; loadAccount()
+  } finally { depositLoading.value = false }
 }
 
-// ─── 抵冲应收 ──────────────────────────────────────────────────────────────
+// 抵冲应收
 const offsetVisible = ref(false)
 const offsetLoading = ref(false)
 const offsetFormRef = ref()
@@ -372,9 +291,7 @@ const offsetRules = {
 
 function openOffsetDialog() {
   offsetForm.contractId = account.value?.contractId ?? 0
-  offsetForm.receivableId = 0
-  offsetForm.amount = 0
-  offsetForm.remark = ''
+  offsetForm.receivableId = 0; offsetForm.amount = 0; offsetForm.remark = ''
   offsetVisible.value = true
 }
 
@@ -384,20 +301,15 @@ async function submitOffset() {
   try {
     await offsetPrepay({ ...offsetForm })
     ElMessage.success('抵冲成功，应收已更新')
-    offsetVisible.value = false
-    loadAccount()
-  } finally {
-    offsetLoading.value = false
-  }
+    offsetVisible.value = false; loadAccount()
+  } finally { offsetLoading.value = false }
 }
 
-// ─── 退款 ─────────────────────────────────────────────────────────────────
+// 退款
 const refundVisible = ref(false)
 const refundLoading = ref(false)
 const refundFormRef = ref()
-const refundForm = reactive({
-  contractId: 0, amount: 0, bankName: '', bankAccount: '', payee: '', remark: '',
-})
+const refundForm = reactive({ contractId: 0, amount: 0, bankName: '', bankAccount: '', payee: '', remark: '' })
 const refundRules = {
   amount: [{ required: true, message: '退款金额不能为空', trigger: 'blur' }],
   bankAccount: [{ required: true, message: '银行账号不能为空', trigger: 'blur' }],
@@ -422,90 +334,129 @@ async function submitRefund() {
   try {
     await refundPrepay({ ...refundForm })
     ElMessage.success('退款成功')
-    refundVisible.value = false
-    loadAccount()
-  } finally {
-    refundLoading.value = false
-  }
+    refundVisible.value = false; loadAccount()
+  } finally { refundLoading.value = false }
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .fin-prepayment-page {
-  padding: 16px;
-}
-.mb-4 {
-  margin-bottom: 16px;
-}
-.mb-3 {
-  margin-bottom: 12px;
-}
-.balance-card {
-  text-align: center;
-  padding: 8px 0;
-}
-.main-balance {
-  border-top: 3px solid #2e75b6;
-}
-.balance-label {
-  font-size: 13px;
-  color: #909399;
-  margin-bottom: 8px;
-}
-.balance-amount {
-  font-size: 28px;
-  font-weight: 700;
-  color: #2e75b6;
-  margin-bottom: 6px;
-}
-.balance-sub {
-  font-size: 12px;
-  color: #c0c4cc;
-}
-.info-card {
-  font-size: 13px;
-  padding: 4px 0;
-}
-.info-row {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  align-items: center;
+  flex-direction: column;
+  gap: 16px;
 }
-.info-label {
-  color: #909399;
-  flex-shrink: 0;
+
+/* ── 搜索栏 ── */
+.filter-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0,0,0,0.06) !important;
+  :deep(.el-card__body) { padding: 14px 20px; }
+  :deep(.el-form-item) { margin-bottom: 0; }
 }
-.info-value {
-  color: #303133;
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 150px;
-  text-align: right;
+
+/* ── 余额卡片 ── */
+.balance-stat-card {
+  padding: 18px 20px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.06);
+  transition: box-shadow 0.2s;
+  height: 100%;
+  box-sizing: border-box;
+  &:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+
+  .bsc-label { font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
+  .bsc-amount { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
+  .bsc-sub { font-size: 12px; color: #cbd5e1; }
 }
-.action-grid {
+
+.main-balance {
+  border-top: 3px solid #3b82f6;
+  .bsc-amount { color: #3b82f6; }
+}
+
+.info-block {
+  border-top: 3px solid #e2e8f0;
+  font-size: 12px;
+  .info-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 8px;
+    &:last-child { margin-bottom: 0; }
+  }
+  .info-label { color: #94a3b8; }
+  .info-value {
+    color: #1e293b; font-weight: 500;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px;
+  }
+}
+
+.action-block {
+  border-top: 3px solid #e2e8f0;
   display: flex;
   gap: 12px;
-  height: 100%;
   align-items: center;
   flex-wrap: wrap;
+
+  :deep(.el-button) { flex: 1; min-width: 110px; }
 }
-.action-btn {
-  flex: 1;
-  min-width: 110px;
+
+/* ── 流水表格卡片 ── */
+.table-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0,0,0,0.06) !important;
+  overflow: hidden;
+  :deep(.el-card__body) { padding: 0; }
 }
-.card-header-row {
+
+.card-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f1f5f9;
+
+  .header-left { display: flex; align-items: center; gap: 10px; }
+
+  .header-title {
+    font-size: 15px; font-weight: 600; color: #1e293b;
+    display: flex; align-items: center; gap: 8px;
+    &::before {
+      content: '';
+      display: inline-block;
+      width: 3px; height: 16px;
+      background: linear-gradient(180deg, #3b82f6, #60a5fa);
+      border-radius: 2px;
+    }
+  }
+
+  .header-actions { display: flex; gap: 8px; align-items: center; }
 }
-.text-green  { color: #67c23a; }
-.text-orange { color: #e6a23c; }
-.pagination-wrap {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 16px;
+
+.table-body {
+  padding: 16px 20px;
+
+  :deep(.el-table) {
+    border-radius: 8px; overflow: hidden;
+
+    .el-table__header-wrapper th.el-table__cell {
+      background: #f8fafc; color: #64748b; font-weight: 600; font-size: 13px;
+      border-bottom: 1px solid #e8edf3;
+    }
+    .el-table__row:hover > td.el-table__cell { background-color: #f0f7ff !important; }
+    .el-table__row--striped > td.el-table__cell { background-color: #fafbfc; }
+    td.el-table__cell { border-bottom: 1px solid #f4f6f9; }
+  }
 }
+
+.pagination { margin-top: 14px; display: flex; justify-content: flex-end; }
+
+/* ── 空状态卡片 ── */
+.empty-card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0,0,0,0.06) !important;
+}
+
+.amount-in  { color: #22c55e; font-weight: 600; }
+.amount-out { color: #f56c6c; font-weight: 600; }
+.mb-3 { margin-bottom: 12px; }
 </style>
