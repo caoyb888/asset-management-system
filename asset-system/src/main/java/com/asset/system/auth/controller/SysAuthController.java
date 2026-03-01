@@ -128,6 +128,9 @@ public class SysAuthController {
         // 9. 记录登录日志
         saveLoginLog(username, ip, 0, "登录成功");
 
+        // 10. 记录在线会话
+        tokenService.storeOnlineSession(user.getId(), username, ip);
+
         return R.ok(LoginResult.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
@@ -192,7 +195,12 @@ public class SysAuthController {
             tokenService.removeAllRefreshTokensByUser(loginUser.getUserId());
         }
 
-        // 3. 记录登出日志
+        // 3. 删除在线会话
+        if (loginUser != null) {
+            tokenService.removeOnlineSession(loginUser.getUserId());
+        }
+
+        // 4. 记录登出日志
         String username = loginUser != null ? loginUser.getUsername() : "unknown";
         saveLoginLog(username, getClientIp(httpReq), 0, "正常退出");
 

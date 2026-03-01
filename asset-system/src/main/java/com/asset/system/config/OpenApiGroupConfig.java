@@ -18,4 +18,5 @@ public class OpenApiGroupConfig {
     @Bean public GroupedOpenApi codeApi() { return GroupedOpenApi.builder().group("08-编码规则管理").addOpenApiCustomizer(o -> o.info(new Info().title("编码规则管理").version("1.0"))).pathsToMatch("/sys/code-rules/**").build(); }
     @Bean public GroupedOpenApi algoApi()   { return GroupedOpenApi.builder().group("09-租费算法管理").addOpenApiCustomizer(o -> o.info(new Info().title("租费算法管理").version("1.0"))).pathsToMatch("/sys/fee-algorithms/**").build(); }
     @Bean public GroupedOpenApi configApi() { return GroupedOpenApi.builder().group("10-系统参数配置").addOpenApiCustomizer(o -> o.info(new Info().title("系统参数配置").version("1.0"))).pathsToMatch("/sys/configs/**").build(); }
+    @Bean public GroupedOpenApi onlineApi() { return GroupedOpenApi.builder().group("11-在线用户管理").addOpenApiCustomizer(o -> o.info(new Info().title("在线用户管理").version("1.0"))).pathsToMatch("/sys/online-users/**").build(); }
 }

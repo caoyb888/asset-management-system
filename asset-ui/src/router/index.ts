@@ -346,6 +346,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/sys/log/index.vue'),
         meta: { title: '操作日志', icon: 'Document' },
       },
+      {
+        path: 'sys/online',
+        name: 'SysOnline',
+        component: () => import('@/views/sys/online/index.vue'),
+        meta: { title: '在线用户', icon: 'Monitor' },
+      },
     ],
   },
   {

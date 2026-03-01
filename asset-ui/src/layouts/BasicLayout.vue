@@ -217,6 +217,10 @@
             <el-icon><Document /></el-icon>
             <template #title>操作日志</template>
           </el-menu-item>
+          <el-menu-item index="/sys/online">
+            <el-icon><Monitor /></el-icon>
+            <template #title>在线用户</template>
+          </el-menu-item>
         </el-sub-menu>
       </el-menu>
     </el-aside>

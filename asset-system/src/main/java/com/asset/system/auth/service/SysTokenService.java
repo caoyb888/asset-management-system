@@ -1,5 +1,9 @@
 package com.asset.system.auth.service;
 
+import com.asset.system.auth.dto.OnlineUserVO;
+
+import java.util.List;
+
 /**
  * Token 管理服务（Redis）
  * <p>
@@ -8,6 +12,7 @@ package com.asset.system.auth.service;
  *   <li>Refresh Token 存储 / 查询 / 删除</li>
  *   <li>Access Token 黑名单（登出时加入，TTL = 剩余有效期）</li>
  *   <li>登录失败次数计数 / 查询 / 清除</li>
+ *   <li>在线用户会话存储 / 查询 / 删除</li>
  * </ul>
  * </p>
  */
@@ -72,4 +77,27 @@ public interface SysTokenService {
      * 清除登录失败计数（登录成功时调用）
      */
     void clearFailCount(String username);
+
+    // ─── 在线用户会话 ─────────────────────────────────────────────────────────
+
+    /**
+     * 记录在线用户会话（登录成功时调用）
+     *
+     * @param userId   用户ID
+     * @param username 用户名
+     * @param ip       登录IP
+     */
+    void storeOnlineSession(Long userId, String username, String ip);
+
+    /**
+     * 查询所有在线用户列表
+     */
+    List<OnlineUserVO> listOnlineUsers();
+
+    /**
+     * 删除在线用户会话（登出 / 强制下线时调用）
+     *
+     * @param userId 用户ID
+     */
+    void removeOnlineSession(Long userId);
 }
