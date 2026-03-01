@@ -445,3 +445,68 @@ INSERT INTO sys_category (category_type, parent_id, ancestors, category_code, ca
 ('asset_type', 5, '0,5', 'FA-EQ', '设备设施',        2, 1),
 ('asset_type', 5, '0,5', 'FA-VH', '交通运输设备',    2, 2);
 
+-- ─── TASK-SYS-10 补丁：租费算法规则表 ─────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS sys_fee_algorithm (
+    id           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    algo_code    VARCHAR(50)  NOT NULL                 COMMENT '算法编码（唯一）',
+    algo_name    VARCHAR(100) NOT NULL                 COMMENT '算法名称',
+    algo_type    TINYINT      NOT NULL DEFAULT 1       COMMENT '算法类型：1租金 2保证金 3服务费 4其他',
+    calc_mode    TINYINT      NOT NULL DEFAULT 1       COMMENT '计算方式：1固定金额 2比率计算 3阶梯计算 4自定义公式',
+    formula      VARCHAR(500) NOT NULL DEFAULT ''      COMMENT '计算公式表达式，变量用英文名，如 unit_price*area*months',
+    variables    JSON                                  COMMENT '变量定义列表 [{key,label,unit,required,defaultVal}]',
+    params       JSON                                  COMMENT '固定参数 {key:value}，公式中的常量',
+    description  VARCHAR(500)                          COMMENT '算法说明',
+    status       TINYINT      NOT NULL DEFAULT 1       COMMENT '状态：0停用 1启用',
+    created_by   BIGINT UNSIGNED,
+    created_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by   BIGINT UNSIGNED,
+    updated_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    is_deleted   TINYINT      NOT NULL DEFAULT 0,
+    UNIQUE KEY uk_algo_code (algo_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='租费算法规则表';
+
+-- 预置常用算法
+INSERT INTO sys_fee_algorithm (algo_code, algo_name, algo_type, calc_mode, formula, variables, params, description) VALUES
+('ALG_RENT_FIXED',
+ '固定租金（单价×面积×月数）', 1, 4,
+ 'unit_price * area * months',
+ '[{"key":"unit_price","label":"单价（元/㎡/月）","unit":"元","required":true,"defaultVal":100},{"key":"area","label":"计租面积（㎡）","unit":"㎡","required":true,"defaultVal":100},{"key":"months","label":"计租月数","unit":"月","required":true,"defaultVal":12}]',
+ '{}',
+ '适用固定租金模式，月租 = 单价 × 面积，总租 = 月租 × 月数'),
+
+('ALG_RENT_COMMISSION',
+ '提成租金（营业额×提成率，不低于保底）', 1, 2,
+ 'Math.max(revenue * rate / 100, min_amount)',
+ '[{"key":"revenue","label":"月营业额（元）","unit":"元","required":true,"defaultVal":100000},{"key":"rate","label":"提成率（%）","unit":"%","required":true,"defaultVal":5},{"key":"min_amount","label":"最低保底租金（元）","unit":"元","required":true,"defaultVal":3000}]',
+ '{}',
+ '适用固定提成租金模式，实收 = max(营业额×提成率%, 保底租金)'),
+
+('ALG_DEPOSIT_MONTHLY',
+ '保证金（月租×押月数）', 2, 4,
+ 'monthly_rent * deposit_months',
+ '[{"key":"monthly_rent","label":"月租金（元）","unit":"元","required":true,"defaultVal":10000},{"key":"deposit_months","label":"押金月数","unit":"月","required":true,"defaultVal":3}]',
+ '{}',
+ '保证金 = 月租 × 押金月数'),
+
+('ALG_MGMT_RATE',
+ '物管费（面积×单价）', 3, 4,
+ 'area * unit_price',
+ '[{"key":"area","label":"计费面积（㎡）","unit":"㎡","required":true,"defaultVal":100},{"key":"unit_price","label":"物管单价（元/㎡/月）","unit":"元","required":true,"defaultVal":15}]',
+ '{}',
+ '物业管理费 = 面积 × 物管单价/月'),
+
+('ALG_PROMO_RATE',
+ '推广服务费（营业额×固定比率）', 3, 2,
+ 'revenue * 0.01',
+ '[{"key":"revenue","label":"月营业额（元）","unit":"元","required":true,"defaultVal":100000}]',
+ '{"rate":1}',
+ '推广服务费 = 营业额 × 1%（固定比率）'),
+
+('ALG_HIGHER_OF',
+ '两者取高（固定与提成取高）', 1, 4,
+ 'Math.max(unit_price * area * months, revenue * rate / 100)',
+ '[{"key":"unit_price","label":"单价（元/㎡/月）","unit":"元","required":true,"defaultVal":80},{"key":"area","label":"面积（㎡）","unit":"㎡","required":true,"defaultVal":100},{"key":"months","label":"月数","unit":"月","required":true,"defaultVal":1},{"key":"revenue","label":"营业额（元）","unit":"元","required":true,"defaultVal":80000},{"key":"rate","label":"提成率（%）","unit":"%","required":true,"defaultVal":12}]',
+ '{}',
+ '实收 = max(固定租金, 提成租金)，适用两者取高模式');
+

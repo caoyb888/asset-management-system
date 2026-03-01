@@ -205,6 +205,10 @@
             <el-icon><FolderOpened /></el-icon>
             <template #title>分类管理</template>
           </el-menu-item>
+          <el-menu-item index="/sys/fee-algorithms">
+            <el-icon><Coin /></el-icon>
+            <template #title>租费算法</template>
+          </el-menu-item>
           <el-menu-item index="/sys/logs">
             <el-icon><Document /></el-icon>
             <template #title>操作日志</template>

@@ -38,6 +38,9 @@ public enum SysErrorCode {
     CATEGORY_NOT_FOUND(6071, "分类不存在"),
     CATEGORY_HAS_CHILDREN(6072, "存在子分类，不允许删除"),
     CATEGORY_CODE_EXISTS(6073, "同维度下分类编码已存在"),
+    // 租费算法相关
+    ALGORITHM_NOT_FOUND(6081, "算法规则不存在"),
+    ALGORITHM_CODE_EXISTS(6082, "算法编码已存在"),
     // 通用
     SYS_5001(6099, "系统操作失败");
 

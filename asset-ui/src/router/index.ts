@@ -329,6 +329,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '分类管理', icon: 'FolderOpened' },
       },
       {
+        path: 'sys/fee-algorithms',
+        name: 'SysFeeAlgorithm',
+        component: () => import('@/views/sys/algorithm/index.vue'),
+        meta: { title: '租费算法', icon: 'Coin' },
+      },
+      {
         path: 'sys/logs',
         name: 'SysLog',
         component: () => import('@/views/sys/log/index.vue'),
