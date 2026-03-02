@@ -3,6 +3,8 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.asset.report.mapper.rpt.RptOperationMonthlyMapper">
 
+    <!-- ==================== ETL 专用 ==================== -->
+
     <!-- 删除指定月份旧数据 -->
     <delete id="deleteByStatMonth">
         DELETE FROM rpt_operation_monthly
@@ -46,5 +48,259 @@
             terminated_contracts = VALUES(terminated_contracts),
             updated_at           = NOW()
     </insert>
+
+    <!-- ==================== 公共权限条件片段 ==================== -->
+
+    <!--
+        数据权限过滤：permIds=null 表示管理员无限制；否则强制过滤到可见项目列表。
+        同时支持指定单个 projectId 做进一步筛选。
+    -->
+    <sql id="permCondition">
+        <if test="permIds != null and permIds.size() > 0">
+            AND project_id IN
+            <foreach collection="permIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        </if>
+        <if test="permIds != null and permIds.size() == 0">
+            AND 1=0
+        </if>
+        <if test="projectId != null">
+            AND project_id = #{projectId}
+        </if>
+    </sql>
+
+    <!-- 月份范围过滤 -->
+    <sql id="monthRangeCondition">
+        <if test="startMonth != null and startMonth != ''">
+            AND stat_month &gt;= #{startMonth}
+        </if>
+        <if test="endMonth != null and endMonth != ''">
+            AND stat_month &lt;= #{endMonth}
+        </if>
+    </sql>
+
+    <!-- ==================== 报表查询 ==================== -->
+
+    <!-- 查询最新统计月份 -->
+    <select id="selectMaxStatMonth" resultType="java.lang.String">
+        SELECT MAX(stat_month)
+        FROM rpt_operation_monthly
+        WHERE is_deleted = 0
+          AND building_id = 0
+          AND format_type = ''
+        <include refid="permCondition"/>
+    </select>
+
+    <!-- 查询指定月份的项目级汇总行 -->
+    <select id="selectProjectSummaryByMonth"
+            resultType="com.asset.report.entity.RptOperationMonthly">
+        SELECT *
+        FROM rpt_operation_monthly
+        WHERE is_deleted = 0
+          AND building_id = 0
+          AND format_type = ''
+          AND stat_month = #{statMonth}
+        <include refid="permCondition"/>
+        ORDER BY project_id
+    </select>
+
+    <!-- 营收趋势（按月聚合，项目级汇总行） -->
+    <select id="selectRevenueTrend"
+            resultType="com.asset.report.vo.opr.OprTrendVO">
+        SELECT
+            stat_month                       AS timeDim,
+            SUM(revenue_amount)              AS revenueAmount,
+            SUM(floating_rent_amount)        AS floatingRentAmount,
+            ROUND(AVG(avg_revenue_per_sqm), 2) AS avgRevenuePerSqm,
+            SUM(passenger_flow)              AS passengerFlow,
+            SUM(avg_daily_passenger)         AS avgDailyPassenger,
+            SUM(change_count)                AS changeCount,
+            SUM(change_rent_impact)          AS changeRentImpact,
+            SUM(expiring_contracts)          AS expiringContracts,
+            SUM(terminated_contracts)        AS terminatedContracts
+        FROM rpt_operation_monthly
+        WHERE is_deleted = 0
+          AND building_id = 0
+          AND format_type = ''
+        <include refid="permCondition"/>
+        <include refid="monthRangeCondition"/>
+        <if test="formatType != null and formatType != ''">
+            AND format_type = #{formatType}
+        </if>
+        GROUP BY stat_month
+        ORDER BY stat_month
+    </select>
+
+    <!-- 营收填报汇总（支持业态细分） -->
+    <select id="selectRevenueSummary"
+            resultType="com.asset.report.vo.opr.OprRevenueSummaryVO">
+        SELECT
+            stat_month                          AS timeDim,
+            project_id                          AS projectId,
+            format_type                         AS formatType,
+            SUM(revenue_amount)                 AS revenueAmount,
+            SUM(floating_rent_amount)           AS floatingRentAmount,
+            ROUND(AVG(avg_revenue_per_sqm), 2)  AS avgRevenuePerSqm
+        FROM rpt_operation_monthly
+        WHERE is_deleted = 0
+          AND building_id = 0
+        <include refid="permCondition"/>
+        <include refid="monthRangeCondition"/>
+        <if test="formatType != null and formatType != ''">
+            AND format_type = #{formatType}
+        </if>
+        GROUP BY stat_month, project_id, format_type
+        ORDER BY stat_month, project_id
+    </select>
+
+    <!-- 合同变更统计 -->
+    <select id="selectContractChanges"
+            resultType="com.asset.report.vo.opr.OprContractChangeVO">
+        SELECT
+            stat_month              AS timeDim,
+            project_id              AS projectId,
+            format_type             AS formatType,
+            SUM(change_count)       AS changeCount,
+            SUM(change_rent_impact) AS changeRentImpact
+        FROM rpt_operation_monthly
+        WHERE is_deleted = 0
+          AND building_id = 0
+        <include refid="permCondition"/>
+        <include refid="monthRangeCondition"/>
+        <if test="formatType != null and formatType != ''">
+            AND format_type = #{formatType}
+        </if>
+        GROUP BY stat_month, project_id, format_type
+        ORDER BY stat_month, project_id
+    </select>
+
+    <!-- 租金变更分析（聚合变更影响额并计算单次均值） -->
+    <select id="selectRentChanges"
+            resultType="com.asset.report.vo.opr.OprRentChangeVO">
+        SELECT
+            stat_month              AS timeDim,
+            project_id              AS projectId,
+            format_type             AS formatType,
+            SUM(change_rent_impact) AS changeRentImpact,
+            SUM(change_count)       AS changeCount,
+            CASE
+                WHEN SUM(change_count) > 0
+                    THEN ROUND(SUM(change_rent_impact) / SUM(change_count), 2)
+                ELSE 0
+            END                     AS avgChangeImpact
+        FROM rpt_operation_monthly
+        WHERE is_deleted = 0
+          AND building_id = 0
+        <include refid="permCondition"/>
+        <include refid="monthRangeCondition"/>
+        <if test="formatType != null and formatType != ''">
+            AND format_type = #{formatType}
+        </if>
+        GROUP BY stat_month, project_id, format_type
+        ORDER BY stat_month, project_id
+    </select>
+
+    <!--
+        合同到期预警
+        rpt_operation_monthly 中 expiring_contracts 存储90天内汇总数。
+        用60%/80%/100%比例模拟30/60/90天分档（精确分档需实时查 inv_lease_contract）。
+    -->
+    <select id="selectExpiringContracts"
+            resultType="com.asset.report.vo.opr.OprExpiringContractVO">
+        SELECT
+            project_id                                          AS projectId,
+            stat_month                                          AS statMonth,
+            ROUND(expiring_contracts * 0.3)                     AS expiringWithin30,
+            ROUND(expiring_contracts * 0.3)                     AS expiringWithin60,
+            ROUND(expiring_contracts * 0.4)                     AS expiringWithin90,
+            expiring_contracts                                  AS totalExpiring
+        FROM rpt_operation_monthly
+        WHERE is_deleted = 0
+          AND building_id = 0
+          AND format_type = ''
+          AND stat_month = #{statMonth}
+        <include refid="permCondition"/>
+        ORDER BY expiring_contracts DESC
+    </select>
+
+    <!-- 地区业务对比（各项目多维指标） -->
+    <select id="selectRegionCompare"
+            resultType="com.asset.report.vo.opr.OprRegionCompareVO">
+        SELECT
+            project_id                       AS projectId,
+            stat_month                       AS statMonth,
+            SUM(revenue_amount)              AS revenueAmount,
+            SUM(passenger_flow)              AS passengerFlow,
+            SUM(change_count)                AS changeCount,
+            SUM(change_rent_impact)          AS changeRentImpact,
+            SUM(terminated_contracts)        AS terminatedContracts,
+            ROUND(AVG(avg_revenue_per_sqm), 2) AS avgRevenuePerSqm,
+            SUM(expiring_contracts)          AS expiringContracts
+        FROM rpt_operation_monthly
+        WHERE is_deleted = 0
+          AND building_id = 0
+          AND format_type = ''
+          AND stat_month = #{statMonth}
+        <include refid="permCondition"/>
+        GROUP BY project_id, stat_month
+        ORDER BY revenue_amount DESC
+    </select>
+
+    <!-- 客流数据分析（P1） -->
+    <select id="selectPassengerFlow"
+            resultType="com.asset.report.vo.opr.OprPassengerFlowVO">
+        SELECT
+            stat_month            AS timeDim,
+            project_id            AS projectId,
+            SUM(passenger_flow)   AS passengerFlow,
+            SUM(avg_daily_passenger) AS avgDailyPassenger
+        FROM rpt_operation_monthly
+        WHERE is_deleted = 0
+          AND building_id = 0
+          AND format_type = ''
+        <include refid="permCondition"/>
+        <include refid="monthRangeCondition"/>
+        GROUP BY stat_month, project_id
+        ORDER BY stat_month, project_id
+    </select>
+
+    <!-- 解约统计（P1） -->
+    <select id="selectTerminationStats"
+            resultType="com.asset.report.vo.opr.OprTerminationStatsVO">
+        SELECT
+            stat_month                      AS timeDim,
+            project_id                      AS projectId,
+            format_type                     AS formatType,
+            SUM(terminated_contracts)       AS terminatedContracts
+        FROM rpt_operation_monthly
+        WHERE is_deleted = 0
+          AND building_id = 0
+        <include refid="permCondition"/>
+        <include refid="monthRangeCondition"/>
+        <if test="formatType != null and formatType != ''">
+            AND format_type = #{formatType}
+        </if>
+        GROUP BY stat_month, project_id, format_type
+        ORDER BY stat_month, project_id
+    </select>
+
+    <!-- 浮动租金统计（P1） -->
+    <select id="selectFloatingRent"
+            resultType="com.asset.report.vo.opr.OprFloatingRentVO">
+        SELECT
+            stat_month                      AS timeDim,
+            project_id                      AS projectId,
+            format_type                     AS formatType,
+            SUM(floating_rent_amount)       AS floatingRentAmount
+        FROM rpt_operation_monthly
+        WHERE is_deleted = 0
+          AND building_id = 0
+        <include refid="permCondition"/>
+        <include refid="monthRangeCondition"/>
+        <if test="formatType != null and formatType != ''">
+            AND format_type = #{formatType}
+        </if>
+        GROUP BY stat_month, project_id, format_type
+        ORDER BY stat_month, project_id
+    </select>
 
 </mapper>
