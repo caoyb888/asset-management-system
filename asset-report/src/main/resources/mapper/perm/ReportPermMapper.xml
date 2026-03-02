@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.asset.report.mapper.perm.ReportPermMapper">
+
+    <!--
+        判断是否为管理员：
+        1. 拥有 data_scope=1（全部数据）的角色，或
+        2. username='admin'
+    -->
+    <select id="isAdminUser" resultType="boolean">
+        SELECT COUNT(1) > 0
+        FROM sys_user u
+        LEFT JOIN sys_user_role ur ON ur.user_id = u.id AND ur.is_deleted = 0
+        LEFT JOIN sys_role r       ON r.id = ur.role_id AND r.is_deleted = 0
+        WHERE u.id = #{userId}
+          AND u.is_deleted = 0
+          AND (u.username = 'admin' OR r.data_scope = 1)
+        LIMIT 1
+    </select>
+
+    <!-- 查询所有可见项目ID -->
+    <select id="selectAllProjectIds" resultType="java.lang.Long">
+        SELECT id FROM biz_project WHERE is_deleted = 0
+    </select>
+
+    <!-- 查询用户担任负责人的项目ID -->
+    <select id="selectProjectIdsByManagerId" resultType="java.lang.Long">
+        SELECT id FROM biz_project
+        WHERE is_deleted = 0
+          AND manager_id = #{userId}
+    </select>
+
+    <!--
+        查询用户通过部门数据权限能访问的项目：
+        通过 sys_role_data（自定义数据权限部门）→ biz_project.company_id 关联。
+        注：biz_project 暂无 dept_id 字段，此处通过 company_id 宽松匹配，
+        未来如建立部门-项目关联表可替换为精确关联。
+        当前策略：用户所属部门有自定义数据权限的，返回与其角色权限部门关联的项目。
+    -->
+    <select id="selectProjectIdsByUserDeptScope" resultType="java.lang.Long">
+        SELECT DISTINCT p.id
+        FROM biz_project p
+        /* 用户角色 */
+        JOIN sys_user_role ur  ON ur.user_id = #{userId} AND ur.is_deleted = 0
+        JOIN sys_role r        ON r.id = ur.role_id      AND r.is_deleted = 0
+        /* 自定义数据权限（dataScope=2）的角色关联的部门 */
+        LEFT JOIN sys_role_data rd ON rd.role_id = r.id AND r.data_scope = 2
+        WHERE p.is_deleted = 0
+          AND (
+                /* 策略1：用户是项目负责人 */
+                p.manager_id = #{userId}
+                /* 策略2：用户有自定义部门权限（扩展：若 biz_project 加 dept_id 后启用） */
+                /* OR p.dept_id IN (SELECT dept_id FROM sys_role_data WHERE role_id IN (...)) */
+              )
+    </select>
+
+</mapper>
