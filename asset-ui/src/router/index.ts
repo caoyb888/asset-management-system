@@ -335,6 +335,31 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/rpt/inv/rent-level.vue'),
         meta: { title: '租金水平分析', icon: 'Money' },
       },
+      // ── 营运类报表 ──
+      {
+        path: 'rpt/opr/dashboard',
+        name: 'RptOprDashboard',
+        component: () => import('@/views/rpt/opr/dashboard.vue'),
+        meta: { title: '营运数据看板', icon: 'DataAnalysis' },
+      },
+      {
+        path: 'rpt/opr/revenue',
+        name: 'RptOprRevenue',
+        component: () => import('@/views/rpt/opr/revenue.vue'),
+        meta: { title: '营收汇总分析', icon: 'TrendCharts' },
+      },
+      {
+        path: 'rpt/opr/changes',
+        name: 'RptOprChanges',
+        component: () => import('@/views/rpt/opr/changes.vue'),
+        meta: { title: '合同变更分析', icon: 'Document' },
+      },
+      {
+        path: 'rpt/opr/region-compare',
+        name: 'RptOprRegionCompare',
+        component: () => import('@/views/rpt/opr/region-compare.vue'),
+        meta: { title: '地区业务对比', icon: 'MapLocation' },
+      },
       // ── 系统管理 ──
       {
         path: 'sys/users',
