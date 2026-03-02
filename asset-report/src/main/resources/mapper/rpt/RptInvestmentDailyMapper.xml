@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.asset.report.mapper.rpt.RptInvestmentDailyMapper">
+
+    <!-- 删除指定日期旧数据 -->
+    <delete id="deleteByStatDate">
+        DELETE FROM rpt_investment_daily
+        WHERE stat_date = #{statDate}
+    </delete>
+
+    <!--
+        批量幂等写入
+        唯一键：uk_inv_date_prj_fmt_mgr (stat_date, project_id, format_type, investment_manager_id)
+    -->
+    <insert id="upsertBatch">
+        INSERT INTO rpt_investment_daily (
+            stat_date, project_id, format_type, investment_manager_id,
+            intention_count, intention_signed, new_intention,
+            contract_count, contract_amount, contract_area, new_contract,
+            conversion_rate, avg_rent_price,
+            created_by, created_at, updated_by, updated_at, is_deleted
+        ) VALUES
+        <foreach collection="list" item="r" separator=",">
+        (
+            #{r.statDate}, #{r.projectId},
+            COALESCE(#{r.formatType}, ''), COALESCE(#{r.investmentManagerId}, 0),
+            COALESCE(#{r.intentionCount}, 0), COALESCE(#{r.intentionSigned}, 0),
+            COALESCE(#{r.newIntention}, 0),
+            COALESCE(#{r.contractCount}, 0), COALESCE(#{r.contractAmount}, 0),
+            COALESCE(#{r.contractArea}, 0), COALESCE(#{r.newContract}, 0),
+            COALESCE(#{r.conversionRate}, 0), COALESCE(#{r.avgRentPrice}, 0),
+            0, NOW(), 0, NOW(), 0
+        )
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+            intention_count    = VALUES(intention_count),
+            intention_signed   = VALUES(intention_signed),
+            new_intention      = VALUES(new_intention),
+            contract_count     = VALUES(contract_count),
+            contract_amount    = VALUES(contract_amount),
+            contract_area      = VALUES(contract_area),
+            new_contract       = VALUES(new_contract),
+            conversion_rate    = VALUES(conversion_rate),
+            avg_rent_price     = VALUES(avg_rent_price),
+            updated_at         = NOW()
+    </insert>
+
+</mapper>

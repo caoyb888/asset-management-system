@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.asset.report.mapper.etl.AssetEtlMapper">
+
+    <!--
+        资产日指标聚合 SQL
+        数据源：biz_shop + inv_lease_contract + inv_lease_contract_shop
+        汇总粒度（ROLLUP风格）：
+          1. 项目+楼栋+楼层+业态（最细）
+          2. 项目+楼栋+楼层  (building_id!=0, floor_id!=0, format_type='')
+          3. 项目+楼栋       (building_id!=0, floor_id=0,  format_type='')
+          4. 项目            (building_id=0,  floor_id=0,  format_type='')
+        字段说明：
+          shop_status: 0=空置, 1=在租, 2=自用, 3=预留
+          inv_lease_contract.status: 2=生效(在租/装修中均算), 其中有 opening_date 的算已开业
+    -->
+    <select id="aggregateAssetDaily" resultType="com.asset.report.entity.RptAssetDaily">
+        SELECT
+            s.project_id                                                            AS projectId,
+            COALESCE(cs.building_id, 0)                                             AS buildingId,
+            COALESCE(cs.floor_id,   0)                                              AS floorId,
+            COALESCE(s.plan_format, '')                                             AS formatType,
+
+            /* 商铺数量 */
+            COUNT(DISTINCT s.id)                                                    AS totalShops,
+            COUNT(DISTINCT CASE WHEN s.shop_status = 1 THEN s.id END)              AS rentedShops,
+            COUNT(DISTINCT CASE WHEN s.shop_status = 0 THEN s.id END)              AS vacantShops,
+            COUNT(DISTINCT CASE
+                WHEN lc.status = 2
+                 AND lc.decoration_end IS NOT NULL
+                 AND lc.opening_date IS NULL
+                THEN s.id END)                                                      AS decoratingShops,
+            COUNT(DISTINCT CASE
+                WHEN lc.status = 2
+                 AND lc.opening_date IS NOT NULL
+                 AND lc.opening_date &lt;= #{statDate}
+                THEN s.id END)                                                      AS openedShops,
+
+            /* 面积（使用计租面积 rent_area） */
+            SUM(COALESCE(s.rent_area, 0))                                           AS totalArea,
+            SUM(CASE WHEN s.shop_status = 1 THEN COALESCE(s.rent_area, 0) ELSE 0 END) AS rentedArea,
+            SUM(CASE WHEN s.shop_status = 0 THEN COALESCE(s.rent_area, 0) ELSE 0 END) AS vacantArea,
+            SUM(CASE
+                WHEN lc.status = 2
+                 AND lc.decoration_end IS NOT NULL
+                 AND lc.opening_date IS NULL
+                THEN COALESCE(cs.area, s.rent_area, 0)
+                ELSE 0 END)                                                         AS decorationArea
+
+            /* 空置率/出租率/开业率 由 Java 层计算，此处不做除法 */
+
+        FROM biz_shop s
+        LEFT JOIN inv_lease_contract_shop cs
+               ON cs.shop_id = s.id
+              AND cs.is_deleted = 0
+        LEFT JOIN inv_lease_contract lc
+               ON lc.id = cs.contract_id
+              AND lc.status IN (2, 3)   /* 生效 + 到期（到期合同商铺状态可能尚未更新） */
+              AND lc.is_deleted = 0
+
+        WHERE s.is_deleted = 0
+
+        GROUP BY s.project_id,
+                 COALESCE(cs.building_id, 0),
+                 COALESCE(cs.floor_id,   0),
+                 COALESCE(s.plan_format, '')
+
+        /* ---- 项目+楼栋+楼层 汇总行 ---- */
+        UNION ALL
+        SELECT
+            s.project_id,
+            COALESCE(cs.building_id, 0)                                             AS buildingId,
+            COALESCE(cs.floor_id,   0)                                              AS floorId,
+            ''                                                                      AS formatType,
+            COUNT(DISTINCT s.id),
+            COUNT(DISTINCT CASE WHEN s.shop_status = 1 THEN s.id END),
+            COUNT(DISTINCT CASE WHEN s.shop_status = 0 THEN s.id END),
+            COUNT(DISTINCT CASE
+                WHEN lc.status = 2
+                 AND lc.decoration_end IS NOT NULL
+                 AND lc.opening_date IS NULL
+                THEN s.id END),
+            COUNT(DISTINCT CASE
+                WHEN lc.status = 2
+                 AND lc.opening_date IS NOT NULL
+                 AND lc.opening_date &lt;= #{statDate}
+                THEN s.id END),
+            SUM(COALESCE(s.rent_area, 0)),
+            SUM(CASE WHEN s.shop_status = 1 THEN COALESCE(s.rent_area, 0) ELSE 0 END),
+            SUM(CASE WHEN s.shop_status = 0 THEN COALESCE(s.rent_area, 0) ELSE 0 END),
+            SUM(CASE
+                WHEN lc.status = 2
+                 AND lc.decoration_end IS NOT NULL
+                 AND lc.opening_date IS NULL
+                THEN COALESCE(cs.area, s.rent_area, 0)
+                ELSE 0 END)
+        FROM biz_shop s
+        LEFT JOIN inv_lease_contract_shop cs
+               ON cs.shop_id = s.id AND cs.is_deleted = 0
+        LEFT JOIN inv_lease_contract lc
+               ON lc.id = cs.contract_id AND lc.status IN (2,3) AND lc.is_deleted = 0
+        WHERE s.is_deleted = 0
+          AND cs.floor_id IS NOT NULL   /* 只有有楼层数据的才做此汇总 */
+        GROUP BY s.project_id,
+                 COALESCE(cs.building_id, 0),
+                 COALESCE(cs.floor_id,   0)
+
+        /* ---- 项目+楼栋 汇总行 ---- */
+        UNION ALL
+        SELECT
+            s.project_id,
+            COALESCE(cs.building_id, 0)                                             AS buildingId,
+            0                                                                        AS floorId,
+            ''                                                                       AS formatType,
+            COUNT(DISTINCT s.id),
+            COUNT(DISTINCT CASE WHEN s.shop_status = 1 THEN s.id END),
+            COUNT(DISTINCT CASE WHEN s.shop_status = 0 THEN s.id END),
+            COUNT(DISTINCT CASE
+                WHEN lc.status = 2
+                 AND lc.decoration_end IS NOT NULL
+                 AND lc.opening_date IS NULL
+                THEN s.id END),
+            COUNT(DISTINCT CASE
+                WHEN lc.status = 2
+                 AND lc.opening_date IS NOT NULL
+                 AND lc.opening_date &lt;= #{statDate}
+                THEN s.id END),
+            SUM(COALESCE(s.rent_area, 0)),
+            SUM(CASE WHEN s.shop_status = 1 THEN COALESCE(s.rent_area, 0) ELSE 0 END),
+            SUM(CASE WHEN s.shop_status = 0 THEN COALESCE(s.rent_area, 0) ELSE 0 END),
+            SUM(CASE
+                WHEN lc.status = 2
+                 AND lc.decoration_end IS NOT NULL
+                 AND lc.opening_date IS NULL
+                THEN COALESCE(cs.area, s.rent_area, 0)
+                ELSE 0 END)
+        FROM biz_shop s
+        LEFT JOIN inv_lease_contract_shop cs
+               ON cs.shop_id = s.id AND cs.is_deleted = 0
+        LEFT JOIN inv_lease_contract lc
+               ON lc.id = cs.contract_id AND lc.status IN (2,3) AND lc.is_deleted = 0
+        WHERE s.is_deleted = 0
+          AND cs.building_id IS NOT NULL
+        GROUP BY s.project_id,
+                 COALESCE(cs.building_id, 0)
+
+        /* ---- 项目级汇总行 ---- */
+        UNION ALL
+        SELECT
+            s.project_id,
+            0                                                                        AS buildingId,
+            0                                                                        AS floorId,
+            ''                                                                       AS formatType,
+            COUNT(DISTINCT s.id),
+            COUNT(DISTINCT CASE WHEN s.shop_status = 1 THEN s.id END),
+            COUNT(DISTINCT CASE WHEN s.shop_status = 0 THEN s.id END),
+            COUNT(DISTINCT CASE
+                WHEN lc.status = 2
+                 AND lc.decoration_end IS NOT NULL
+                 AND lc.opening_date IS NULL
+                THEN s.id END),
+            COUNT(DISTINCT CASE
+                WHEN lc.status = 2
+                 AND lc.opening_date IS NOT NULL
+                 AND lc.opening_date &lt;= #{statDate}
+                THEN s.id END),
+            SUM(COALESCE(s.rent_area, 0)),
+            SUM(CASE WHEN s.shop_status = 1 THEN COALESCE(s.rent_area, 0) ELSE 0 END),
+            SUM(CASE WHEN s.shop_status = 0 THEN COALESCE(s.rent_area, 0) ELSE 0 END),
+            SUM(CASE
+                WHEN lc.status = 2
+                 AND lc.decoration_end IS NOT NULL
+                 AND lc.opening_date IS NULL
+                THEN COALESCE(cs.area, s.rent_area, 0)
+                ELSE 0 END)
+        FROM biz_shop s
+        LEFT JOIN inv_lease_contract_shop cs
+               ON cs.shop_id = s.id AND cs.is_deleted = 0
+        LEFT JOIN inv_lease_contract lc
+               ON lc.id = cs.contract_id AND lc.status IN (2,3) AND lc.is_deleted = 0
+        WHERE s.is_deleted = 0
+        GROUP BY s.project_id
+    </select>
+
+</mapper>

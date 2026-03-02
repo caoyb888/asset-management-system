@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.asset.report.mapper.rpt.RptAssetDailyMapper">
+
+    <!-- 删除指定日期旧数据（物理删除，ETL 重跑幂等）-->
+    <delete id="deleteByStatDate">
+        DELETE FROM rpt_asset_daily
+        WHERE stat_date = #{statDate}
+    </delete>
+
+    <!--
+        批量幂等写入（ON DUPLICATE KEY UPDATE）
+        唯一键：uk_asset_date_prj_bld_flr_fmt (stat_date, project_id, building_id, floor_id, format_type)
+    -->
+    <insert id="upsertBatch">
+        INSERT INTO rpt_asset_daily (
+            stat_date, project_id, building_id, floor_id, format_type,
+            total_shops, rented_shops, vacant_shops, decorating_shops, opened_shops,
+            total_area, rented_area, vacant_area, decoration_area,
+            vacancy_rate, rental_rate, opening_rate,
+            created_by, created_at, updated_by, updated_at, is_deleted
+        ) VALUES
+        <foreach collection="list" item="r" separator=",">
+        (
+            #{r.statDate}, #{r.projectId},
+            COALESCE(#{r.buildingId}, 0), COALESCE(#{r.floorId}, 0), COALESCE(#{r.formatType}, ''),
+            COALESCE(#{r.totalShops}, 0), COALESCE(#{r.rentedShops}, 0),
+            COALESCE(#{r.vacantShops}, 0), COALESCE(#{r.decoratingShops}, 0),
+            COALESCE(#{r.openedShops}, 0),
+            COALESCE(#{r.totalArea}, 0), COALESCE(#{r.rentedArea}, 0),
+            COALESCE(#{r.vacantArea}, 0), COALESCE(#{r.decorationArea}, 0),
+            COALESCE(#{r.vacancyRate}, 0), COALESCE(#{r.rentalRate}, 0),
+            COALESCE(#{r.openingRate}, 0),
+            0, NOW(), 0, NOW(), 0
+        )
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+            total_shops      = VALUES(total_shops),
+            rented_shops     = VALUES(rented_shops),
+            vacant_shops     = VALUES(vacant_shops),
+            decorating_shops = VALUES(decorating_shops),
+            opened_shops     = VALUES(opened_shops),
+            total_area       = VALUES(total_area),
+            rented_area      = VALUES(rented_area),
+            vacant_area      = VALUES(vacant_area),
+            decoration_area  = VALUES(decoration_area),
+            vacancy_rate     = VALUES(vacancy_rate),
+            rental_rate      = VALUES(rental_rate),
+            opening_rate     = VALUES(opening_rate),
+            updated_at       = NOW()
+    </insert>
+
+</mapper>

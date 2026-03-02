@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.asset.report.mapper.rpt.RptAgingAnalysisMapper">
+
+    <!-- 删除指定日期旧数据 -->
+    <delete id="deleteByStatDate">
+        DELETE FROM rpt_aging_analysis
+        WHERE stat_date = #{statDate}
+    </delete>
+
+    <!--
+        批量幂等写入
+        唯一键：uk_aging_date_prj_mer_con_fee (stat_date, project_id, merchant_id, contract_id, fee_item_id)
+    -->
+    <insert id="upsertBatch">
+        INSERT INTO rpt_aging_analysis (
+            stat_date, project_id, merchant_id, contract_id, fee_item_id,
+            within_30, days_31_60, days_61_90,
+            days_91_180, days_181_365, over_365, total_outstanding,
+            created_by, created_at, updated_by, updated_at, is_deleted
+        ) VALUES
+        <foreach collection="list" item="r" separator=",">
+        (
+            #{r.statDate}, #{r.projectId}, #{r.merchantId}, #{r.contractId},
+            COALESCE(#{r.feeItemId}, 0),
+            COALESCE(#{r.within30}, 0),   COALESCE(#{r.days3160}, 0),
+            COALESCE(#{r.days6190}, 0),   COALESCE(#{r.days91180}, 0),
+            COALESCE(#{r.days181365}, 0), COALESCE(#{r.over365}, 0),
+            COALESCE(#{r.totalOutstanding}, 0),
+            0, NOW(), 0, NOW(), 0
+        )
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+            within_30        = VALUES(within_30),
+            days_31_60       = VALUES(days_31_60),
+            days_61_90       = VALUES(days_61_90),
+            days_91_180      = VALUES(days_91_180),
+            days_181_365     = VALUES(days_181_365),
+            over_365         = VALUES(over_365),
+            total_outstanding = VALUES(total_outstanding),
+            updated_at       = NOW()
+    </insert>
+
+</mapper>

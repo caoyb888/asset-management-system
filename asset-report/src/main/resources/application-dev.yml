@@ -16,7 +16,31 @@ spring:
       password: ${REDIS_PASS:}
       database: 0
 
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    db-config:
+      logic-delete-field: isDeleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# XXL-Job 配置（报表执行器）
+xxl:
+  job:
+    admin:
+      addresses: http://${XXL_JOB_HOST:localhost}:${XXL_JOB_PORT:8180}/xxl-job-admin
+    accessToken: ${XXL_JOB_TOKEN:default_token}
+    executor:
+      appname: asset-report-job
+      address:
+      ip:
+      port: 9205
+      logpath: /data/applogs/xxl-job/asset-report
+      logretentiondays: 30
+
 logging:
   level:
     com.asset: debug
-    org.flowable: info

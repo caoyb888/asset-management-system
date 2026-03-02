@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.asset.report.mapper.etl.FinanceEtlMapper">
+
+    <!--
+        财务月指标聚合 SQL
+        数据源：fin_receivable（主）
+        汇总粒度：项目 / 费项（feeItemId=0 表示项目级全费项汇总）
+        参数：statMonth YYYY-MM
+        说明：
+          - receivable_amount : 本月权责范围内的实际应收合计
+          - received_amount   : 已收金额合计（关联 fin_receipt + 核销记录）
+          - overdue_amount    : 逾期欠款（due_date < 月末 且 status IN (0,1) 的欠款）
+          - deduction_amount  : 本月减免合计
+          - adjustment_amount : 本月调整合计
+    -->
+
+    <!-- 1. 按项目+费项聚合财务月指标 -->
+    <select id="aggregateFinanceMonthly" resultType="com.asset.report.entity.RptFinanceMonthly">
+        /* ---- 项目+费项 细粒度 ---- */
+        SELECT
+            r.project_id                                                            AS projectId,
+            COALESCE(r.fee_item_id, 0)                                              AS feeItemId,
+            MAX(r.fee_name)                                                         AS feeItemType,
+
+            /* 应收（本月权责月范围内的实际应收） */
+            SUM(COALESCE(r.actual_amount, 0))                                       AS receivableAmount,
+
+            /* 已收 */
+            SUM(COALESCE(r.received_amount, 0))                                     AS receivedAmount,
+
+            /* 逾期金额（已过期且未全额收清） */
+            SUM(CASE
+                WHEN r.due_date IS NOT NULL
+                 AND r.due_date &lt; DATE_ADD(DATE_FORMAT(#{statMonth}, '%Y-%m-01'), INTERVAL 1 MONTH)
+                 AND r.status IN (0, 1)   /* 待收/部分收款 */
+                THEN COALESCE(r.outstanding_amount, 0)
+                ELSE 0
+            END)                                                                    AS overdueAmount,
+
+            /* 减免合计 */
+            SUM(COALESCE(r.deduction_amount, 0))                                    AS deductionAmount,
+
+            /* 调整合计 */
+            SUM(COALESCE(r.adjust_amount, 0))                                       AS adjustmentAmount
+
+        FROM fin_receivable r
+        WHERE r.is_deleted = 0
+          AND r.accrual_month = #{statMonth}
+          AND r.project_id IS NOT NULL
+
+        GROUP BY r.project_id, COALESCE(r.fee_item_id, 0)
+
+        /* ---- 项目级全费项汇总行（feeItemId=0） ---- */
+        UNION ALL
+        SELECT
+            r.project_id,
+            0                                                                       AS feeItemId,
+            NULL                                                                    AS feeItemType,
+            SUM(COALESCE(r.actual_amount, 0)),
+            SUM(COALESCE(r.received_amount, 0)),
+            SUM(CASE
+                WHEN r.due_date IS NOT NULL
+                 AND r.due_date &lt; DATE_ADD(DATE_FORMAT(#{statMonth}, '%Y-%m-01'), INTERVAL 1 MONTH)
+                 AND r.status IN (0, 1)
+                THEN COALESCE(r.outstanding_amount, 0)
+                ELSE 0
+            END),
+            SUM(COALESCE(r.deduction_amount, 0)),
+            SUM(COALESCE(r.adjust_amount, 0))
+        FROM fin_receivable r
+        WHERE r.is_deleted = 0
+          AND r.accrual_month = #{statMonth}
+          AND r.project_id IS NOT NULL
+        GROUP BY r.project_id
+    </select>
+
+    <!-- 2. 各项目保证金余额快照（月末余额，取最新记录） -->
+    <select id="aggregateDepositBalance" resultType="com.asset.report.entity.RptFinanceMonthly">
+        SELECT
+            da.project_id                                                           AS projectId,
+            0                                                                       AS feeItemId,
+            SUM(da.balance)                                                         AS depositBalance
+        FROM fin_deposit_account da
+        WHERE da.is_deleted = 0
+          AND da.project_id IS NOT NULL
+        GROUP BY da.project_id
+    </select>
+
+    <!-- 3. 各项目预收款余额快照（月末余额） -->
+    <select id="aggregatePrepayBalance" resultType="com.asset.report.entity.RptFinanceMonthly">
+        SELECT
+            pa.project_id                                                           AS projectId,
+            0                                                                       AS feeItemId,
+            SUM(pa.balance)                                                         AS prepayBalance
+        FROM fin_prepay_account pa
+        WHERE pa.is_deleted = 0
+          AND pa.project_id IS NOT NULL
+        GROUP BY pa.project_id
+    </select>
+
+</mapper>

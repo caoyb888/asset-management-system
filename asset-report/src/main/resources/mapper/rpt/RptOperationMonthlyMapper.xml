@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.asset.report.mapper.rpt.RptOperationMonthlyMapper">
+
+    <!-- 删除指定月份旧数据 -->
+    <delete id="deleteByStatMonth">
+        DELETE FROM rpt_operation_monthly
+        WHERE stat_month = #{statMonth}
+    </delete>
+
+    <!--
+        批量幂等写入
+        唯一键：uk_opr_month_prj_bld_fmt (stat_month, project_id, building_id, format_type)
+    -->
+    <insert id="upsertBatch">
+        INSERT INTO rpt_operation_monthly (
+            stat_month, project_id, building_id, format_type,
+            revenue_amount, floating_rent_amount, avg_revenue_per_sqm,
+            passenger_flow, avg_daily_passenger,
+            change_count, change_rent_impact,
+            expiring_contracts, terminated_contracts,
+            created_by, created_at, updated_by, updated_at, is_deleted
+        ) VALUES
+        <foreach collection="list" item="r" separator=",">
+        (
+            #{r.statMonth}, #{r.projectId},
+            COALESCE(#{r.buildingId}, 0), COALESCE(#{r.formatType}, ''),
+            COALESCE(#{r.revenueAmount}, 0), COALESCE(#{r.floatingRentAmount}, 0),
+            COALESCE(#{r.avgRevenuePerSqm}, 0),
+            COALESCE(#{r.passengerFlow}, 0), COALESCE(#{r.avgDailyPassenger}, 0),
+            COALESCE(#{r.changeCount}, 0), COALESCE(#{r.changeRentImpact}, 0),
+            COALESCE(#{r.expiringContracts}, 0), COALESCE(#{r.terminatedContracts}, 0),
+            0, NOW(), 0, NOW(), 0
+        )
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+            revenue_amount       = VALUES(revenue_amount),
+            floating_rent_amount = VALUES(floating_rent_amount),
+            avg_revenue_per_sqm  = VALUES(avg_revenue_per_sqm),
+            passenger_flow       = VALUES(passenger_flow),
+            avg_daily_passenger  = VALUES(avg_daily_passenger),
+            change_count         = VALUES(change_count),
+            change_rent_impact   = VALUES(change_rent_impact),
+            expiring_contracts   = VALUES(expiring_contracts),
+            terminated_contracts = VALUES(terminated_contracts),
+            updated_at           = NOW()
+    </insert>
+
+</mapper>

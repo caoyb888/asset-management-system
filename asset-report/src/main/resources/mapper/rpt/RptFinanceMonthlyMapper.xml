@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.asset.report.mapper.rpt.RptFinanceMonthlyMapper">
+
+    <!-- 删除指定月份旧数据 -->
+    <delete id="deleteByStatMonth">
+        DELETE FROM rpt_finance_monthly
+        WHERE stat_month = #{statMonth}
+    </delete>
+
+    <!--
+        批量幂等写入
+        唯一键：uk_fin_month_prj_fee (stat_month, project_id, fee_item_id)
+    -->
+    <insert id="upsertBatch">
+        INSERT INTO rpt_finance_monthly (
+            stat_month, project_id, fee_item_id, fee_item_type,
+            receivable_amount, received_amount, outstanding_amount,
+            deduction_amount, adjustment_amount,
+            overdue_amount, overdue_rate,
+            deposit_balance, prepay_balance, collection_rate,
+            created_by, created_at, updated_by, updated_at, is_deleted
+        ) VALUES
+        <foreach collection="list" item="r" separator=",">
+        (
+            #{r.statMonth}, #{r.projectId},
+            COALESCE(#{r.feeItemId}, 0), #{r.feeItemType},
+            COALESCE(#{r.receivableAmount}, 0), COALESCE(#{r.receivedAmount}, 0),
+            COALESCE(#{r.outstandingAmount}, 0),
+            COALESCE(#{r.deductionAmount}, 0), COALESCE(#{r.adjustmentAmount}, 0),
+            COALESCE(#{r.overdueAmount}, 0), COALESCE(#{r.overdueRate}, 0),
+            COALESCE(#{r.depositBalance}, 0), COALESCE(#{r.prepayBalance}, 0),
+            COALESCE(#{r.collectionRate}, 0),
+            0, NOW(), 0, NOW(), 0
+        )
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+            fee_item_type      = VALUES(fee_item_type),
+            receivable_amount  = VALUES(receivable_amount),
+            received_amount    = VALUES(received_amount),
+            outstanding_amount = VALUES(outstanding_amount),
+            deduction_amount   = VALUES(deduction_amount),
+            adjustment_amount  = VALUES(adjustment_amount),
+            overdue_amount     = VALUES(overdue_amount),
+            overdue_rate       = VALUES(overdue_rate),
+            deposit_balance    = VALUES(deposit_balance),
+            prepay_balance     = VALUES(prepay_balance),
+            collection_rate    = VALUES(collection_rate),
+            updated_at         = NOW()
+    </insert>
+
+</mapper>

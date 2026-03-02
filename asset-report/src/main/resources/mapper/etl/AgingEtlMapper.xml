@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.asset.report.mapper.etl.AgingEtlMapper">
+
+    <!--
+        账龄分析聚合 SQL
+        数据源：fin_receivable
+        汇总粒度：项目 / 商家 / 合同 / 费项（feeItemId=0 表示合同级全费项汇总）
+        分档逻辑（以 statDate - due_date 天数差分档）：
+          within_30    : 逾期 1-30 天
+          days_31_60   : 逾期 31-60 天
+          days_61_90   : 逾期 61-90 天
+          days_91_180  : 逾期 91-180 天
+          days_181_365 : 逾期 181-365 天
+          over_365     : 逾期 > 365 天
+        仅统计 outstanding_amount > 0 且 due_date < statDate（已逾期）的记录
+    -->
+    <select id="aggregateAgingAnalysis" resultType="com.asset.report.entity.RptAgingAnalysis">
+        /* ---- 项目+商家+合同+费项 细粒度 ---- */
+        SELECT
+            r.project_id                                                            AS projectId,
+            r.merchant_id                                                           AS merchantId,
+            r.contract_id                                                           AS contractId,
+            COALESCE(r.fee_item_id, 0)                                              AS feeItemId,
+
+            /* 账龄分档（CASE WHEN 条件互斥，逾期天数=statDate-due_date） */
+            SUM(CASE
+                WHEN DATEDIFF(#{statDate}, r.due_date) BETWEEN 1 AND 30
+                THEN COALESCE(r.outstanding_amount, 0)
+                ELSE 0 END)                                                         AS within30,
+            SUM(CASE
+                WHEN DATEDIFF(#{statDate}, r.due_date) BETWEEN 31 AND 60
+                THEN COALESCE(r.outstanding_amount, 0)
+                ELSE 0 END)                                                         AS days3160,
+            SUM(CASE
+                WHEN DATEDIFF(#{statDate}, r.due_date) BETWEEN 61 AND 90
+                THEN COALESCE(r.outstanding_amount, 0)
+                ELSE 0 END)                                                         AS days6190,
+            SUM(CASE
+                WHEN DATEDIFF(#{statDate}, r.due_date) BETWEEN 91 AND 180
+                THEN COALESCE(r.outstanding_amount, 0)
+                ELSE 0 END)                                                         AS days91180,
+            SUM(CASE
+                WHEN DATEDIFF(#{statDate}, r.due_date) BETWEEN 181 AND 365
+                THEN COALESCE(r.outstanding_amount, 0)
+                ELSE 0 END)                                                         AS days181365,
+            SUM(CASE
+                WHEN DATEDIFF(#{statDate}, r.due_date) > 365
+                THEN COALESCE(r.outstanding_amount, 0)
+                ELSE 0 END)                                                         AS over365
+
+            /* totalOutstanding 由 Java 层加总校验 */
+
+        FROM fin_receivable r
+        WHERE r.is_deleted = 0
+          AND r.outstanding_amount > 0       /* 仍有欠款 */
+          AND r.due_date IS NOT NULL
+          AND r.due_date &lt; #{statDate}      /* 已逾期 */
+          AND r.status IN (0, 1)             /* 待收/部分收款 */
+          AND r.project_id IS NOT NULL
+          AND r.merchant_id IS NOT NULL
+          AND r.contract_id IS NOT NULL
+
+        GROUP BY r.project_id, r.merchant_id, r.contract_id, COALESCE(r.fee_item_id, 0)
+
+        /* ---- 项目+商家+合同 汇总行（全费项合计，feeItemId=0） ---- */
+        UNION ALL
+        SELECT
+            r.project_id,
+            r.merchant_id,
+            r.contract_id,
+            0                                                                       AS feeItemId,
+            SUM(CASE
+                WHEN DATEDIFF(#{statDate}, r.due_date) BETWEEN 1 AND 30
+                THEN COALESCE(r.outstanding_amount, 0) ELSE 0 END),
+            SUM(CASE
+                WHEN DATEDIFF(#{statDate}, r.due_date) BETWEEN 31 AND 60
+                THEN COALESCE(r.outstanding_amount, 0) ELSE 0 END),
+            SUM(CASE
+                WHEN DATEDIFF(#{statDate}, r.due_date) BETWEEN 61 AND 90
+                THEN COALESCE(r.outstanding_amount, 0) ELSE 0 END),
+            SUM(CASE
+                WHEN DATEDIFF(#{statDate}, r.due_date) BETWEEN 91 AND 180
+                THEN COALESCE(r.outstanding_amount, 0) ELSE 0 END),
+            SUM(CASE
+                WHEN DATEDIFF(#{statDate}, r.due_date) BETWEEN 181 AND 365
+                THEN COALESCE(r.outstanding_amount, 0) ELSE 0 END),
+            SUM(CASE
+                WHEN DATEDIFF(#{statDate}, r.due_date) > 365
+                THEN COALESCE(r.outstanding_amount, 0) ELSE 0 END)
+        FROM fin_receivable r
+        WHERE r.is_deleted = 0
+          AND r.outstanding_amount > 0
+          AND r.due_date IS NOT NULL
+          AND r.due_date &lt; #{statDate}
+          AND r.status IN (0, 1)
+          AND r.project_id IS NOT NULL
+          AND r.merchant_id IS NOT NULL
+          AND r.contract_id IS NOT NULL
+        GROUP BY r.project_id, r.merchant_id, r.contract_id
+    </select>
+
+</mapper>

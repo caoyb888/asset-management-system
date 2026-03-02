@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.asset.report.mapper.etl.InvestmentEtlMapper">
+
+    <!--
+        招商日指标聚合 SQL
+        数据源：inv_intention + inv_lease_contract + inv_lease_contract_shop
+        汇总粒度：项目 / 业态 / 招商负责人
+          format_type='' 表示全业态汇总，investment_manager_id=0 表示全员汇总
+        指标说明：
+          - intention_count  : 截至当日有效意向数（status NOT IN 作废）
+          - intention_signed : 已交意向金的意向数（status=2已签）
+          - new_intention    : 当日新增意向（created_at 当天）
+          - contract_count   : 截至当日有效合同数（status=2 生效）
+          - contract_amount  : 有效合同总合同金额合计（contract_amount字段）
+          - contract_area    : 合同关联商铺的总签约面积
+          - new_contract     : 当日新增合同（created_at 当天）
+          - avg_rent_price   : 当前有效合同平均租金单价（合同单价字段，若无则0）
+    -->
+    <select id="aggregateInvestmentDaily" resultType="com.asset.report.entity.RptInvestmentDaily">
+        /* ---- 按 项目+业态+招商负责人 汇总 ---- */
+        SELECT
+            lc.project_id                                                           AS projectId,
+            COALESCE(cs.format_type, '')                                            AS formatType,
+            0                                                                       AS investmentManagerId,
+
+            /* 意向指标（关联意向表） */
+            COUNT(DISTINCT CASE WHEN ii.status NOT IN (4,5) THEN ii.id END)        AS intentionCount,
+            COUNT(DISTINCT CASE WHEN ii.status = 2            THEN ii.id END)       AS intentionSigned,
+            COUNT(DISTINCT CASE
+                WHEN ii.status NOT IN (4,5)
+                 AND DATE(ii.created_at) = #{statDate}
+                THEN ii.id END)                                                     AS newIntention,
+
+            /* 合同指标 */
+            COUNT(DISTINCT CASE WHEN lc.status = 2 THEN lc.id END)                 AS contractCount,
+            SUM(CASE WHEN lc.status = 2 THEN COALESCE(lc.total_amount, 0) ELSE 0 END) AS contractAmount,
+            SUM(CASE WHEN lc.status = 2 THEN COALESCE(cs.area, 0) ELSE 0 END)      AS contractArea,
+            COUNT(DISTINCT CASE
+                WHEN lc.status = 2
+                 AND DATE(lc.created_at) = #{statDate}
+                THEN lc.id END)                                                     AS newContract,
+
+            /* 平均租金：合同总金额/签约面积（元/㎡，简化计算） */
+            CASE WHEN SUM(CASE WHEN lc.status = 2 THEN COALESCE(cs.area, 0) ELSE 0 END) > 0
+                 THEN SUM(CASE WHEN lc.status = 2 THEN COALESCE(lc.total_amount, 0) ELSE 0 END)
+                      / SUM(CASE WHEN lc.status = 2 THEN COALESCE(cs.area, 0) ELSE 0 END)
+                 ELSE 0 END                                                         AS avgRentPrice
+
+        FROM inv_lease_contract lc
+        LEFT JOIN inv_lease_contract_shop cs
+               ON cs.contract_id = lc.id AND cs.is_deleted = 0
+        LEFT JOIN inv_intention ii
+               ON ii.id = lc.intention_id AND ii.is_deleted = 0
+
+        WHERE lc.is_deleted = 0
+          AND lc.project_id IS NOT NULL
+          AND lc.contract_start &lt;= #{statDate}  /* 合同已开始 */
+
+        GROUP BY lc.project_id,
+                 COALESCE(cs.format_type, '')
+
+        /* ---- 项目级汇总（全业态合计） ---- */
+        UNION ALL
+        SELECT
+            lc.project_id,
+            ''                                                                      AS formatType,
+            0                                                                       AS investmentManagerId,
+            COUNT(DISTINCT CASE WHEN ii.status NOT IN (4,5) THEN ii.id END),
+            COUNT(DISTINCT CASE WHEN ii.status = 2 THEN ii.id END),
+            COUNT(DISTINCT CASE
+                WHEN ii.status NOT IN (4,5)
+                 AND DATE(ii.created_at) = #{statDate}
+                THEN ii.id END),
+            COUNT(DISTINCT CASE WHEN lc.status = 2 THEN lc.id END),
+            SUM(CASE WHEN lc.status = 2 THEN COALESCE(lc.total_amount, 0) ELSE 0 END),
+            SUM(CASE WHEN lc.status = 2 THEN COALESCE(cs.area, 0) ELSE 0 END),
+            COUNT(DISTINCT CASE
+                WHEN lc.status = 2
+                 AND DATE(lc.created_at) = #{statDate}
+                THEN lc.id END),
+            CASE WHEN SUM(CASE WHEN lc.status = 2 THEN COALESCE(cs.area, 0) ELSE 0 END) > 0
+                 THEN SUM(CASE WHEN lc.status = 2 THEN COALESCE(lc.total_amount, 0) ELSE 0 END)
+                      / SUM(CASE WHEN lc.status = 2 THEN COALESCE(cs.area, 0) ELSE 0 END)
+                 ELSE 0 END
+        FROM inv_lease_contract lc
+        LEFT JOIN inv_lease_contract_shop cs
+               ON cs.contract_id = lc.id AND cs.is_deleted = 0
+        LEFT JOIN inv_intention ii
+               ON ii.id = lc.intention_id AND ii.is_deleted = 0
+        WHERE lc.is_deleted = 0
+          AND lc.project_id IS NOT NULL
+          AND lc.contract_start &lt;= #{statDate}
+        GROUP BY lc.project_id
+    </select>
+
+</mapper>

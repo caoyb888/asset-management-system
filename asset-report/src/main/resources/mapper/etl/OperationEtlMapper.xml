@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.asset.report.mapper.etl.OperationEtlMapper">
+
+    <!--
+        营运月指标聚合 SQL
+        数据源：
+          - opr_revenue_report    (营业额)
+          - opr_floating_rent     (浮动租金)
+          - opr_passenger_flow    (客流)
+          - opr_contract_change   (合同变更)
+          - inv_lease_contract    (到期/解约合同)
+        汇总粒度：项目 / 楼栋 / 业态
+          building_id=0 表示项目级汇总，format_type='' 表示全业态汇总
+        参数：statMonth YYYY-MM
+    -->
+
+    <!-- 辅助：月份边界 -->
+
+    <select id="aggregateOperationMonthly" resultType="com.asset.report.entity.RptOperationMonthly">
+        /* ---- 项目+楼栋+业态 细粒度 ---- */
+        SELECT
+            rr.project_id                                                           AS projectId,
+            COALESCE(cs.building_id, 0)                                             AS buildingId,
+            COALESCE(cs.format_type, '')                                            AS formatType,
+
+            /* 营业额合计 */
+            SUM(rr.revenue_amount)                                                  AS revenueAmount,
+            /* 浮动租金合计 */
+            COALESCE(SUM(fr.floating_rent), 0)                                      AS floatingRentAmount,
+            /* 客流合计 */
+            COALESCE(SUM(pf.flow_count_sum), 0)                                     AS passengerFlow,
+
+            /* 合同变更数（本月生效） */
+            COUNT(DISTINCT CASE
+                WHEN cc.effective_date >= DATE_FORMAT(#{statMonth}, '%Y-%m-01')
+                 AND cc.effective_date <  DATE_ADD(DATE_FORMAT(#{statMonth}, '%Y-%m-01'), INTERVAL 1 MONTH)
+                 AND cc.status = 2
+                THEN cc.id END)                                                     AS changeCount,
+
+            /* 租金影响（变更带来的租金调整之和，从change_detail中找RENT类型的差值，此处简化为0） */
+            0                                                                       AS changeRentImpact,
+
+            /* 本月到期合同数 */
+            COUNT(DISTINCT CASE
+                WHEN lc.contract_end >= DATE_FORMAT(#{statMonth}, '%Y-%m-01')
+                 AND lc.contract_end <  DATE_ADD(DATE_FORMAT(#{statMonth}, '%Y-%m-01'), INTERVAL 1 MONTH)
+                THEN lc.id END)                                                     AS expiringContracts,
+
+            /* 本月终止（解约/到期）合同数 */
+            COUNT(DISTINCT CASE
+                WHEN lc.status IN (3, 4)
+                 AND lc.updated_at >= DATE_FORMAT(#{statMonth}, '%Y-%m-01')
+                 AND lc.updated_at <  DATE_ADD(DATE_FORMAT(#{statMonth}, '%Y-%m-01'), INTERVAL 1 MONTH)
+                THEN lc.id END)                                                     AS terminatedContracts
+
+        FROM opr_revenue_report rr
+        /* 关联合同获取楼栋/业态信息 */
+        LEFT JOIN inv_lease_contract_shop cs
+               ON cs.contract_id = rr.contract_id AND cs.is_deleted = 0
+        /* 浮动租金（按合同月汇总） */
+        LEFT JOIN (
+            SELECT contract_id, SUM(floating_rent) AS floating_rent
+            FROM opr_floating_rent
+            WHERE calc_month = #{statMonth}
+              AND is_deleted = 0
+            GROUP BY contract_id
+        ) fr ON fr.contract_id = rr.contract_id
+        /* 客流（按项目+楼栋汇总，关联到营收填报） */
+        LEFT JOIN (
+            SELECT project_id, COALESCE(building_id, 0) AS building_id,
+                   SUM(flow_count) AS flow_count_sum
+            FROM opr_passenger_flow
+            WHERE DATE_FORMAT(report_date, '%Y-%m') = #{statMonth}
+              AND is_deleted = 0
+            GROUP BY project_id, COALESCE(building_id, 0)
+        ) pf ON pf.project_id = rr.project_id
+             AND pf.building_id = COALESCE(cs.building_id, 0)
+        /* 合同变更（按项目） */
+        LEFT JOIN opr_contract_change cc
+               ON cc.project_id = rr.project_id AND cc.is_deleted = 0
+        /* 合同信息（到期/终止统计） */
+        LEFT JOIN inv_lease_contract lc
+               ON lc.id = rr.contract_id AND lc.is_deleted = 0
+
+        WHERE rr.is_deleted = 0
+          AND rr.report_month = #{statMonth}
+          AND rr.status = 1  /* 已确认的营收填报 */
+
+        GROUP BY rr.project_id,
+                 COALESCE(cs.building_id, 0),
+                 COALESCE(cs.format_type, '')
+
+        /* ---- 项目级汇总（全楼栋、全业态） ---- */
+        UNION ALL
+        SELECT
+            rr.project_id,
+            0                                                                       AS buildingId,
+            ''                                                                      AS formatType,
+            SUM(rr.revenue_amount),
+            COALESCE(SUM(fr.floating_rent), 0),
+            COALESCE(SUM(pf2.flow_count_sum), 0),
+            COUNT(DISTINCT CASE
+                WHEN cc.effective_date >= DATE_FORMAT(#{statMonth}, '%Y-%m-01')
+                 AND cc.effective_date <  DATE_ADD(DATE_FORMAT(#{statMonth}, '%Y-%m-01'), INTERVAL 1 MONTH)
+                 AND cc.status = 2
+                THEN cc.id END),
+            0,
+            COUNT(DISTINCT CASE
+                WHEN lc.contract_end >= DATE_FORMAT(#{statMonth}, '%Y-%m-01')
+                 AND lc.contract_end <  DATE_ADD(DATE_FORMAT(#{statMonth}, '%Y-%m-01'), INTERVAL 1 MONTH)
+                THEN lc.id END),
+            COUNT(DISTINCT CASE
+                WHEN lc.status IN (3, 4)
+                 AND lc.updated_at >= DATE_FORMAT(#{statMonth}, '%Y-%m-01')
+                 AND lc.updated_at <  DATE_ADD(DATE_FORMAT(#{statMonth}, '%Y-%m-01'), INTERVAL 1 MONTH)
+                THEN lc.id END)
+        FROM opr_revenue_report rr
+        LEFT JOIN inv_lease_contract_shop cs
+               ON cs.contract_id = rr.contract_id AND cs.is_deleted = 0
+        LEFT JOIN (
+            SELECT contract_id, SUM(floating_rent) AS floating_rent
+            FROM opr_floating_rent
+            WHERE calc_month = #{statMonth} AND is_deleted = 0
+            GROUP BY contract_id
+        ) fr ON fr.contract_id = rr.contract_id
+        LEFT JOIN (
+            SELECT project_id, SUM(flow_count) AS flow_count_sum
+            FROM opr_passenger_flow
+            WHERE DATE_FORMAT(report_date, '%Y-%m') = #{statMonth} AND is_deleted = 0
+            GROUP BY project_id
+        ) pf2 ON pf2.project_id = rr.project_id
+        LEFT JOIN opr_contract_change cc
+               ON cc.project_id = rr.project_id AND cc.is_deleted = 0
+        LEFT JOIN inv_lease_contract lc
+               ON lc.id = rr.contract_id AND lc.is_deleted = 0
+        WHERE rr.is_deleted = 0
+          AND rr.report_month = #{statMonth}
+          AND rr.status = 1
+        GROUP BY rr.project_id
+    </select>
+
+</mapper>
