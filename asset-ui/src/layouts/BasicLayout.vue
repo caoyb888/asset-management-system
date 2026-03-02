@@ -193,6 +193,22 @@
             <el-icon><Shop /></el-icon>
             <template #title>商铺租赁信息</template>
           </el-menu-item>
+          <el-menu-item index="/rpt/inv/dashboard">
+            <el-icon><DataAnalysis /></el-icon>
+            <template #title>招商数据看板</template>
+          </el-menu-item>
+          <el-menu-item index="/rpt/inv/funnel">
+            <el-icon><Filter /></el-icon>
+            <template #title>客户漏斗分析</template>
+          </el-menu-item>
+          <el-menu-item index="/rpt/inv/performance">
+            <el-icon><TrendCharts /></el-icon>
+            <template #title>招商业绩对比</template>
+          </el-menu-item>
+          <el-menu-item index="/rpt/inv/rent-level">
+            <el-icon><Money /></el-icon>
+            <template #title>租金水平分析</template>
+          </el-menu-item>
         </el-sub-menu>
         <!-- 系统管理 -->
         <el-sub-menu index="sys">
@@ -300,7 +316,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop, Star, User, Bell, Document, Briefcase, Setting, Coin, EditPen, Tickets, Checked, DataLine, PieChart, Operation, Memo, Switch, TrendCharts, UserFilled, CircleClose, Money, List, CreditCard, Postcard, Wallet, CollectionTag, Warning, CircleCheck, DataAnalysis, Key, Files, Menu, FolderOpened } from '@element-plus/icons-vue'
+import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop, Star, User, Bell, Document, Briefcase, Setting, Coin, EditPen, Tickets, Checked, DataLine, PieChart, Operation, Memo, Switch, TrendCharts, UserFilled, CircleClose, Money, List, CreditCard, Postcard, Wallet, CollectionTag, Warning, CircleCheck, DataAnalysis, Key, Files, Menu, FolderOpened, Filter } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/modules/user'
 import { useAppStore } from '@/store/modules/app'
 

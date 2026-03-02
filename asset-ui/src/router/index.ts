@@ -310,6 +310,31 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/rpt/asset/shop-rental.vue'),
         meta: { title: '商铺租赁信息', icon: 'Shop' },
       },
+      // ── 招商类报表 ──
+      {
+        path: 'rpt/inv/dashboard',
+        name: 'RptInvDashboard',
+        component: () => import('@/views/rpt/inv/dashboard.vue'),
+        meta: { title: '招商数据看板', icon: 'DataAnalysis' },
+      },
+      {
+        path: 'rpt/inv/funnel',
+        name: 'RptInvFunnel',
+        component: () => import('@/views/rpt/inv/funnel.vue'),
+        meta: { title: '客户漏斗分析', icon: 'Filter' },
+      },
+      {
+        path: 'rpt/inv/performance',
+        name: 'RptInvPerformance',
+        component: () => import('@/views/rpt/inv/performance.vue'),
+        meta: { title: '招商业绩对比', icon: 'TrendCharts' },
+      },
+      {
+        path: 'rpt/inv/rent-level',
+        name: 'RptInvRentLevel',
+        component: () => import('@/views/rpt/inv/rent-level.vue'),
+        meta: { title: '租金水平分析', icon: 'Money' },
+      },
       // ── 系统管理 ──
       {
         path: 'sys/users',
