@@ -3,6 +3,8 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.asset.report.mapper.rpt.RptAssetDailyMapper">
 
+    <!-- ==================== ETL 专用 ==================== -->
+
     <!-- 删除指定日期旧数据（物理删除，ETL 重跑幂等）-->
     <delete id="deleteByStatDate">
         DELETE FROM rpt_asset_daily
@@ -11,7 +13,7 @@
 
     <!--
         批量幂等写入（ON DUPLICATE KEY UPDATE）
-        唯一键：uk_asset_date_prj_bld_flr_fmt (stat_date, project_id, building_id, floor_id, format_type)
+        唯一键：uk_asset_date_project_building (stat_date, project_id, building_id, floor_id, format_type, is_deleted)
     -->
     <insert id="upsertBatch">
         INSERT INTO rpt_asset_daily (
@@ -50,5 +52,323 @@
             opening_rate     = VALUES(opening_rate),
             updated_at       = NOW()
     </insert>
+
+    <!-- ==================== 报表查询公共片段 ==================== -->
+
+    <!-- 数据权限过滤片段：permIds=null 不限制（管理员），permIds 非空时 IN 过滤 -->
+    <sql id="permFilter">
+        <if test="permIds != null">
+            AND project_id IN
+            <foreach collection="permIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        </if>
+    </sql>
+
+    <!-- ==================== 最新统计日期 ==================== -->
+
+    <select id="selectMaxStatDate" resultType="java.time.LocalDate">
+        SELECT MAX(stat_date)
+        FROM rpt_asset_daily
+        WHERE is_deleted = 0
+        <if test="projectId != null">AND project_id = #{projectId}</if>
+        <include refid="permFilter"/>
+    </select>
+
+    <!-- ==================== 项目级汇总（看板核心数据） ==================== -->
+    <!--
+        项目级行特征：building_id=0, floor_id=0, format_type=''（ETL 约定）
+    -->
+    <select id="selectProjectSummaryByDate" resultType="com.asset.report.entity.RptAssetDaily">
+        SELECT *
+        FROM rpt_asset_daily
+        WHERE is_deleted = 0
+          AND stat_date = #{statDate}
+          AND building_id = 0
+          AND floor_id = 0
+          AND format_type = ''
+        <if test="projectId != null">AND project_id = #{projectId}</if>
+        <include refid="permFilter"/>
+        ORDER BY project_id
+    </select>
+
+    <!-- ==================== 指标趋势查询（时间序列） ==================== -->
+
+    <!--
+        按时间维度（DAY/WEEK/MONTH/YEAR）聚合指定指标的均值，
+        使用 <choose> 防止 ${} 注入（metric 只允许固定枚举值）。
+        仅查询项目级汇总行（building_id=0, floor_id=0, format_type=''）。
+    -->
+    <select id="selectRateTrend" resultType="com.asset.report.vo.asset.RateTrendVO">
+        SELECT
+            <choose>
+                <when test="timeUnit == 'WEEK'">
+                    DATE_FORMAT(stat_date, '%Y-%u')
+                </when>
+                <when test="timeUnit == 'MONTH'">
+                    DATE_FORMAT(stat_date, '%Y-%m')
+                </when>
+                <when test="timeUnit == 'YEAR'">
+                    CAST(YEAR(stat_date) AS CHAR)
+                </when>
+                <otherwise>
+                    DATE_FORMAT(stat_date, '%Y-%m-%d')
+                </otherwise>
+            </choose>
+            AS timeDim,
+            <choose>
+                <when test="metric == 'rental_rate'">AVG(rental_rate)</when>
+                <when test="metric == 'opening_rate'">AVG(opening_rate)</when>
+                <otherwise>AVG(vacancy_rate)</otherwise>
+            </choose>
+            AS value,
+            SUM(total_shops)  AS totalShops,
+            SUM(rented_shops) AS rentedShops,
+            SUM(total_area)   AS totalArea,
+            SUM(rented_area)  AS rentedArea
+        FROM rpt_asset_daily
+        WHERE is_deleted = 0
+          AND building_id = 0
+          AND floor_id = 0
+          AND format_type = ''
+        <if test="projectId != null">AND project_id = #{projectId}</if>
+        <if test="buildingId != null and buildingId != 0">AND building_id = #{buildingId}</if>
+        <if test="floorId != null and floorId != 0">AND floor_id = #{floorId}</if>
+        <if test="formatType != null and formatType != ''">AND format_type = #{formatType}</if>
+        <if test="startDate != null">AND stat_date &gt;= #{startDate}</if>
+        <if test="endDate != null">AND stat_date &lt;= #{endDate}</if>
+        <include refid="permFilter"/>
+        GROUP BY
+            <choose>
+                <when test="timeUnit == 'WEEK'">DATE_FORMAT(stat_date, '%Y-%u')</when>
+                <when test="timeUnit == 'MONTH'">DATE_FORMAT(stat_date, '%Y-%m')</when>
+                <when test="timeUnit == 'YEAR'">YEAR(stat_date)</when>
+                <otherwise>DATE_FORMAT(stat_date, '%Y-%m-%d')</otherwise>
+            </choose>
+        ORDER BY timeDim ASC
+    </select>
+
+    <!-- ==================== 商铺租赁信息（楼栋/楼层粒度，分页） ==================== -->
+
+    <select id="selectShopRentalPage" resultType="com.asset.report.vo.asset.ShopRentalVO">
+        SELECT
+            stat_date    AS statDate,
+            project_id   AS projectId,
+            building_id  AS buildingId,
+            floor_id     AS floorId,
+            format_type  AS formatType,
+            total_shops, rented_shops, vacant_shops, decorating_shops, opened_shops,
+            total_area, rented_area, vacant_area, decoration_area,
+            vacancy_rate, rental_rate, opening_rate
+        FROM rpt_asset_daily
+        WHERE is_deleted = 0
+          AND stat_date = #{statDate}
+        <if test="projectId != null">AND project_id = #{projectId}</if>
+        <if test="buildingId != null and buildingId != 0">AND building_id = #{buildingId}</if>
+        <if test="floorId != null and floorId != 0">AND floor_id = #{floorId}</if>
+        <if test="formatType != null and formatType != ''">AND format_type = #{formatType}</if>
+        <!-- 商铺租赁报表只展示楼栋及更细粒度（排除项目级汇总行）-->
+        AND NOT (building_id = 0 AND floor_id = 0 AND format_type = '')
+        <include refid="permFilter"/>
+        ORDER BY project_id, building_id, floor_id, format_type
+    </select>
+
+    <!-- ==================== 品牌/业态分布（按 format_type 分组） ==================== -->
+
+    <select id="selectBrandDistribution" resultType="com.asset.report.vo.asset.BrandDistributionVO">
+        SELECT
+            format_type           AS formatType,
+            SUM(total_shops)      AS totalShops,
+            SUM(rented_shops)     AS rentedShops,
+            SUM(vacant_shops)     AS vacantShops,
+            SUM(opened_shops)     AS openedShops,
+            SUM(total_area)       AS totalArea,
+            SUM(rented_area)      AS rentedArea,
+            /* 出租率 = 已租面积 / 总面积（防除零）*/
+            CASE WHEN SUM(total_area) > 0
+                THEN ROUND(SUM(rented_area) / SUM(total_area) * 100, 2)
+                ELSE 0 END        AS rentalRate,
+            /* 空置率 = 空置面积 / 总面积 */
+            CASE WHEN SUM(total_area) > 0
+                THEN ROUND(SUM(vacant_area) / SUM(total_area) * 100, 2)
+                ELSE 0 END        AS vacancyRate
+        FROM rpt_asset_daily
+        WHERE is_deleted = 0
+          AND stat_date = #{statDate}
+          AND floor_id = 0
+          AND building_id = 0
+          AND format_type != ''      /* 仅取业态维度行，排除全业态汇总 */
+        <if test="projectId != null">AND project_id = #{projectId}</if>
+        <include refid="permFilter"/>
+        GROUP BY format_type
+        ORDER BY SUM(total_shops) DESC
+    </select>
+
+    <!-- ==================== 项目对比（看板，最新日期各项目指标） ==================== -->
+
+    <select id="selectProjectComparison" resultType="com.asset.report.vo.asset.ProjectCompareVO">
+        SELECT
+            project_id       AS projectId,
+            SUM(total_shops)      AS totalShops,
+            SUM(rented_shops)     AS rentedShops,
+            SUM(vacant_shops)     AS vacantShops,
+            SUM(opened_shops)     AS openedShops,
+            SUM(total_area)       AS totalArea,
+            SUM(rented_area)      AS rentedArea,
+            SUM(vacant_area)      AS vacantArea,
+            /* 各项目均值（项目级聚合行已是加权平均，直接取即可）*/
+            AVG(vacancy_rate)     AS vacancyRate,
+            AVG(rental_rate)      AS rentalRate,
+            AVG(opening_rate)     AS openingRate
+        FROM rpt_asset_daily
+        WHERE is_deleted = 0
+          AND stat_date = #{statDate}
+          AND building_id = 0
+          AND floor_id = 0
+          AND format_type = ''
+        <include refid="permFilter"/>
+        GROUP BY project_id
+        ORDER BY rental_rate DESC
+    </select>
+
+    <!-- ==================== 经营面积统计（P1） ==================== -->
+
+    <select id="selectAreaSummary" resultType="com.asset.report.vo.asset.AreaSummaryVO">
+        SELECT
+            project_id             AS projectId,
+            SUM(total_area)        AS totalArea,
+            SUM(rented_area)       AS rentedArea,
+            SUM(vacant_area)       AS vacantArea,
+            SUM(decoration_area)   AS decorationArea,
+            CASE WHEN SUM(total_area) > 0
+                THEN ROUND(SUM(rented_area) / SUM(total_area) * 100, 2)
+                ELSE 0 END         AS rentalRate,
+            CASE WHEN SUM(total_area) > 0
+                THEN ROUND(SUM(vacant_area) / SUM(total_area) * 100, 2)
+                ELSE 0 END         AS vacancyRate
+        FROM rpt_asset_daily
+        WHERE is_deleted = 0
+          AND stat_date = #{statDate}
+          AND building_id = 0
+          AND floor_id = 0
+          AND format_type = ''
+        <include refid="permFilter"/>
+        GROUP BY project_id
+        ORDER BY total_area DESC
+    </select>
+
+    <!-- ==================== 区域归属汇总（P1，JOIN biz_project） ==================== -->
+
+    <select id="selectRegionSummary" resultType="com.asset.report.vo.asset.RegionSummaryVO">
+        SELECT
+            p.province                          AS province,
+            p.city                              AS city,
+            COUNT(DISTINCT a.project_id)        AS projectCount,
+            SUM(a.total_shops)                  AS totalShops,
+            SUM(a.rented_shops)                 AS rentedShops,
+            SUM(a.vacant_shops)                 AS vacantShops,
+            SUM(a.total_area)                   AS totalArea,
+            SUM(a.rented_area)                  AS rentedArea,
+            SUM(a.vacant_area)                  AS vacantArea,
+            CASE WHEN SUM(a.total_area) > 0
+                THEN ROUND(SUM(a.rented_area) / SUM(a.total_area) * 100, 2)
+                ELSE 0 END                      AS rentalRate,
+            CASE WHEN SUM(a.total_area) > 0
+                THEN ROUND(SUM(a.vacant_area) / SUM(a.total_area) * 100, 2)
+                ELSE 0 END                      AS vacancyRate
+        FROM rpt_asset_daily a
+        INNER JOIN biz_project p ON a.project_id = p.id AND p.is_deleted = 0
+        WHERE a.is_deleted = 0
+          AND a.stat_date = #{statDate}
+          AND a.building_id = 0
+          AND a.floor_id = 0
+          AND a.format_type = ''
+        <if test="permIds != null">
+            AND a.project_id IN
+            <foreach collection="permIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        </if>
+        GROUP BY p.province, p.city
+        ORDER BY SUM(a.total_area) DESC
+    </select>
+
+    <!-- ==================== 商家分布（P1，楼层粒度） ==================== -->
+
+    <select id="selectMerchantDistribution" resultType="com.asset.report.vo.asset.MerchantDistributionVO">
+        SELECT
+            project_id     AS projectId,
+            building_id    AS buildingId,
+            floor_id       AS floorId,
+            format_type    AS formatType,
+            rented_shops   AS merchantCount,
+            total_shops    AS totalShops,
+            rental_rate    AS rentalRate,
+            rented_area    AS rentedArea,
+            total_area     AS totalArea
+        FROM rpt_asset_daily
+        WHERE is_deleted = 0
+          AND stat_date = #{statDate}
+          AND floor_id != 0     /* 只取楼层粒度及以下（排除项目级/楼栋级汇总行）*/
+        <if test="projectId != null">AND project_id = #{projectId}</if>
+        <if test="buildingId != null and buildingId != 0">AND building_id = #{buildingId}</if>
+        <if test="permIds != null">
+            AND project_id IN
+            <foreach collection="permIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        </if>
+        ORDER BY project_id, building_id, floor_id, format_type
+    </select>
+
+    <!-- ==================== 商铺拆合报表（P1，查 biz_shop）==================== -->
+
+    <!--
+        biz_shop.parent_shop_id：拆分来源父商铺ID，NULL 表示原始商铺。
+        operationType 判断逻辑：
+          - parent_shop_id IS NOT NULL → 本商铺是由父商铺拆分而来 → SPLIT
+          - 否则 → 查是否有子商铺（has_children） → MERGE（简化：查被引用次数）
+          - 均无 → ORIGINAL
+    -->
+    <select id="selectShopSplitMerge" resultType="com.asset.report.vo.asset.ShopSplitMergeVO">
+        SELECT
+            s.id            AS shopId,
+            s.shop_code     AS shopCode,
+            s.project_id    AS projectId,
+            s.building_id   AS buildingId,
+            s.floor_id      AS floorId,
+            CASE
+                WHEN s.parent_shop_id IS NOT NULL THEN 'SPLIT'
+                WHEN EXISTS (
+                    SELECT 1 FROM biz_shop c
+                    WHERE c.parent_shop_id = s.id AND c.is_deleted = 0
+                ) THEN 'MERGE'
+                ELSE 'ORIGINAL'
+            END             AS operationType,
+            DATE(s.created_at)  AS operationDate,
+            s.parent_shop_id    AS parentShopId,
+            ps.shop_code        AS parentShopCode,
+            s.rent_area         AS rentArea,
+            s.actual_area       AS actualArea,
+            s.shop_status       AS shopStatus,
+            s.plan_format       AS planFormat
+        FROM biz_shop s
+        LEFT JOIN biz_shop ps ON s.parent_shop_id = ps.id AND ps.is_deleted = 0
+        WHERE s.is_deleted = 0
+        <if test="projectId != null">AND s.project_id = #{projectId}</if>
+        <if test="buildingId != null">AND s.building_id = #{buildingId}</if>
+        <if test="permIds != null">
+            AND s.project_id IN
+            <foreach collection="permIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        </if>
+        ORDER BY s.project_id, s.building_id, s.floor_id, s.shop_code
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countShopSplitMerge" resultType="long">
+        SELECT COUNT(*)
+        FROM biz_shop s
+        WHERE s.is_deleted = 0
+        <if test="projectId != null">AND s.project_id = #{projectId}</if>
+        <if test="buildingId != null">AND s.building_id = #{buildingId}</if>
+        <if test="permIds != null">
+            AND s.project_id IN
+            <foreach collection="permIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        </if>
+    </select>
 
 </mapper>
