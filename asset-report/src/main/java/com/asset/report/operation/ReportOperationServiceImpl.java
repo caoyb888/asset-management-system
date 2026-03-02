@@ -349,6 +349,48 @@ public class ReportOperationServiceImpl implements ReportOperationService {
     }
 
     @Override
+    public List<OprLedgerChangeVO> ledgerChanges(ReportQueryParam param) {
+        List<Long> permIds = ReportPermissionContext.get();
+        if (ReportPermissionContext.hasNoPermission()) return Collections.emptyList();
+
+        String endMonth = resolveEndMonth(param, permIds);
+        if (endMonth == null) return Collections.emptyList();
+        String startMonth = param.getStartMonth() != null ? param.getStartMonth() : prevMonths(endMonth, 11);
+
+        List<OprLedgerChangeVO> current = oprMapper.selectLedgerChanges(
+                param.getProjectId(), param.getFormatType(), startMonth, endMonth, permIds);
+        if (current == null) current = Collections.emptyList();
+
+        if (param.getCompareMode() == CompareMode.NONE || param.getCompareMode() == null) {
+            return current;
+        }
+
+        String prevStart = shiftMonths(startMonth, param.getCompareMode() == CompareMode.YOY ? -12 : -1);
+        String prevEnd   = shiftMonths(endMonth,   param.getCompareMode() == CompareMode.YOY ? -12 : -1);
+        List<OprLedgerChangeVO> previous = oprMapper.selectLedgerChanges(
+                param.getProjectId(), param.getFormatType(), prevStart, prevEnd, permIds);
+
+        if (previous != null && !previous.isEmpty()) {
+            Map<String, Integer> prevMap = previous.stream()
+                    .filter(v -> v.getTimeDim() != null)
+                    .collect(Collectors.toMap(
+                            v -> v.getTimeDim() + "_" + v.getProjectId() + "_" + v.getFormatType(),
+                            OprLedgerChangeVO::getChangeCount,
+                            (a, b) -> a));
+            current.forEach(v -> {
+                Integer prev = prevMap.get(v.getTimeDim() + "_" + v.getProjectId() + "_" + v.getFormatType());
+                if (prev != null) {
+                    v.setPrevChangeCount(prev);
+                    v.setChangeCountGrowthRate(PeriodCompareUtil.calcGrowthRate(
+                            BigDecimal.valueOf(v.getChangeCount() == null ? 0 : v.getChangeCount()),
+                            BigDecimal.valueOf(prev)));
+                }
+            });
+        }
+        return current;
+    }
+
+    @Override
     public List<OprFloatingRentVO> floatingRent(ReportQueryParam param) {
         List<Long> permIds = ReportPermissionContext.get();
         if (ReportPermissionContext.hasNoPermission()) return Collections.emptyList();

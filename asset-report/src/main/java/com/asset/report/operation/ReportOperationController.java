@@ -188,4 +188,22 @@ public class ReportOperationController {
             ReportQueryParam param) {
         return R.ok(oprService.floatingRent(param));
     }
+
+    /**
+     * 合同台账变动（P1）
+     * <p>
+     * 按月份维度汇总台账变动：合同变更次数、变更租金影响额、解约合同数、即将到期合同数，
+     * compareMode=YOY/MOM 时附带变更次数增长率。
+     * 数据来源：{@code rpt_operation_monthly}（ETL T+1 月汇总）。
+     * </p>
+     */
+    @Operation(summary = "合同台账变动（P1）",
+            description = "按月份维度汇总变更次数/租金影响额/解约数/到期数，compareMode=YOY/MOM 时附带增长率，支持业态细分")
+    @GetMapping("/ledger-changes")
+    @RptDataScope
+    public R<List<OprLedgerChangeVO>> ledgerChanges(
+            @Parameter(description = "查询参数（projectId/formatType/startMonth/endMonth/compareMode）")
+            ReportQueryParam param) {
+        return R.ok(oprService.ledgerChanges(param));
+    }
 }

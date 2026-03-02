@@ -63,4 +63,10 @@ public interface ReportOperationService {
      * 浮动租金统计（P1，支持同比/环比）
      */
     List<OprFloatingRentVO> floatingRent(ReportQueryParam param);
+
+    /**
+     * 合同台账变动（P1，支持同比/环比）
+     * <p>按月份维度汇总变更次数、变更租金影响额、解约数、到期数</p>
+     */
+    List<OprLedgerChangeVO> ledgerChanges(ReportQueryParam param);
 }

@@ -131,4 +131,15 @@ public interface RptOperationMonthlyMapper extends BaseMapper<RptOperationMonthl
             @Param("startMonth") String startMonth,
             @Param("endMonth") String endMonth,
             @Param("permIds") List<Long> permIds);
+
+    /**
+     * 合同台账变动（P1）
+     * <p>按月份维度汇总变更次数、变更租金影响额、解约数、到期数</p>
+     */
+    List<OprLedgerChangeVO> selectLedgerChanges(
+            @Param("projectId") Long projectId,
+            @Param("formatType") String formatType,
+            @Param("startMonth") String startMonth,
+            @Param("endMonth") String endMonth,
+            @Param("permIds") List<Long> permIds);
 }

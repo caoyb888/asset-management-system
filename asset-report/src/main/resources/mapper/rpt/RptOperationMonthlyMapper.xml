@@ -303,4 +303,28 @@
         ORDER BY stat_month, project_id
     </select>
 
+
+    <!-- 合同台账变动（P1）-->
+    <select id="selectLedgerChanges"
+            resultType="com.asset.report.vo.opr.OprLedgerChangeVO">
+        SELECT
+            stat_month                      AS timeDim,
+            project_id                      AS projectId,
+            format_type                     AS formatType,
+            SUM(change_count)               AS changeCount,
+            SUM(change_rent_impact)         AS changeRentImpact,
+            SUM(terminated_contracts)       AS terminatedContracts,
+            SUM(expiring_contracts)         AS expiringContracts
+        FROM rpt_operation_monthly
+        WHERE is_deleted = 0
+          AND building_id = 0
+        <include refid="permCondition"/>
+        <include refid="monthRangeCondition"/>
+        <if test="formatType != null and formatType != ''">
+            AND format_type = #{formatType}
+        </if>
+        GROUP BY stat_month, project_id, format_type
+        ORDER BY stat_month, project_id
+    </select>
+
 </mapper>
