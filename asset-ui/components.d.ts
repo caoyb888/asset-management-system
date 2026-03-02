@@ -74,6 +74,8 @@ declare module 'vue' {
     ElTimeline: typeof import('element-plus/es')['ElTimeline']
     ElTimelineItem: typeof import('element-plus/es')['ElTimelineItem']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
+    ElTree: typeof import('element-plus/es')['ElTree']
+    ElTreeSelect: typeof import('element-plus/es')['ElTreeSelect']
     ElUpload: typeof import('element-plus/es')['ElUpload']
     FeeItemSelector: typeof import('./src/components/inv/FeeItemSelector.vue')['default']
     ReceivableCalendar: typeof import('./src/components/opr/ReceivableCalendar.vue')['default']
