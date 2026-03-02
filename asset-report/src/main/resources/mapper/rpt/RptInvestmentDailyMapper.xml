@@ -3,7 +3,9 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.asset.report.mapper.rpt.RptInvestmentDailyMapper">
 
-    <!-- 删除指定日期旧数据 -->
+    <!-- ==================== ETL 专用 ==================== -->
+
+    <!-- 删除指定日期旧数据（物理删除，ETL 重跑幂等）-->
     <delete id="deleteByStatDate">
         DELETE FROM rpt_investment_daily
         WHERE stat_date = #{statDate}
@@ -11,7 +13,7 @@
 
     <!--
         批量幂等写入
-        唯一键：uk_inv_date_prj_fmt_mgr (stat_date, project_id, format_type, investment_manager_id)
+        唯一键：uk_inv_date_prj_fmt_mgr (stat_date, project_id, format_type, investment_manager_id, is_deleted)
     -->
     <insert id="upsertBatch">
         INSERT INTO rpt_investment_daily (
@@ -45,5 +47,295 @@
             avg_rent_price     = VALUES(avg_rent_price),
             updated_at         = NOW()
     </insert>
+
+    <!-- ==================== 报表查询公共片段 ==================== -->
+
+    <!-- 数据权限过滤：permIds=null 不限制（管理员），非空时 IN 过滤 -->
+    <sql id="permFilter">
+        <if test="permIds != null">
+            AND project_id IN
+            <foreach collection="permIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        </if>
+    </sql>
+
+    <!-- ==================== 最新统计日期 ==================== -->
+
+    <select id="selectMaxStatDate" resultType="java.time.LocalDate">
+        SELECT MAX(stat_date)
+        FROM rpt_investment_daily
+        WHERE is_deleted = 0
+        <if test="projectId != null">AND project_id = #{projectId}</if>
+        <include refid="permFilter"/>
+    </select>
+
+    <!-- ==================== 项目级汇总（看板核心数据） ==================== -->
+    <!--
+        项目级行特征：format_type='', investment_manager_id=0（ETL 约定）
+    -->
+    <select id="selectProjectSummaryByDate" resultType="com.asset.report.entity.RptInvestmentDaily">
+        SELECT *
+        FROM rpt_investment_daily
+        WHERE is_deleted = 0
+          AND stat_date = #{statDate}
+          AND format_type = ''
+          AND investment_manager_id = 0
+        <if test="projectId != null">AND project_id = #{projectId}</if>
+        <include refid="permFilter"/>
+        ORDER BY project_id
+    </select>
+
+    <!-- ==================== 招商趋势（意向 + 合同，按时间维度聚合） ==================== -->
+
+    <select id="selectInvTrend" resultType="com.asset.report.vo.inv.InvTrendVO">
+        SELECT
+            <choose>
+                <when test="timeUnit == 'WEEK'">DATE_FORMAT(stat_date, '%Y-%u')</when>
+                <when test="timeUnit == 'MONTH'">DATE_FORMAT(stat_date, '%Y-%m')</when>
+                <when test="timeUnit == 'YEAR'">CAST(YEAR(stat_date) AS CHAR)</when>
+                <otherwise>DATE_FORMAT(stat_date, '%Y-%m-%d')</otherwise>
+            </choose>
+            AS timeDim,
+            SUM(intention_count)   AS intentionCount,
+            SUM(intention_signed)  AS intentionSigned,
+            SUM(new_intention)     AS newIntention,
+            SUM(contract_count)    AS contractCount,
+            SUM(contract_amount)   AS contractAmount,
+            SUM(contract_area)     AS contractArea,
+            SUM(new_contract)      AS newContract,
+            /* 转化率 = contract_count / intention_count（防除零）*/
+            CASE WHEN SUM(intention_count) > 0
+                THEN ROUND(SUM(contract_count) / SUM(intention_count) * 100, 2)
+                ELSE 0 END         AS conversionRate,
+            /* 平均租金 = contract_amount / contract_area / 12（元/㎡/月，简化为年均）*/
+            CASE WHEN SUM(contract_area) > 0
+                THEN ROUND(SUM(contract_amount) / SUM(contract_area) / 12, 2)
+                ELSE 0 END         AS avgRentPrice
+        FROM rpt_investment_daily
+        WHERE is_deleted = 0
+          AND format_type = ''
+          AND investment_manager_id = 0
+        <if test="projectId != null">AND project_id = #{projectId}</if>
+        <if test="formatType != null and formatType != ''">AND format_type = #{formatType}</if>
+        <if test="managerId != null and managerId != 0">AND investment_manager_id = #{managerId}</if>
+        <if test="startDate != null">AND stat_date &gt;= #{startDate}</if>
+        <if test="endDate != null">AND stat_date &lt;= #{endDate}</if>
+        <include refid="permFilter"/>
+        GROUP BY
+            <choose>
+                <when test="timeUnit == 'WEEK'">DATE_FORMAT(stat_date, '%Y-%u')</when>
+                <when test="timeUnit == 'MONTH'">DATE_FORMAT(stat_date, '%Y-%m')</when>
+                <when test="timeUnit == 'YEAR'">YEAR(stat_date)</when>
+                <otherwise>DATE_FORMAT(stat_date, '%Y-%m-%d')</otherwise>
+            </choose>
+        ORDER BY timeDim ASC
+    </select>
+
+    <!-- ==================== 意向统计趋势 ==================== -->
+
+    <select id="selectIntentionStats" resultType="com.asset.report.vo.inv.IntentionStatsVO">
+        SELECT
+            <choose>
+                <when test="timeUnit == 'WEEK'">DATE_FORMAT(stat_date, '%Y-%u')</when>
+                <when test="timeUnit == 'MONTH'">DATE_FORMAT(stat_date, '%Y-%m')</when>
+                <when test="timeUnit == 'YEAR'">CAST(YEAR(stat_date) AS CHAR)</when>
+                <otherwise>DATE_FORMAT(stat_date, '%Y-%m-%d')</otherwise>
+            </choose>
+            AS timeDim,
+            SUM(intention_count)   AS intentionCount,
+            SUM(intention_signed)  AS intentionSigned,
+            SUM(new_intention)     AS newIntention,
+            CASE WHEN SUM(intention_count) > 0
+                THEN ROUND(SUM(intention_signed) / SUM(intention_count) * 100, 2)
+                ELSE 0 END         AS signedRate
+        FROM rpt_investment_daily
+        WHERE is_deleted = 0
+          AND format_type = ''
+          AND investment_manager_id = 0
+        <if test="projectId != null">AND project_id = #{projectId}</if>
+        <if test="formatType != null and formatType != ''">AND format_type = #{formatType}</if>
+        <if test="managerId != null and managerId != 0">AND investment_manager_id = #{managerId}</if>
+        <if test="startDate != null">AND stat_date &gt;= #{startDate}</if>
+        <if test="endDate != null">AND stat_date &lt;= #{endDate}</if>
+        <include refid="permFilter"/>
+        GROUP BY
+            <choose>
+                <when test="timeUnit == 'WEEK'">DATE_FORMAT(stat_date, '%Y-%u')</when>
+                <when test="timeUnit == 'MONTH'">DATE_FORMAT(stat_date, '%Y-%m')</when>
+                <when test="timeUnit == 'YEAR'">YEAR(stat_date)</when>
+                <otherwise>DATE_FORMAT(stat_date, '%Y-%m-%d')</otherwise>
+            </choose>
+        ORDER BY timeDim ASC
+    </select>
+
+    <!-- ==================== 合同统计趋势 ==================== -->
+
+    <select id="selectContractStats" resultType="com.asset.report.vo.inv.ContractStatsVO">
+        SELECT
+            <choose>
+                <when test="timeUnit == 'WEEK'">DATE_FORMAT(stat_date, '%Y-%u')</when>
+                <when test="timeUnit == 'MONTH'">DATE_FORMAT(stat_date, '%Y-%m')</when>
+                <when test="timeUnit == 'YEAR'">CAST(YEAR(stat_date) AS CHAR)</when>
+                <otherwise>DATE_FORMAT(stat_date, '%Y-%m-%d')</otherwise>
+            </choose>
+            AS timeDim,
+            SUM(contract_count)    AS contractCount,
+            SUM(contract_amount)   AS contractAmount,
+            SUM(contract_area)     AS contractArea,
+            SUM(new_contract)      AS newContract,
+            CASE WHEN SUM(intention_count) > 0
+                THEN ROUND(SUM(contract_count) / SUM(intention_count) * 100, 2)
+                ELSE 0 END         AS conversionRate,
+            CASE WHEN SUM(contract_area) > 0
+                THEN ROUND(SUM(contract_amount) / SUM(contract_area) / 12, 2)
+                ELSE 0 END         AS avgRentPrice
+        FROM rpt_investment_daily
+        WHERE is_deleted = 0
+          AND format_type = ''
+          AND investment_manager_id = 0
+        <if test="projectId != null">AND project_id = #{projectId}</if>
+        <if test="formatType != null and formatType != ''">AND format_type = #{formatType}</if>
+        <if test="managerId != null and managerId != 0">AND investment_manager_id = #{managerId}</if>
+        <if test="startDate != null">AND stat_date &gt;= #{startDate}</if>
+        <if test="endDate != null">AND stat_date &lt;= #{endDate}</if>
+        <include refid="permFilter"/>
+        GROUP BY
+            <choose>
+                <when test="timeUnit == 'WEEK'">DATE_FORMAT(stat_date, '%Y-%u')</when>
+                <when test="timeUnit == 'MONTH'">DATE_FORMAT(stat_date, '%Y-%m')</when>
+                <when test="timeUnit == 'YEAR'">YEAR(stat_date)</when>
+                <otherwise>DATE_FORMAT(stat_date, '%Y-%m-%d')</otherwise>
+            </choose>
+        ORDER BY timeDim ASC
+    </select>
+
+    <!-- ==================== 漏斗数据（项目级汇总，单日快照） ==================== -->
+    <!--
+        漏斗三阶段汇总：
+          意向登记（intention_count） → 已签意向（intention_signed） → 已签合同（contract_count）
+        查询项目级行（format_type='', investment_manager_id=0）以避免重复计算。
+    -->
+    <select id="selectFunnelSummary" resultType="com.asset.report.entity.RptInvestmentDaily">
+        SELECT
+            SUM(intention_count)   AS intentionCount,
+            SUM(intention_signed)  AS intentionSigned,
+            SUM(contract_count)    AS contractCount,
+            SUM(contract_amount)   AS contractAmount,
+            SUM(contract_area)     AS contractArea
+        FROM rpt_investment_daily
+        WHERE is_deleted = 0
+          AND stat_date = #{statDate}
+          AND format_type = ''
+          AND investment_manager_id = 0
+        <if test="projectId != null">AND project_id = #{projectId}</if>
+        <include refid="permFilter"/>
+    </select>
+
+    <!-- ==================== 招商业绩（按项目/招商负责人） ==================== -->
+
+    <select id="selectPerformance" resultType="com.asset.report.vo.inv.PerformanceVO">
+        SELECT
+            stat_date              AS statDate,
+            project_id             AS projectId,
+            investment_manager_id  AS investmentManagerId,
+            format_type            AS formatType,
+            intention_count        AS intentionCount,
+            intention_signed       AS intentionSigned,
+            new_intention          AS newIntention,
+            contract_count         AS contractCount,
+            contract_amount        AS contractAmount,
+            contract_area          AS contractArea,
+            new_contract           AS newContract,
+            conversion_rate        AS conversionRate,
+            avg_rent_price         AS avgRentPrice
+        FROM rpt_investment_daily
+        WHERE is_deleted = 0
+          AND stat_date = #{statDate}
+          AND format_type = ''
+        <!-- managerId=null 取所有人员汇总（investment_manager_id=0）；否则按指定人员 -->
+        <choose>
+            <when test="managerId != null and managerId != 0">
+                AND investment_manager_id = #{managerId}
+            </when>
+            <otherwise>
+                AND investment_manager_id = 0
+            </otherwise>
+        </choose>
+        <if test="projectId != null">AND project_id = #{projectId}</if>
+        <include refid="permFilter"/>
+        ORDER BY contract_amount DESC
+    </select>
+
+    <!-- ==================== 租金水平分析（P1，按项目+业态） ==================== -->
+
+    <select id="selectRentLevel" resultType="com.asset.report.vo.inv.RentLevelVO">
+        SELECT
+            project_id             AS projectId,
+            format_type            AS formatType,
+            investment_manager_id  AS investmentManagerId,
+            avg_rent_price         AS avgRentPrice,
+            contract_area          AS contractArea,
+            contract_amount        AS contractAmount,
+            contract_count         AS contractCount
+        FROM rpt_investment_daily
+        WHERE is_deleted = 0
+          AND stat_date = #{statDate}
+          AND format_type != ''      /* 只取业态维度行 */
+          AND investment_manager_id = 0
+        <if test="projectId != null">AND project_id = #{projectId}</if>
+        <if test="managerId != null and managerId != 0">AND investment_manager_id = #{managerId}</if>
+        <include refid="permFilter"/>
+        ORDER BY avg_rent_price DESC
+    </select>
+
+    <!-- ==================== 租决政策执行（P1，按项目+业态聚合） ==================== -->
+
+    <select id="selectPolicyExecution" resultType="com.asset.report.vo.inv.PolicyExecutionVO">
+        SELECT
+            project_id             AS projectId,
+            format_type            AS formatType,
+            contract_count         AS contractCount,
+            contract_area          AS contractArea,
+            contract_amount        AS contractAmount,
+            avg_rent_price         AS avgRentPrice,
+            conversion_rate        AS conversionRate,
+            new_intention          AS newIntention,
+            new_contract           AS newContract
+        FROM rpt_investment_daily
+        WHERE is_deleted = 0
+          AND stat_date = #{statDate}
+          AND format_type != ''
+          AND investment_manager_id = 0
+        <if test="projectId != null">AND project_id = #{projectId}</if>
+        <include refid="permFilter"/>
+        ORDER BY project_id, contract_amount DESC
+    </select>
+
+    <!-- ==================== 品牌签约排行（P1，按业态分组） ==================== -->
+
+    <select id="selectBrandRanking" resultType="com.asset.report.vo.inv.BrandRankingVO">
+        SELECT
+            format_type            AS formatType,
+            project_id             AS projectId,
+            SUM(contract_count)    AS contractCount,
+            SUM(contract_area)     AS contractArea,
+            SUM(contract_amount)   AS contractAmount,
+            /* 加权平均租金单价 */
+            CASE WHEN SUM(contract_area) > 0
+                THEN ROUND(SUM(contract_amount) / SUM(contract_area) / 12, 2)
+                ELSE 0 END         AS avgRentPrice,
+            /* 转化率 */
+            CASE WHEN SUM(intention_count) > 0
+                THEN ROUND(SUM(contract_count) / SUM(intention_count) * 100, 2)
+                ELSE 0 END         AS conversionRate
+        FROM rpt_investment_daily
+        WHERE is_deleted = 0
+          AND stat_date = #{statDate}
+          AND format_type != ''      /* 按业态维度 */
+          AND investment_manager_id = 0
+        <if test="projectId != null">AND project_id = #{projectId}</if>
+        <include refid="permFilter"/>
+        GROUP BY format_type, project_id
+        ORDER BY SUM(contract_count) DESC
+    </select>
 
 </mapper>
