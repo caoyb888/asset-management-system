@@ -279,6 +279,37 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/fin/prepayment/index.vue'),
         meta: { title: '预收款管理', icon: 'CollectionTag' },
       },
+      // ── 报表管理 ──
+      {
+        path: 'rpt/asset/dashboard',
+        name: 'RptAssetDashboard',
+        component: () => import('@/views/rpt/asset/dashboard.vue'),
+        meta: { title: '资产数据看板', icon: 'DataAnalysis' },
+      },
+      {
+        path: 'rpt/asset/vacancy',
+        name: 'RptAssetVacancy',
+        component: () => import('@/views/rpt/asset/vacancy.vue'),
+        meta: { title: '空置率统计', icon: 'TrendCharts' },
+      },
+      {
+        path: 'rpt/asset/rates',
+        name: 'RptAssetRates',
+        component: () => import('@/views/rpt/asset/rates.vue'),
+        meta: { title: '出租率/开业率', icon: 'DataLine' },
+      },
+      {
+        path: 'rpt/asset/brand-dist',
+        name: 'RptAssetBrandDist',
+        component: () => import('@/views/rpt/asset/brand-dist.vue'),
+        meta: { title: '品牌业态分布', icon: 'PieChart' },
+      },
+      {
+        path: 'rpt/asset/shop-rental',
+        name: 'RptAssetShopRental',
+        component: () => import('@/views/rpt/asset/shop-rental.vue'),
+        meta: { title: '商铺租赁信息', icon: 'Shop' },
+      },
       // ── 系统管理 ──
       {
         path: 'sys/users',

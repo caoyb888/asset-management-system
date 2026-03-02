@@ -167,6 +167,33 @@
             <template #title>预收款管理</template>
           </el-menu-item>
         </el-sub-menu>
+        <!-- 报表管理 -->
+        <el-sub-menu index="rpt">
+          <template #title>
+            <el-icon><DataAnalysis /></el-icon>
+            <span>报表管理</span>
+          </template>
+          <el-menu-item index="/rpt/asset/dashboard">
+            <el-icon><Monitor /></el-icon>
+            <template #title>资产数据看板</template>
+          </el-menu-item>
+          <el-menu-item index="/rpt/asset/vacancy">
+            <el-icon><TrendCharts /></el-icon>
+            <template #title>空置率统计</template>
+          </el-menu-item>
+          <el-menu-item index="/rpt/asset/rates">
+            <el-icon><DataLine /></el-icon>
+            <template #title>出租率/开业率</template>
+          </el-menu-item>
+          <el-menu-item index="/rpt/asset/brand-dist">
+            <el-icon><PieChart /></el-icon>
+            <template #title>品牌业态分布</template>
+          </el-menu-item>
+          <el-menu-item index="/rpt/asset/shop-rental">
+            <el-icon><Shop /></el-icon>
+            <template #title>商铺租赁信息</template>
+          </el-menu-item>
+        </el-sub-menu>
         <!-- 系统管理 -->
         <el-sub-menu index="sys">
           <template #title>

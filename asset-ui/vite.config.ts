@@ -55,6 +55,12 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
+      // /api/rpt/* → asset-report (8005) - 必须在 /api 规则之前
+      '/api/rpt': {
+        target: 'http://localhost:8005',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
       // /api/* → asset-base (8001)
       '/api': {
         target: 'http://localhost:8001',

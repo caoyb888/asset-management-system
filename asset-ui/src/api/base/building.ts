@@ -44,6 +44,12 @@ export interface BuildingSaveDTO {
 
 // ─────────────────────────── API ───────────────────────────
 
+/** 获取楼栋下拉列表（按项目过滤，内部复用分页接口取 200 条） */
+export function getBuildingList(projectId?: number | null) {
+  return getBuildingPage({ projectId: projectId ?? undefined, pageSize: 200 })
+    .then(result => result.records.map(b => ({ id: b.id, buildingName: b.buildingName })))
+}
+
 /** 分页查询楼栋列表 */
 export function getBuildingPage(params: BuildingQuery) {
   return request.get<PageResult<BuildingVO>, PageResult<BuildingVO>>(
