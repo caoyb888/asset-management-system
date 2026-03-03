@@ -10,3 +10,5 @@ export { default as ChartContainer } from './ChartContainer.vue'
 
 export { default as DrillTable } from './DrillTable.vue'
 export type { DrillColumn, DrillCrumb, DrillEvent } from './DrillTable.vue'
+
+export { default as ExportButton } from './ExportButton.vue'
