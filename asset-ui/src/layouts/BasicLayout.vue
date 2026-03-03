@@ -225,6 +225,22 @@
             <el-icon><MapLocation /></el-icon>
             <template #title>地区业务对比</template>
           </el-menu-item>
+          <el-menu-item index="/rpt/fin/dashboard">
+            <el-icon><DataAnalysis /></el-icon>
+            <template #title>财务数据看板</template>
+          </el-menu-item>
+          <el-menu-item index="/rpt/fin/outstanding">
+            <el-icon><TrendCharts /></el-icon>
+            <template #title>欠款统计分析</template>
+          </el-menu-item>
+          <el-menu-item index="/rpt/fin/aging">
+            <el-icon><DataLine /></el-icon>
+            <template #title>账龄分析</template>
+          </el-menu-item>
+          <el-menu-item index="/rpt/fin/collection">
+            <el-icon><Histogram /></el-icon>
+            <template #title>收缴率趋势</template>
+          </el-menu-item>
         </el-sub-menu>
         <!-- 系统管理 -->
         <el-sub-menu index="sys">
@@ -332,7 +348,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop, Star, User, Bell, Document, Briefcase, Setting, Coin, EditPen, Tickets, Checked, DataLine, PieChart, Operation, Memo, Switch, TrendCharts, UserFilled, CircleClose, Money, List, CreditCard, Postcard, Wallet, CollectionTag, Warning, CircleCheck, DataAnalysis, Key, Files, Menu, FolderOpened, Filter, MapLocation } from '@element-plus/icons-vue'
+import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop, Star, User, Bell, Document, Briefcase, Setting, Coin, EditPen, Tickets, Checked, DataLine, PieChart, Operation, Memo, Switch, TrendCharts, UserFilled, CircleClose, Money, List, CreditCard, Postcard, Wallet, CollectionTag, Warning, CircleCheck, DataAnalysis, Key, Files, Menu, FolderOpened, Filter, MapLocation, Histogram } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/modules/user'
 import { useAppStore } from '@/store/modules/app'
 

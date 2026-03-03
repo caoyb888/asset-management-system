@@ -360,6 +360,31 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/rpt/opr/region-compare.vue'),
         meta: { title: '地区业务对比', icon: 'MapLocation' },
       },
+      // ── 财务类报表 ──
+      {
+        path: 'rpt/fin/dashboard',
+        name: 'RptFinDashboard',
+        component: () => import('@/views/rpt/fin/dashboard.vue'),
+        meta: { title: '财务数据看板', icon: 'DataAnalysis' },
+      },
+      {
+        path: 'rpt/fin/outstanding',
+        name: 'RptFinOutstanding',
+        component: () => import('@/views/rpt/fin/outstanding.vue'),
+        meta: { title: '欠款统计分析', icon: 'TrendCharts' },
+      },
+      {
+        path: 'rpt/fin/aging',
+        name: 'RptFinAging',
+        component: () => import('@/views/rpt/fin/aging.vue'),
+        meta: { title: '账龄分析', icon: 'DataLine' },
+      },
+      {
+        path: 'rpt/fin/collection',
+        name: 'RptFinCollection',
+        component: () => import('@/views/rpt/fin/collection.vue'),
+        meta: { title: '收缴率趋势', icon: 'Histogram' },
+      },
       // ── 系统管理 ──
       {
         path: 'sys/users',
