@@ -545,4 +545,38 @@ public class ReportExportServiceImpl implements ReportExportService {
         BigDecimal bd = v instanceof BigDecimal ? (BigDecimal) v : new BigDecimal(v.toString());
         return bd.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString();
     }
+
+    // ==================== 同步文件生成（供定时推送 Job 调用）====================
+
+    @Override
+    public String generateFileSync(String reportCode, String paramsJson,
+                                   String format, String logCode) {
+        if (RptGenerationLog.FORMAT_PDF.equals(format)) {
+            throw new UnsupportedOperationException("PDF 导出暂未支持，请选择 Excel 格式");
+        }
+
+        // 解析参数
+        Map<String, Object> paramsMap;
+        try {
+            if (paramsJson == null || paramsJson.isBlank() || "{}".equals(paramsJson)) {
+                paramsMap = new java.util.HashMap<>();
+            } else {
+                paramsMap = objectMapper.readValue(paramsJson,
+                        new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+            }
+        } catch (Exception e) {
+            log.warn("[Export-Sync] 参数解析失败，使用空参数: {}", e.getMessage());
+            paramsMap = new java.util.HashMap<>();
+        }
+
+        ReportQueryParam param = buildQueryParam(paramsMap);
+        ExportDefinition def = resolveDefinition(reportCode, param);
+
+        String dir = exportConfig.getOrCreateExportDir();
+        String filePath = dir + File.separator + logCode + ".xlsx";
+        writeExcel(filePath, def);
+
+        log.info("[Export-Sync] 文件生成成功：reportCode={}, path={}", reportCode, filePath);
+        return filePath;
+    }
 }

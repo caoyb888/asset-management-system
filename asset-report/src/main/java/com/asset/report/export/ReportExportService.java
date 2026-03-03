@@ -35,4 +35,19 @@ public interface ReportExportService {
      * 查询当前登录用户最近 N 条导出记录
      */
     List<RptGenerationLog> myLogs(int limit);
+
+    /**
+     * 同步生成导出文件并返回文件路径
+     * <p>
+     * 供定时推送 Job 调用（非 HTTP 上下文，直接生成文件，不走 Redis 缓存，
+     * 调用方负责写 rpt_generation_log）。
+     * </p>
+     *
+     * @param reportCode 报表编码
+     * @param paramsJson 筛选参数 JSON 字符串（与 ExportTaskDTO.params 格式一致）
+     * @param format     导出格式：EXCEL / PDF
+     * @param logCode    关联的日志流水号（文件名前缀）
+     * @return 生成文件的本地绝对路径
+     */
+    String generateFileSync(String reportCode, String paramsJson, String format, String logCode);
 }

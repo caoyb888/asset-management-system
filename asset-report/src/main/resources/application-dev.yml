@@ -41,6 +41,34 @@ xxl:
       logpath: /data/applogs/xxl-job/asset-report
       logretentiondays: 30
 
+# Spring Mail 配置（报表定时推送）
+# 生产环境通过环境变量注入真实 SMTP 信息
+spring:
+  mail:
+    host: ${MAIL_HOST:smtp.example.com}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USER:report@example.com}
+    password: ${MAIL_PASS:}
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+          timeout: 10000
+          connection-timeout: 10000
+
+# 报表推送配置
+report:
+  schedule:
+    mail-from: ${MAIL_USER:report@example.com}
+    mail-from-name: 资产管理系统-报表中心
+    # 最大重试次数
+    max-retry: 3
+    # 连续失败 N 次后自动禁用任务
+    disable-threshold: 3
+
 logging:
   level:
     com.asset: debug
