@@ -245,6 +245,10 @@
             <el-icon><Histogram /></el-icon>
             <template #title>收缴率趋势</template>
           </el-menu-item>
+          <el-menu-item index="/rpt/schedule">
+            <el-icon><Timer /></el-icon>
+            <template #title>定时推送管理</template>
+          </el-menu-item>
         </el-sub-menu>
         <!-- 系统管理 -->
         <el-sub-menu index="sys">
@@ -352,7 +356,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop, Star, User, Bell, Document, Briefcase, Setting, Coin, EditPen, Tickets, Checked, DataLine, PieChart, Operation, Memo, Switch, TrendCharts, UserFilled, CircleClose, Money, List, CreditCard, Postcard, Wallet, CollectionTag, Warning, CircleCheck, DataAnalysis, Key, Files, Menu, FolderOpened, Filter, MapLocation, Histogram, HomeFilled } from '@element-plus/icons-vue'
+import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop, Star, User, Bell, Document, Briefcase, Setting, Coin, EditPen, Tickets, Checked, DataLine, PieChart, Operation, Memo, Switch, TrendCharts, UserFilled, CircleClose, Money, List, CreditCard, Postcard, Wallet, CollectionTag, Warning, CircleCheck, DataAnalysis, Key, Files, Menu, FolderOpened, Filter, MapLocation, Histogram, HomeFilled, Timer } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/modules/user'
 import { useAppStore } from '@/store/modules/app'
 import { getUserPermissions } from '@/api/rpt/permission'

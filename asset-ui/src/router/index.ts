@@ -366,6 +366,13 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/rpt/opr/region-compare.vue'),
         meta: { title: '地区业务对比', icon: 'MapLocation' },
       },
+      // ── 定时推送管理 ──
+      {
+        path: 'rpt/schedule',
+        name: 'RptSchedule',
+        component: () => import('@/views/rpt/schedule/index.vue'),
+        meta: { title: '定时推送管理', icon: 'AlarmClock' },
+      },
       // ── 财务类报表 ──
       {
         path: 'rpt/fin/dashboard',

@@ -1,15 +1,17 @@
 <template>
   <div class="rpt-home">
-    <!-- 页头搜索 -->
+    <!-- 页头 -->
     <div class="home-header">
-      <h2 class="home-title">报表中心</h2>
+      <div class="home-header-left">
+        <h2 class="home-title">报表中心</h2>
+        <span class="home-subtitle">共 {{ allReports.length }} 个报表</span>
+      </div>
       <el-input
         v-model="searchKeyword"
-        placeholder="搜索报表..."
+        placeholder="搜索报表名称..."
         :prefix-icon="Search"
         clearable
         class="search-input"
-        @input="onSearch"
       />
     </div>
 
@@ -17,9 +19,7 @@
     <template v-if="searchKeyword.trim()">
       <div class="section">
         <div class="section-title">搜索结果</div>
-        <div v-if="searchResults.length === 0" class="empty-tip">
-          未找到匹配的报表
-        </div>
+        <div v-if="searchResults.length === 0" class="empty-tip">未找到匹配的报表</div>
         <div v-else class="report-grid">
           <div
             v-for="item in searchResults"
@@ -49,6 +49,27 @@
     </template>
 
     <template v-else>
+      <!-- 四大类报表入口卡片 -->
+      <div class="category-banner">
+        <div
+          v-for="cat in reportCategories"
+          :key="cat.id"
+          class="category-entry-card"
+          :style="{ '--cat-color': cat.color, '--cat-light': cat.lightColor }"
+          @click="navigateTo({ routePath: cat.dashboardPath, name: cat.name, reportCode: cat.dashboardCode, category: cat.id as any, icon: cat.icon })"
+        >
+          <div class="cat-icon-wrap">
+            <el-icon><component :is="cat.icon" /></el-icon>
+          </div>
+          <div class="cat-body">
+            <div class="cat-name">{{ cat.name }}</div>
+            <div class="cat-desc">{{ cat.desc }}</div>
+          </div>
+          <div class="cat-badge">{{ cat.reports.length }} 个报表</div>
+          <el-icon class="cat-arrow"><ArrowRight /></el-icon>
+        </div>
+      </div>
+
       <!-- 我的收藏 -->
       <div class="section">
         <div class="section-header">
@@ -58,9 +79,8 @@
           </div>
           <span class="section-tip">拖拽可排序</span>
         </div>
-
         <div v-if="favorites.length === 0" class="empty-tip">
-          暂无收藏，点击报表右侧★收藏常用报表
+          暂无收藏，点击报表右侧 ★ 收藏常用报表
         </div>
         <VueDraggable
           v-else
@@ -85,10 +105,7 @@
                 {{ categoryLabel(item.category) }}
               </el-tag>
             </div>
-            <el-icon
-              class="star-btn active"
-              @click.stop="unfavorite(item)"
-            >
+            <el-icon class="star-btn active" @click.stop="unfavorite(item)">
               <Star />
             </el-icon>
           </div>
@@ -129,7 +146,7 @@
         </div>
       </div>
 
-      <!-- 四大类报表入口 -->
+      <!-- 各类报表详情 -->
       <div
         v-for="cat in reportCategories"
         :key="cat.id"
@@ -172,7 +189,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
-  Search, Star, Clock,
+  Search, Star, Clock, ArrowRight,
   DataAnalysis, TrendCharts, DataLine, PieChart, Shop,
   Filter, Money, Histogram,
   Document, MapLocation,
@@ -198,8 +215,12 @@ const reportCategories = [
   {
     id: 1,
     name: '资产类报表',
+    desc: '空置率 · 出租率 · 商铺租赁 · 品牌分布',
     color: '#2E75B6',
+    lightColor: '#EBF3FB',
     icon: DataAnalysis,
+    dashboardCode: 'AST_DASHBOARD',
+    dashboardPath: '/rpt/asset/dashboard',
     reports: [
       { reportCode: 'AST_DASHBOARD', name: '资产数据看板', desc: '空置率/出租率/开业率综合看板', routePath: '/rpt/asset/dashboard', category: 1, icon: DataAnalysis },
       { reportCode: 'AST_VACANCY', name: '空置率统计', desc: '空置率趋势与项目对比', routePath: '/rpt/asset/vacancy', category: 1, icon: TrendCharts },
@@ -211,8 +232,12 @@ const reportCategories = [
   {
     id: 2,
     name: '招商类报表',
+    desc: '客户漏斗 · 业绩对比 · 合同签约 · 租金分析',
     color: '#17A589',
+    lightColor: '#E8F8F5',
     icon: Filter,
+    dashboardCode: 'INV_DASHBOARD',
+    dashboardPath: '/rpt/inv/dashboard',
     reports: [
       { reportCode: 'INV_DASHBOARD', name: '招商数据看板', desc: '漏斗/签约/转化率综合看板', routePath: '/rpt/inv/dashboard', category: 2, icon: DataAnalysis },
       { reportCode: 'INV_FUNNEL', name: '客户漏斗分析', desc: '意向→签约各阶段转化', routePath: '/rpt/inv/funnel', category: 2, icon: Filter },
@@ -223,8 +248,12 @@ const reportCategories = [
   {
     id: 3,
     name: '营运类报表',
+    desc: '营收汇总 · 合同变更 · 地区对比 · 客流分析',
     color: '#E67E22',
+    lightColor: '#FEF5EC',
     icon: DataLine,
+    dashboardCode: 'OPR_DASHBOARD',
+    dashboardPath: '/rpt/opr/dashboard',
     reports: [
       { reportCode: 'OPR_DASHBOARD', name: '营运数据看板', desc: '营收/客流/变更/到期综合看板', routePath: '/rpt/opr/dashboard', category: 3, icon: DataAnalysis },
       { reportCode: 'OPR_REVENUE', name: '营收汇总分析', desc: '同比/环比趋势与业态分布', routePath: '/rpt/opr/revenue', category: 3, icon: TrendCharts },
@@ -235,8 +264,12 @@ const reportCategories = [
   {
     id: 4,
     name: '财务类报表',
+    desc: '应收欠款 · 账龄分析 · 收缴率 · 财务看板',
     color: '#8E44AD',
+    lightColor: '#F5EEF8',
     icon: List,
+    dashboardCode: 'FIN_DASHBOARD',
+    dashboardPath: '/rpt/fin/dashboard',
     reports: [
       { reportCode: 'FIN_DASHBOARD', name: '财务数据看板', desc: '应收/欠款/逾期率综合看板', routePath: '/rpt/fin/dashboard', category: 4, icon: DataAnalysis },
       { reportCode: 'FIN_OUTSTANDING', name: '欠款统计分析', desc: '欠款汇总与账龄分布', routePath: '/rpt/fin/outstanding', category: 4, icon: TrendCharts },
@@ -259,10 +292,6 @@ const searchResults = computed(() => {
     r.name.toLowerCase().includes(kw) || r.desc.toLowerCase().includes(kw)
   )
 })
-
-function onSearch() {
-  // computed 自动响应，无需额外逻辑
-}
 
 // ─────────────────────────── 收藏 ───────────────────────────
 
@@ -382,7 +411,6 @@ function formatTime(ts: number): string {
 // ─────────────────────────── 导航（含浏览记录写入）───────────────────────────
 
 function navigateTo(item: Pick<ReportItem, 'routePath' | 'name' | 'reportCode' | 'category' | 'icon'>) {
-  // 写入最近浏览
   const record: RecentItem = {
     name: item.name,
     routePath: item.routePath,
@@ -440,18 +468,29 @@ onMounted(() => {
   padding: 4px 0;
 }
 
+// ── 页头 ──
 .home-header {
   display: flex;
   align-items: center;
-  gap: 16px;
+  justify-content: space-between;
   margin-bottom: 24px;
+
+  .home-header-left {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
 
   .home-title {
     font-size: 20px;
     font-weight: 600;
     color: #303133;
     margin: 0;
-    white-space: nowrap;
+  }
+
+  .home-subtitle {
+    font-size: 13px;
+    color: #909399;
   }
 
   .search-input {
@@ -459,6 +498,94 @@ onMounted(() => {
   }
 }
 
+// ── 四大类入口卡片 ──
+.category-banner {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.category-entry-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 18px;
+  border-radius: 10px;
+  background: var(--cat-light);
+  border: 1px solid color-mix(in srgb, var(--cat-color) 20%, white);
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.15s;
+  position: relative;
+
+  &:hover {
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--cat-color) 25%, transparent);
+    transform: translateY(-2px);
+
+    .cat-arrow {
+      opacity: 1;
+      transform: translateX(2px);
+    }
+  }
+
+  .cat-icon-wrap {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: var(--cat-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #fff;
+    font-size: 22px;
+  }
+
+  .cat-body {
+    flex: 1;
+    min-width: 0;
+
+    .cat-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #303133;
+      margin-bottom: 4px;
+    }
+
+    .cat-desc {
+      font-size: 12px;
+      color: #909399;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  .cat-badge {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--cat-color);
+    background: color-mix(in srgb, var(--cat-color) 12%, white);
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .cat-arrow {
+    color: var(--cat-color);
+    font-size: 14px;
+    flex-shrink: 0;
+    opacity: 0.4;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+}
+
+// ── 通用 Section ──
 .section {
   margin-bottom: 28px;
 }
@@ -493,6 +620,7 @@ onMounted(() => {
   padding: 16px 0;
 }
 
+// ── 报表卡片 ──
 .report-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
