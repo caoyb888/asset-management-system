@@ -88,20 +88,57 @@
         </el-table-column>
       </el-table>
     </el-card>
+
+    <!-- 数据钻取面板 -->
+    <el-card shadow="never">
+      <template #header>
+        <div class="drill-header-row">
+          <span>钻取分析（项目 → 楼栋 → 楼层 → 商铺）</span>
+          <el-button
+            v-if="filterForm.projectId"
+            size="small"
+            type="primary"
+            plain
+            @click="startDrill"
+          >
+            查看楼栋详情
+          </el-button>
+          <el-tag v-else type="info" size="small">请先在筛选栏选择项目</el-tag>
+        </div>
+      </template>
+
+      <DrillDownPanel
+        ref="drillPanelRef"
+        report-code="ASSET_VACANCY_RATE"
+        :stat-date="latestStatDate"
+        top-label="项目级"
+        @drilled="onDrilled"
+      >
+        <template #top-level="{ onDrill }">
+          <el-empty v-if="!filterForm.projectId" description="请先选择项目" :image-size="60" />
+          <div v-else class="top-level-hint">
+            <el-text>已选项目 #{{ filterForm.projectId }}，点击「查看楼栋详情」开始钻取</el-text>
+          </div>
+        </template>
+      </DrillDownPanel>
+    </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { getVacancyRate } from '@/api/rpt/asset'
 import { getProjectList } from '@/api/base/project'
 import type { RateTrendVO, AssetQueryParam } from '@/api/rpt/asset'
+import { DrillDownPanel } from '@/components/rpt'
+import type { DrillDownResultVO } from '@/api/rpt/drillDown'
 
 const loading = ref(false)
 const trendData = ref<RateTrendVO[]>([])
 const projectList = ref<{ id: number; projectName: string; projectCode: string }[]>([])
 const dateRange = ref<[string, string] | null>(null)
+const latestStatDate = ref<string>()
 
 const filterForm = reactive<AssetQueryParam>({
   projectId: null,
@@ -110,6 +147,7 @@ const filterForm = reactive<AssetQueryParam>({
 })
 
 const chartRef = ref<HTMLDivElement>()
+const drillPanelRef = ref<InstanceType<typeof DrillDownPanel>>()
 let chart: echarts.ECharts | null = null
 
 onMounted(async () => {
@@ -117,6 +155,12 @@ onMounted(async () => {
   await loadData()
   if (chartRef.value) chart = echarts.init(chartRef.value)
   updateChart()
+  // ECharts 图表点击 → 触发钻取（点击折线数据点时钻入当前选中的项目）
+  chart?.on('click', () => {
+    if (filterForm.projectId) {
+      startDrill()
+    }
+  })
   window.addEventListener('resize', handleResize)
 })
 
@@ -127,6 +171,17 @@ onUnmounted(() => {
 
 function handleResize() { chart?.resize() }
 
+/** 开始钻取：用当前选中项目触发楼栋层 */
+function startDrill() {
+  if (!filterForm.projectId) return
+  drillPanelRef.value?.drillByChart(filterForm.projectId as number, `项目 #${filterForm.projectId}`)
+}
+
+function onDrilled(result: DrillDownResultVO) {
+  // 钻取成功回调，可在此联动其他区域
+}
+
+
 async function loadData() {
   loading.value = true
   try {
@@ -136,6 +191,12 @@ async function loadData() {
       endDate: dateRange.value?.[1],
     }
     trendData.value = await getVacancyRate(params)
+    // 记录最新统计日期，供钻取使用
+    if (trendData.value.length > 0) {
+      latestStatDate.value = trendData.value[trendData.value.length - 1].timeDim
+    }
+    // 切换筛选条件时重置钻取面板
+    drillPanelRef.value?.reset()
     await nextTick()
     updateChart()
   } finally {
@@ -214,4 +275,16 @@ function updateChart() {
 
 .text-danger { color: #f56c6c; }
 .text-success { color: #67c23a; }
+
+.drill-header-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.top-level-hint {
+  padding: 12px;
+  color: #909399;
+  font-size: 13px;
+}
 </style>

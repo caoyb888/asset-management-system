@@ -94,6 +94,30 @@
         </el-table-column>
       </el-table>
     </el-card>
+
+    <!-- 财务钻取面板：项目 → 费项 → 应收明细 -->
+    <el-card shadow="never">
+      <template #header>
+        <div class="drill-header-row">
+          <span>应收钻取（项目 → 费项 → 应收明细）</span>
+          <el-button
+            v-if="filterForm.projectId"
+            size="small"
+            type="primary"
+            plain
+            @click="startFinDrill"
+          >查看费项明细</el-button>
+          <el-tag v-else type="info" size="small">请先选择项目</el-tag>
+        </div>
+      </template>
+      <DrillDownPanel
+        ref="drillPanelRef"
+        report-code="FIN_AGING_ANALYSIS"
+        :start-month="drillStartMonth"
+        :end-month="drillEndMonth"
+        top-label="项目级"
+      />
+    </el-card>
   </div>
 </template>
 
@@ -105,8 +129,20 @@ import { useRouter } from 'vue-router'
 import { getAgingAnalysis } from '@/api/rpt/finance'
 import { getProjectList } from '@/api/base/project'
 import type { FinAgingAnalysisVO } from '@/api/rpt/finance'
+import { DrillDownPanel } from '@/components/rpt'
 
 const router = useRouter()
+const drillPanelRef = ref<InstanceType<typeof DrillDownPanel>>()
+
+// 钻取用月份范围（当前月前12个月）
+const now = new Date()
+const drillEndMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+const drillStartMonth = `${now.getFullYear() - 1}-${String(now.getMonth() + 1).padStart(2, '0')}`
+
+function startFinDrill() {
+  if (!filterForm.projectId) return
+  drillPanelRef.value?.drillByChart(filterForm.projectId as number, `项目 #${filterForm.projectId}`)
+}
 const loading = ref(false)
 const tableData = ref<FinAgingAnalysisVO[]>([])
 const projectList = ref<{ id: number; projectName: string; projectCode: string }[]>([])
@@ -238,4 +274,9 @@ function fmtMoney(v?: number | null) {
 }
 .text-down { color: #f56c6c; font-weight: 600; }
 .text-warn { color: #e6a23c; font-weight: 600; }
+.drill-header-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 </style>

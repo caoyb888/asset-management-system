@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.asset.report.drill.DrillDownMapper">
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         资产域钻取 SQL
+         层级：项目(L1) → 楼栋(L2) → 楼层(L3) → 商铺(L4)
+         ══════════════════════════════════════════════════════════════════════ -->
+
+    <!-- L1 → L2：项目下所有楼栋（building_id>0, floor_id=0, format_type=''） -->
+    <select id="selectBuildingsByProject"
+            resultType="java.util.LinkedHashMap">
+        SELECT
+            d.building_id   AS buildingId,
+            d.project_id    AS projectId,
+            d.stat_date     AS statDate,
+            d.total_shops   AS totalShops,
+            d.rented_shops  AS rentedShops,
+            d.vacant_shops  AS vacantShops,
+            d.opened_shops  AS openedShops,
+            d.total_area    AS totalArea,
+            d.rented_area   AS rentedArea,
+            d.vacant_area   AS vacantArea,
+            d.vacancy_rate  AS vacancyRate,
+            d.rental_rate   AS rentalRate,
+            d.opening_rate  AS openingRate
+        FROM rpt_asset_daily d
+        WHERE d.project_id  = #{projectId}
+          AND d.building_id > 0
+          AND d.floor_id    = 0
+          AND d.format_type = ''
+          AND d.is_deleted  = 0
+          AND d.stat_date = (
+              SELECT MAX(d2.stat_date)
+              FROM   rpt_asset_daily d2
+              WHERE  d2.project_id = #{projectId}
+                AND  d2.is_deleted = 0
+                <if test="statDate != null and statDate != ''">
+                  AND d2.stat_date &lt;= #{statDate}
+                </if>
+          )
+        ORDER BY d.building_id
+    </select>
+
+    <!-- L2 → L3：楼栋下所有楼层（floor_id>0, format_type=''） -->
+    <select id="selectFloorsByBuilding"
+            resultType="java.util.LinkedHashMap">
+        SELECT
+            d.floor_id      AS floorId,
+            d.building_id   AS buildingId,
+            d.project_id    AS projectId,
+            d.stat_date     AS statDate,
+            d.total_shops   AS totalShops,
+            d.rented_shops  AS rentedShops,
+            d.vacant_shops  AS vacantShops,
+            d.opened_shops  AS openedShops,
+            d.total_area    AS totalArea,
+            d.rented_area   AS rentedArea,
+            d.vacant_area   AS vacantArea,
+            d.vacancy_rate  AS vacancyRate,
+            d.rental_rate   AS rentalRate,
+            d.opening_rate  AS openingRate
+        FROM rpt_asset_daily d
+        WHERE d.building_id = #{buildingId}
+          AND d.floor_id    > 0
+          AND d.format_type = ''
+          AND d.is_deleted  = 0
+          AND d.stat_date = (
+              SELECT MAX(d2.stat_date)
+              FROM   rpt_asset_daily d2
+              WHERE  d2.building_id = #{buildingId}
+                AND  d2.is_deleted  = 0
+                <if test="statDate != null and statDate != ''">
+                  AND d2.stat_date &lt;= #{statDate}
+                </if>
+          )
+        ORDER BY d.floor_id
+    </select>
+
+    <!-- L3 → L4：楼层内所有商铺（查 biz_shop 实时数据） -->
+    <select id="selectShopsByFloor"
+            resultType="java.util.LinkedHashMap">
+        SELECT
+            s.id            AS shopId,
+            s.shop_code     AS shopCode,
+            s.floor_id      AS floorId,
+            s.building_id   AS buildingId,
+            s.project_id    AS projectId,
+            s.shop_type     AS shopType,
+            s.plan_format   AS planFormat,
+            s.rent_area     AS rentArea,
+            s.actual_area   AS actualArea,
+            s.shop_status   AS shopStatus
+        FROM biz_shop s
+        WHERE s.floor_id   = #{floorId}
+          AND s.is_deleted = 0
+        ORDER BY s.shop_code
+    </select>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         财务域钻取 SQL
+         层级：项目汇总(L1) → 费项明细(L2) → 应收账单(L3)
+         ══════════════════════════════════════════════════════════════════════ -->
+
+    <!-- L1 → L2：项目下各费项汇总（group by fee_item_type） -->
+    <select id="selectFeeItemsByProject"
+            resultType="java.util.LinkedHashMap">
+        SELECT
+            f.project_id        AS projectId,
+            f.fee_item_type     AS feeItemType,
+            f.accrual_month     AS accrualMonth,
+            SUM(f.receivable_amount)  AS receivableAmount,
+            SUM(f.received_amount)    AS receivedAmount,
+            SUM(f.outstanding_amount) AS outstandingAmount,
+            SUM(f.overdue_amount)     AS overdueAmount,
+            CASE WHEN SUM(f.receivable_amount) > 0
+                 THEN ROUND(SUM(f.received_amount) / SUM(f.receivable_amount) * 100, 2)
+                 ELSE 0 END           AS collectionRate
+        FROM rpt_finance_monthly f
+        WHERE f.project_id  = #{projectId}
+          AND f.is_deleted  = 0
+          <if test="startMonth != null and startMonth != ''">
+            AND f.accrual_month >= #{startMonth}
+          </if>
+          <if test="endMonth != null and endMonth != ''">
+            AND f.accrual_month &lt;= #{endMonth}
+          </if>
+        GROUP BY f.project_id, f.fee_item_type, f.accrual_month
+        ORDER BY f.accrual_month DESC, f.fee_item_type
+    </select>
+
+    <!-- L2 → L3：费项下应收明细（查 fin_receivable 实时数据） -->
+    <select id="selectReceivablesByFeeItem"
+            resultType="java.util.LinkedHashMap">
+        SELECT
+            r.id                AS receivableId,
+            r.contract_id       AS contractId,
+            r.project_id        AS projectId,
+            r.merchant_id       AS merchantId,
+            r.fee_item_id       AS feeItemId,
+            r.accrual_month     AS accrualMonth,
+            r.billing_start     AS billingStart,
+            r.billing_end       AS billingEnd,
+            r.original_amount   AS originalAmount,
+            r.actual_amount     AS actualAmount,
+            r.received_amount   AS receivedAmount,
+            r.outstanding_amount AS outstandingAmount,
+            r.status            AS status
+        FROM fin_receivable r
+        WHERE r.project_id  = #{projectId}
+          AND r.is_deleted  = 0
+          <if test="feeItemType != null and feeItemType != ''">
+            AND EXISTS (
+                SELECT 1 FROM cfg_fee_item fi
+                WHERE fi.id = r.fee_item_id
+                  AND fi.charge_type = #{feeItemType}
+                  AND fi.is_deleted  = 0
+            )
+          </if>
+          <if test="startMonth != null and startMonth != ''">
+            AND r.accrual_month >= #{startMonth}
+          </if>
+          <if test="endMonth != null and endMonth != ''">
+            AND r.accrual_month &lt;= #{endMonth}
+          </if>
+        ORDER BY r.accrual_month DESC, r.contract_id
+        LIMIT 500
+    </select>
+
+</mapper>

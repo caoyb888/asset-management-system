@@ -12,3 +12,6 @@ export { default as DrillTable } from './DrillTable.vue'
 export type { DrillColumn, DrillCrumb, DrillEvent } from './DrillTable.vue'
 
 export { default as ExportButton } from './ExportButton.vue'
+
+export { default as DrillDownPanel } from './DrillDownPanel.vue'
+export type { DrillCrumb as DrillPanelCrumb } from '@/api/rpt/drillDown'
