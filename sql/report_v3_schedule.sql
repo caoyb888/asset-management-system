@@ -4,14 +4,16 @@
 -- 说明:
 --   为 rpt_schedule_task 追加 report_code 冗余字段（避免 JOIN rpt_config）。
 --   原 report_id 改为允许 0 默认值（未关联时填 0）。
+-- 注意: MySQL 8.0 不支持 ADD COLUMN IF NOT EXISTS / ADD INDEX IF NOT EXISTS
+--       本脚本设计为从 v1 单向迁移，幂等性由调用方保证
 -- ==================================================
 
 USE asset_report;
 
 ALTER TABLE `rpt_schedule_task`
   MODIFY COLUMN `report_id` bigint NOT NULL DEFAULT '0' COMMENT '报表配置ID（关联rpt_config.id，未关联时为0）',
-  ADD COLUMN IF NOT EXISTS `report_code` varchar(50) NOT NULL DEFAULT '' COMMENT '报表编码（与ExportTaskDTO.reportCode一致，冗余存储）' AFTER `report_id`;
+  ADD COLUMN `report_code` varchar(50) NOT NULL DEFAULT '' COMMENT '报表编码（与ExportTaskDTO.reportCode一致，冗余存储）' AFTER `report_id`;
 
 -- 为 report_code 建立索引
 ALTER TABLE `rpt_schedule_task`
-  ADD INDEX IF NOT EXISTS `idx_report_code` (`report_code`);
+  ADD INDEX `idx_report_code` (`report_code`);
