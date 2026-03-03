@@ -4,11 +4,13 @@ import com.asset.report.common.param.ReportQueryParam;
 import com.asset.report.common.param.ReportQueryParam.CompareMode;
 import com.asset.report.common.permission.ReportPermissionContext;
 import com.asset.report.common.util.PeriodCompareUtil;
+import com.asset.report.config.ReportCacheConfig;
 import com.asset.report.entity.RptInvestmentDaily;
 import com.asset.report.mapper.rpt.RptInvestmentDailyMapper;
 import com.asset.report.vo.inv.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -17,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
@@ -32,6 +35,13 @@ public class ReportInvestmentServiceImpl implements ReportInvestmentService {
     // ==================== 看板（P0） ====================
 
     @Override
+    @Cacheable(
+        cacheManager = "reportCacheManager",
+        value = ReportCacheConfig.CACHE_DASHBOARD,
+        key = "'inv:' + (#param.projectId ?: 'ALL') + ':' + T(com.asset.report.common.permission.ReportPermissionContext).getCacheKey()",
+        condition = "!T(com.asset.report.common.permission.ReportPermissionContext).hasNoPermission()",
+        unless = "#result == null"
+    )
     public InvDashboardVO dashboard(ReportQueryParam param) {
         List<Long> permIds = ReportPermissionContext.get();
         if (ReportPermissionContext.hasNoPermission()) {
@@ -45,21 +55,33 @@ public class ReportInvestmentServiceImpl implements ReportInvestmentService {
             return new InvDashboardVO();
         }
 
-        // 2. 查询最新日期的项目级汇总
-        List<RptInvestmentDaily> summaries = invDailyMapper.selectProjectSummaryByDate(
-                latestDate, param.getProjectId(), permIds);
+        // 2. 并行执行 5 个子查询
+        LocalDate trendStart = latestDate.minusDays(29);
+        LocalDate yoyDate    = latestDate.minusYears(1);
+        Long      projectId  = param.getProjectId();
 
+        CompletableFuture<List<RptInvestmentDaily>> cfSummary    = CompletableFuture.supplyAsync(
+                () -> invDailyMapper.selectProjectSummaryByDate(latestDate, projectId, permIds));
+        CompletableFuture<List<RptInvestmentDaily>> cfYoy        = CompletableFuture.supplyAsync(
+                () -> invDailyMapper.selectProjectSummaryByDate(yoyDate, projectId, permIds));
+        CompletableFuture<List<FunnelVO>>           cfFunnel     = CompletableFuture.supplyAsync(
+                () -> buildFunnel(latestDate, projectId, permIds));
+        CompletableFuture<List<InvTrendVO>>         cfTrend      = CompletableFuture.supplyAsync(
+                () -> invDailyMapper.selectInvTrend(projectId, null, null, trendStart, latestDate, "DAY", permIds));
+        CompletableFuture<List<PerformanceVO>>      cfPerformance = CompletableFuture.supplyAsync(
+                () -> invDailyMapper.selectPerformance(latestDate, projectId, null, permIds));
+
+        CompletableFuture.allOf(cfSummary, cfYoy, cfFunnel, cfTrend, cfPerformance).join();
+
+        // 3. 组装核心指标
         InvDashboardVO vo = new InvDashboardVO().setLatestDate(latestDate);
-
-        // 3. 聚合核心指标
+        List<RptInvestmentDaily> summaries = cfSummary.join();
         if (!summaries.isEmpty()) {
             aggregateSummaryToVO(summaries, vo);
         }
 
-        // 4. 同比（YoY）：去年同日
-        LocalDate yoyDate = latestDate.minusYears(1);
-        List<RptInvestmentDaily> yoySummaries = invDailyMapper.selectProjectSummaryByDate(
-                yoyDate, param.getProjectId(), permIds);
+        // 4. 同比（YoY）
+        List<RptInvestmentDaily> yoySummaries = cfYoy.join();
         if (!yoySummaries.isEmpty()) {
             RptInvestmentDaily yoy = aggregateSummary(yoySummaries);
             vo.setContractCountYoY(PeriodCompareUtil.calcYoY(
@@ -70,22 +92,15 @@ public class ReportInvestmentServiceImpl implements ReportInvestmentService {
             vo.setConversionRateYoY(PeriodCompareUtil.calcYoY(vo.getConversionRate(), yoy.getConversionRate()));
         }
 
-        // 5. 漏斗数据
-        vo.setFunnel(buildFunnel(latestDate, param.getProjectId(), permIds));
+        // 5. 漏斗 + 趋势 + 业绩对比
+        vo.setFunnel(cfFunnel.join());
 
-        // 6. 近30天新增趋势
-        LocalDate trendEnd = latestDate;
-        LocalDate trendStart = latestDate.minusDays(29);
-        String timeUnit = "DAY";
-        List<InvTrendVO> allTrend = invDailyMapper.selectInvTrend(
-                param.getProjectId(), null, null, trendStart, trendEnd, timeUnit, permIds);
+        List<InvTrendVO> allTrend = cfTrend.join();
         if (allTrend == null) allTrend = Collections.emptyList();
         vo.setIntentionTrend(allTrend);
         vo.setContractTrend(allTrend);
 
-        // 7. 项目业绩对比
-        List<PerformanceVO> comparison = invDailyMapper.selectPerformance(
-                latestDate, param.getProjectId(), null, permIds);
+        List<PerformanceVO> comparison = cfPerformance.join();
         vo.setProjectComparison(comparison != null ? comparison : Collections.emptyList());
 
         return vo;

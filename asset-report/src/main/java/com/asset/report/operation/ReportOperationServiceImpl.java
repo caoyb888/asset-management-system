@@ -4,17 +4,20 @@ import com.asset.report.common.param.ReportQueryParam;
 import com.asset.report.common.param.ReportQueryParam.CompareMode;
 import com.asset.report.common.permission.ReportPermissionContext;
 import com.asset.report.common.util.PeriodCompareUtil;
+import com.asset.report.config.ReportCacheConfig;
 import com.asset.report.entity.RptOperationMonthly;
 import com.asset.report.mapper.rpt.RptOperationMonthlyMapper;
 import com.asset.report.vo.opr.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
@@ -30,6 +33,13 @@ public class ReportOperationServiceImpl implements ReportOperationService {
     // ==================== 看板（P0）====================
 
     @Override
+    @Cacheable(
+        cacheManager = "reportCacheManager",
+        value = ReportCacheConfig.CACHE_DASHBOARD,
+        key = "'opr:' + (#param.projectId ?: 'ALL') + ':' + T(com.asset.report.common.permission.ReportPermissionContext).getCacheKey()",
+        condition = "!T(com.asset.report.common.permission.ReportPermissionContext).hasNoPermission()",
+        unless = "#result == null"
+    )
     public OprDashboardVO dashboard(ReportQueryParam param) {
         List<Long> permIds = ReportPermissionContext.get();
         if (ReportPermissionContext.hasNoPermission()) {
@@ -43,33 +53,45 @@ public class ReportOperationServiceImpl implements ReportOperationService {
             return new OprDashboardVO();
         }
 
-        // 2. 查询最新月份项目级汇总
-        List<RptOperationMonthly> summaries = oprMapper.selectProjectSummaryByMonth(
-                latestMonth, param.getProjectId(), permIds);
+        // 2. 并行执行 5 个子查询
+        String yoyMonth   = prevYearMonth(latestMonth);
+        String trendStart = prevMonths(latestMonth, 11);
+        Long   projectId  = param.getProjectId();
 
+        CompletableFuture<List<RptOperationMonthly>>   cfSummary  = CompletableFuture.supplyAsync(
+                () -> oprMapper.selectProjectSummaryByMonth(latestMonth, projectId, permIds));
+        CompletableFuture<List<RptOperationMonthly>>   cfYoy      = CompletableFuture.supplyAsync(
+                () -> oprMapper.selectProjectSummaryByMonth(yoyMonth, projectId, permIds));
+        CompletableFuture<List<OprExpiringContractVO>> cfExpiring = CompletableFuture.supplyAsync(
+                () -> oprMapper.selectExpiringContracts(latestMonth, projectId, permIds));
+        CompletableFuture<List<OprTrendVO>>            cfTrend    = CompletableFuture.supplyAsync(
+                () -> oprMapper.selectRevenueTrend(projectId, null, trendStart, latestMonth, permIds));
+        CompletableFuture<List<OprRegionCompareVO>>    cfCompare  = CompletableFuture.supplyAsync(
+                () -> oprMapper.selectRegionCompare(latestMonth, projectId, permIds));
+
+        CompletableFuture.allOf(cfSummary, cfYoy, cfExpiring, cfTrend, cfCompare).join();
+
+        // 3. 组装核心指标
         OprDashboardVO vo = new OprDashboardVO().setLatestMonth(latestMonth);
-
+        List<RptOperationMonthly> summaries = cfSummary.join();
         if (!summaries.isEmpty()) {
             aggregateSummaryToVO(summaries, vo);
         }
 
-        // 3. 同比（YoY）：去年同月
-        String yoyMonth = prevYearMonth(latestMonth);
-        List<RptOperationMonthly> yoySummaries = oprMapper.selectProjectSummaryByMonth(
-                yoyMonth, param.getProjectId(), permIds);
+        // 4. 同比（YoY）
+        List<RptOperationMonthly> yoySummaries = cfYoy.join();
         if (!yoySummaries.isEmpty()) {
-            BigDecimal prevRevenue = sumRevenue(yoySummaries);
+            BigDecimal prevRevenue   = sumRevenue(yoySummaries);
             BigDecimal prevPassenger = BigDecimal.valueOf(sumPassenger(yoySummaries));
-            BigDecimal prevSqm = avgSqm(yoySummaries);
+            BigDecimal prevSqm       = avgSqm(yoySummaries);
             vo.setRevenueYoY(PeriodCompareUtil.calcYoY(vo.getTotalRevenue(), prevRevenue));
             vo.setPassengerFlowYoY(PeriodCompareUtil.calcYoY(
                     BigDecimal.valueOf(vo.getPassengerFlow() == null ? 0 : vo.getPassengerFlow()), prevPassenger));
             vo.setAvgRevenuePerSqmYoY(PeriodCompareUtil.calcYoY(vo.getAvgRevenuePerSqm(), prevSqm));
         }
 
-        // 4. 到期预警
-        List<OprExpiringContractVO> expiring = oprMapper.selectExpiringContracts(
-                latestMonth, param.getProjectId(), permIds);
+        // 5. 到期预警
+        List<OprExpiringContractVO> expiring = cfExpiring.join();
         if (expiring != null && !expiring.isEmpty()) {
             int w30 = expiring.stream().mapToInt(e -> e.getExpiringWithin30() == null ? 0 : e.getExpiringWithin30()).sum();
             int w60 = expiring.stream().mapToInt(e -> e.getExpiringWithin60() == null ? 0 : e.getExpiringWithin60()).sum();
@@ -77,16 +99,13 @@ public class ReportOperationServiceImpl implements ReportOperationService {
             vo.setExpiringWithin30(w30).setExpiringWithin60(w60).setExpiringWithin90(w90);
         }
 
-        // 5. 近12个月趋势
-        String trendStart = prevMonths(latestMonth, 11);
-        List<OprTrendVO> trend = oprMapper.selectRevenueTrend(
-                param.getProjectId(), null, trendStart, latestMonth, permIds);
+        // 6. 趋势（月粒度，通常 12 条，不需降采样）
+        List<OprTrendVO> trend = cfTrend.join();
         vo.setRevenueTrend(trend != null ? trend : Collections.emptyList());
         vo.setPassengerTrend(trend != null ? trend : Collections.emptyList());
 
-        // 6. 项目业务对比
-        List<OprRegionCompareVO> comparison = oprMapper.selectRegionCompare(
-                latestMonth, param.getProjectId(), permIds);
+        // 7. 项目业务对比
+        List<OprRegionCompareVO> comparison = cfCompare.join();
         if (comparison != null && !comparison.isEmpty()) {
             calcRegionScores(comparison);
         }

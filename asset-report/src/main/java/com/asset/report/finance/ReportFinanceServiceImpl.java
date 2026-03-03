@@ -4,12 +4,14 @@ import com.asset.report.common.param.ReportQueryParam;
 import com.asset.report.common.param.ReportQueryParam.CompareMode;
 import com.asset.report.common.permission.ReportPermissionContext;
 import com.asset.report.common.util.PeriodCompareUtil;
+import com.asset.report.config.ReportCacheConfig;
 import com.asset.report.entity.RptFinanceMonthly;
 import com.asset.report.mapper.rpt.RptAgingAnalysisMapper;
 import com.asset.report.mapper.rpt.RptFinanceMonthlyMapper;
 import com.asset.report.vo.fin.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -18,6 +20,7 @@ import java.time.YearMonth;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
@@ -34,34 +37,61 @@ public class ReportFinanceServiceImpl implements ReportFinanceService {
     // ==================== 看板（P0）====================
 
     @Override
+    @Cacheable(
+        cacheManager = "reportCacheManager",
+        value = ReportCacheConfig.CACHE_DASHBOARD,
+        key = "'fin:' + (#param.projectId ?: 'ALL') + ':' + T(com.asset.report.common.permission.ReportPermissionContext).getCacheKey()",
+        condition = "!T(com.asset.report.common.permission.ReportPermissionContext).hasNoPermission()",
+        unless = "#result == null"
+    )
     public FinDashboardVO dashboard(ReportQueryParam param) {
         List<Long> permIds = ReportPermissionContext.get();
         if (ReportPermissionContext.hasNoPermission()) {
             return new FinDashboardVO();
         }
 
-        // 1. 确定最新统计月份
+        // 1. 确定最新统计月份（串行，作为后续查询的前提）
         String latestMonth = finMapper.selectMaxStatMonth(param.getProjectId(), permIds);
         if (latestMonth == null) {
             log.warn("[FinDashboard] rpt_finance_monthly 无数据，返回空看板");
             return new FinDashboardVO();
         }
 
-        // 2. 查询最新月份的项目级汇总
-        List<RptFinanceMonthly> summaries = finMapper.selectProjectSummaryByMonth(
-                latestMonth, param.getProjectId(), permIds);
+        // 2. 并行执行各子查询
+        String yoyMonth = prevYearMonth(latestMonth);
+        String trendStart = prevMonths(latestMonth, 11);
 
+        CompletableFuture<List<RptFinanceMonthly>> cfSummary = CompletableFuture.supplyAsync(
+                () -> finMapper.selectProjectSummaryByMonth(latestMonth, param.getProjectId(), permIds));
+        CompletableFuture<List<RptFinanceMonthly>> cfYoy = CompletableFuture.supplyAsync(
+                () -> finMapper.selectProjectSummaryByMonth(yoyMonth, param.getProjectId(), permIds));
+        CompletableFuture<List<FinTrendVO>> cfTrend = CompletableFuture.supplyAsync(
+                () -> finMapper.selectFinTrend(param.getProjectId(), trendStart, latestMonth, permIds));
+
+        // 账龄：先并行取最新统计日期，日期就绪后再并行取账龄汇总和 TOP10
+        CompletableFuture<LocalDate> cfAgingDate = CompletableFuture.supplyAsync(
+                () -> agingMapper.selectMaxStatDate(param.getProjectId(), permIds));
+        CompletableFuture<List<FinAgingAnalysisVO>> cfAgingList = cfAgingDate.thenApplyAsync(
+                agingDate -> agingDate == null ? Collections.emptyList()
+                        : agingMapper.selectAgingProjectSummary(agingDate, param.getProjectId(), permIds));
+        CompletableFuture<List<FinAgingAnalysisVO>> cfTop10 = cfAgingDate.thenApplyAsync(
+                agingDate -> agingDate == null ? Collections.emptyList()
+                        : agingMapper.selectOverdueTopN(agingDate, param.getProjectId(), 10, permIds));
+
+        // 3. 等待全部完成
+        CompletableFuture.allOf(cfSummary, cfYoy, cfTrend, cfAgingList, cfTop10).join();
+
+        // 4. 组装 VO
         FinDashboardVO vo = new FinDashboardVO().setLatestMonth(latestMonth);
 
-        if (!summaries.isEmpty()) {
+        List<RptFinanceMonthly> summaries = cfSummary.join();
+        if (summaries != null && !summaries.isEmpty()) {
             aggregateSummaryToVO(summaries, vo);
         }
 
-        // 3. 同比（YoY）：去年同月
-        String yoyMonth = prevYearMonth(latestMonth);
-        List<RptFinanceMonthly> yoySummaries = finMapper.selectProjectSummaryByMonth(
-                yoyMonth, param.getProjectId(), permIds);
-        if (!yoySummaries.isEmpty()) {
+        // 同比（YoY）：去年同月
+        List<RptFinanceMonthly> yoySummaries = cfYoy.join();
+        if (yoySummaries != null && !yoySummaries.isEmpty()) {
             BigDecimal prevReceivable = sumReceivable(yoySummaries);
             BigDecimal prevReceived = sumReceived(yoySummaries);
             BigDecimal prevOverdue = sumOverdue(yoySummaries);
@@ -74,30 +104,23 @@ public class ReportFinanceServiceImpl implements ReportFinanceService {
             vo.setOverdueRateYoY(PeriodCompareUtil.calcYoY(vo.getAvgOverdueRate(), prevOverdueRate));
         }
 
-        // 4. 近 12 个月趋势
-        String trendStart = prevMonths(latestMonth, 11);
-        List<FinTrendVO> trend = finMapper.selectFinTrend(
-                param.getProjectId(), trendStart, latestMonth, permIds);
+        // 近 12 个月趋势
+        List<FinTrendVO> trend = cfTrend.join();
         vo.setFinanceTrend(trend != null ? trend : Collections.emptyList());
 
-        // 5. 账龄分布（最新统计日期的项目汇总）
-        LocalDate latestAgingDate = agingMapper.selectMaxStatDate(param.getProjectId(), permIds);
-        if (latestAgingDate != null) {
-            List<FinAgingAnalysisVO> agingList = agingMapper.selectAgingProjectSummary(
-                    latestAgingDate, param.getProjectId(), permIds);
-            if (!agingList.isEmpty()) {
-                FinAgingAnalysisVO agingSummary = mergeAgingList(agingList);
-                calcAgingRates(agingSummary);
-                vo.setAgingSummary(agingSummary);
-            }
+        // 账龄分布（项目汇总）
+        List<FinAgingAnalysisVO> agingList = cfAgingList.join();
+        if (!agingList.isEmpty()) {
+            FinAgingAnalysisVO agingSummary = mergeAgingList(agingList);
+            calcAgingRates(agingSummary);
+            vo.setAgingSummary(agingSummary);
+        }
 
-            // 6. 欠款 TOP10 商家
-            List<FinAgingAnalysisVO> top10 = agingMapper.selectOverdueTopN(
-                    latestAgingDate, param.getProjectId(), 10, permIds);
-            if (top10 != null) {
-                top10.forEach(this::calcAgingRates);
-                vo.setOverdueTop10(top10);
-            }
+        // 欠款 TOP10 商家
+        List<FinAgingAnalysisVO> top10 = cfTop10.join();
+        if (top10 != null && !top10.isEmpty()) {
+            top10.forEach(this::calcAgingRates);
+            vo.setOverdueTop10(top10);
         }
 
         return vo;

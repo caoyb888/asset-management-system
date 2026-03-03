@@ -3,7 +3,9 @@ package com.asset.report.asset;
 import com.asset.report.common.param.ReportQueryParam;
 import com.asset.report.common.param.ReportQueryParam.CompareMode;
 import com.asset.report.common.permission.ReportPermissionContext;
+import com.asset.report.common.util.LttbDownsampleUtil;
 import com.asset.report.common.util.PeriodCompareUtil;
+import com.asset.report.config.ReportCacheConfig;
 import com.asset.report.entity.RptAssetDaily;
 import com.asset.report.mapper.rpt.RptAssetDailyMapper;
 import com.asset.report.vo.asset.*;
@@ -11,6 +13,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -19,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
@@ -34,44 +38,66 @@ public class ReportAssetServiceImpl implements ReportAssetService {
     // ==================== 看板（P0） ====================
 
     @Override
+    @Cacheable(
+        cacheManager = "reportCacheManager",
+        value = ReportCacheConfig.CACHE_DASHBOARD,
+        key = "'asset:' + (#param.projectId ?: 'ALL') + ':' + T(com.asset.report.common.permission.ReportPermissionContext).getCacheKey()",
+        condition = "!T(com.asset.report.common.permission.ReportPermissionContext).hasNoPermission()",
+        unless = "#result == null"
+    )
     public AssetDashboardVO dashboard(ReportQueryParam param) {
         List<Long> permIds = ReportPermissionContext.get();
         if (ReportPermissionContext.hasNoPermission()) {
             return new AssetDashboardVO();
         }
 
-        // 1. 确定最新统计日期
+        // 1. 确定最新统计日期（其余查询均依赖此值）
         LocalDate latestDate = assetDailyMapper.selectMaxStatDate(param.getProjectId(), permIds);
         if (latestDate == null) {
             log.warn("[AssetDashboard] rpt_asset_daily 无数据，返回空看板");
             return new AssetDashboardVO();
         }
 
-        // 2. 查询最新日期的项目级汇总
-        List<RptAssetDaily> summaries = assetDailyMapper.selectProjectSummaryByDate(
-                latestDate, param.getProjectId(), permIds);
+        // 2. 并行执行 6 个子查询（CompletableFuture，减少串行等待时间）
+        LocalDate trendStart = latestDate.minusDays(29);
+        LocalDate yoyDate    = latestDate.minusYears(1);
+        LocalDate momDate    = latestDate.minusMonths(1);
+        Long      projectId  = param.getProjectId();
 
+        CompletableFuture<List<RptAssetDaily>> cfSummary  = CompletableFuture.supplyAsync(
+                () -> assetDailyMapper.selectProjectSummaryByDate(latestDate, projectId, permIds));
+        CompletableFuture<List<RateTrendVO>>   cfVacancy  = CompletableFuture.supplyAsync(
+                () -> queryTrend(projectId, null, null, null, trendStart, latestDate, "DAY", "vacancy_rate", permIds));
+        CompletableFuture<List<RateTrendVO>>   cfRental   = CompletableFuture.supplyAsync(
+                () -> queryTrend(projectId, null, null, null, trendStart, latestDate, "DAY", "rental_rate", permIds));
+        CompletableFuture<List<RateTrendVO>>   cfOpening  = CompletableFuture.supplyAsync(
+                () -> queryTrend(projectId, null, null, null, trendStart, latestDate, "DAY", "opening_rate", permIds));
+        CompletableFuture<List<RptAssetDaily>> cfYoy      = CompletableFuture.supplyAsync(
+                () -> assetDailyMapper.selectProjectSummaryByDate(yoyDate, projectId, permIds));
+        CompletableFuture<List<RptAssetDaily>> cfMom      = CompletableFuture.supplyAsync(
+                () -> assetDailyMapper.selectProjectSummaryByDate(momDate, projectId, permIds));
+        CompletableFuture<List<ProjectCompareVO>> cfComp  = CompletableFuture.supplyAsync(
+                () -> assetDailyMapper.selectProjectComparison(latestDate, permIds));
+
+        CompletableFuture.allOf(cfSummary, cfVacancy, cfRental, cfOpening, cfYoy, cfMom, cfComp).join();
+
+        // 3. 组装核心指标
         AssetDashboardVO vo = new AssetDashboardVO().setLatestDate(latestDate);
-
-        // 3. 聚合核心指标
+        List<RptAssetDaily> summaries = cfSummary.join();
         if (!summaries.isEmpty()) {
             aggregateSummaryToVO(summaries, vo);
         }
 
-        // 4. 30天趋势数据
-        LocalDate trendEnd = latestDate;
-        LocalDate trendStart = latestDate.minusDays(29);
-        vo.setVacancyTrend(queryTrend(param.getProjectId(), null, null, null,
-                trendStart, trendEnd, "DAY", "vacancy_rate", permIds));
-        vo.setRentalTrend(queryTrend(param.getProjectId(), null, null, null,
-                trendStart, trendEnd, "DAY", "rental_rate", permIds));
-        vo.setOpeningTrend(queryTrend(param.getProjectId(), null, null, null,
-                trendStart, trendEnd, "DAY", "opening_rate", permIds));
+        // 4. 趋势数据（LTTB 降采样，数据点 > 1000 时自动降采）
+        vo.setVacancyTrend(LttbDownsampleUtil.downsample(cfVacancy.join(), 1000,
+                v -> v.getValue() == null ? 0.0 : v.getValue().doubleValue()));
+        vo.setRentalTrend(LttbDownsampleUtil.downsample(cfRental.join(), 1000,
+                v -> v.getValue() == null ? 0.0 : v.getValue().doubleValue()));
+        vo.setOpeningTrend(LttbDownsampleUtil.downsample(cfOpening.join(), 1000,
+                v -> v.getValue() == null ? 0.0 : v.getValue().doubleValue()));
 
-        // 5. 同比（YoY）：去年同日
-        LocalDate yoyDate = latestDate.minusYears(1);
-        List<RptAssetDaily> yoySummaries = assetDailyMapper.selectProjectSummaryByDate(
-                yoyDate, param.getProjectId(), permIds);
+        // 5. 同比（YoY）
+        List<RptAssetDaily> yoySummaries = cfYoy.join();
         if (!yoySummaries.isEmpty()) {
             RptAssetDaily yoy = aggregateSummary(yoySummaries);
             vo.setVacancyRateYoY(PeriodCompareUtil.calcYoY(vo.getVacancyRate(), yoy.getVacancyRate()));
@@ -79,10 +105,8 @@ public class ReportAssetServiceImpl implements ReportAssetService {
             vo.setOpeningRateYoY(PeriodCompareUtil.calcYoY(vo.getOpeningRate(), yoy.getOpeningRate()));
         }
 
-        // 6. 环比（MoM）：上月同日
-        LocalDate momDate = latestDate.minusMonths(1);
-        List<RptAssetDaily> momSummaries = assetDailyMapper.selectProjectSummaryByDate(
-                momDate, param.getProjectId(), permIds);
+        // 6. 环比（MoM）
+        List<RptAssetDaily> momSummaries = cfMom.join();
         if (!momSummaries.isEmpty()) {
             RptAssetDaily mom = aggregateSummary(momSummaries);
             vo.setVacancyRateMoM(PeriodCompareUtil.calcMoM(vo.getVacancyRate(), mom.getVacancyRate()));
@@ -90,8 +114,8 @@ public class ReportAssetServiceImpl implements ReportAssetService {
             vo.setOpeningRateMoM(PeriodCompareUtil.calcMoM(vo.getOpeningRate(), mom.getOpeningRate()));
         }
 
-        // 7. 项目对比数据
-        List<ProjectCompareVO> comparison = assetDailyMapper.selectProjectComparison(latestDate, permIds);
+        // 7. 项目对比
+        List<ProjectCompareVO> comparison = cfComp.join();
         vo.setProjectComparison(comparison != null ? comparison : Collections.emptyList());
 
         return vo;

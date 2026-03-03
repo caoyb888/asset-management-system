@@ -1,5 +1,6 @@
 package com.asset.report.common.permission;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -88,6 +89,23 @@ public final class ReportPermissionContext {
     public static boolean hasNoPermission() {
         List<Long> ids = PERMITTED_PROJECTS.get();
         return ids != null && ids.isEmpty();
+    }
+
+    /**
+     * 生成缓存键的权限指纹字符串，供 @Cacheable SpEL 表达式使用
+     * <ul>
+     *   <li>管理员（null）：返回 "ADMIN"</li>
+     *   <li>无权限（空列表）：返回 "NONE"</li>
+     *   <li>有限权限：返回排序后的 projectIds hashCode 字符串</li>
+     * </ul>
+     */
+    public static String getCacheKey() {
+        List<Long> ids = PERMITTED_PROJECTS.get();
+        if (ids == null) return "ADMIN";
+        if (ids.isEmpty()) return "NONE";
+        List<Long> sorted = new ArrayList<>(ids);
+        Collections.sort(sorted);
+        return String.valueOf(sorted.hashCode());
     }
 
     /**

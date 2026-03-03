@@ -1,7 +1,11 @@
 package com.asset.report.etl;
 
+import com.asset.report.config.ReportCacheConfig;
 import com.xxl.job.core.biz.model.ReturnT;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -26,6 +30,10 @@ public abstract class AbstractReportEtlJob {
     private static final DateTimeFormatter DATE_FMT  = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter MONTH_FMT = DateTimeFormatter.ofPattern("yyyy-MM");
 
+    /** 注入报表缓存管理器，ETL 完成后主动清空看板缓存（required=false 防止测试环境无 Redis 时报错）*/
+    @Autowired(required = false)
+    private CacheManager reportCacheManager;
+
     // ==========================================
     // 模板方法：日级 ETL 入口
     // ==========================================
@@ -42,6 +50,7 @@ public abstract class AbstractReportEtlJob {
             doWithRetry(() -> doEtl(statDate), statDate.toString());
             long cost = System.currentTimeMillis() - begin;
             log.info("[ETL-DAILY] {} 成功，耗时: {}ms，日期: {}", getJobName(), cost, statDate);
+            clearDashboardCache();
             return new ReturnT<>(ReturnT.SUCCESS_CODE,
                     "OK date=" + statDate + " cost=" + cost + "ms");
         } catch (Exception e) {
@@ -66,6 +75,7 @@ public abstract class AbstractReportEtlJob {
             doWithRetry(() -> doEtlMonthly(statMonth), statMonth);
             long cost = System.currentTimeMillis() - begin;
             log.info("[ETL-MONTHLY] {} 成功，耗时: {}ms，月份: {}", getJobName(), cost, statMonth);
+            clearDashboardCache();
             return new ReturnT<>(ReturnT.SUCCESS_CODE,
                     "OK month=" + statMonth + " cost=" + cost + "ms");
         } catch (Exception e) {
@@ -167,6 +177,23 @@ public abstract class AbstractReportEtlJob {
 
     /** 返回任务名称（用于日志区分） */
     protected abstract String getJobName();
+
+    /**
+     * ETL 成功后主动清空看板缓存（rpt:dashboard）
+     * <p>使数据变更后前端下次请求能拿到最新数据，而非等 TTL 自然过期。</p>
+     */
+    protected void clearDashboardCache() {
+        if (reportCacheManager == null) return;
+        try {
+            Cache cache = reportCacheManager.getCache(ReportCacheConfig.CACHE_DASHBOARD);
+            if (cache != null) {
+                cache.clear();
+                log.info("[ETL] {} ETL 完成，已清空看板缓存 ({})", getJobName(), ReportCacheConfig.CACHE_DASHBOARD);
+            }
+        } catch (Exception e) {
+            log.warn("[ETL] {} 清空看板缓存失败（不影响 ETL 结果）: {}", getJobName(), e.getMessage());
+        }
+    }
 
     // ==========================================
     // 工具方法
