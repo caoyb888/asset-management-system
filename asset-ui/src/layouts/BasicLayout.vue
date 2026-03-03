@@ -173,6 +173,10 @@
             <el-icon><DataAnalysis /></el-icon>
             <span>报表管理</span>
           </template>
+          <el-menu-item index="/rpt/home">
+            <el-icon><HomeFilled /></el-icon>
+            <template #title>报表中心</template>
+          </el-menu-item>
           <el-menu-item index="/rpt/asset/dashboard">
             <el-icon><Monitor /></el-icon>
             <template #title>资产数据看板</template>
@@ -348,7 +352,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop, Star, User, Bell, Document, Briefcase, Setting, Coin, EditPen, Tickets, Checked, DataLine, PieChart, Operation, Memo, Switch, TrendCharts, UserFilled, CircleClose, Money, List, CreditCard, Postcard, Wallet, CollectionTag, Warning, CircleCheck, DataAnalysis, Key, Files, Menu, FolderOpened, Filter, MapLocation, Histogram } from '@element-plus/icons-vue'
+import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop, Star, User, Bell, Document, Briefcase, Setting, Coin, EditPen, Tickets, Checked, DataLine, PieChart, Operation, Memo, Switch, TrendCharts, UserFilled, CircleClose, Money, List, CreditCard, Postcard, Wallet, CollectionTag, Warning, CircleCheck, DataAnalysis, Key, Files, Menu, FolderOpened, Filter, MapLocation, Histogram, HomeFilled } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/modules/user'
 import { useAppStore } from '@/store/modules/app'
 

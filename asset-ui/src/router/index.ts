@@ -281,6 +281,12 @@ const routes: RouteRecordRaw[] = [
       },
       // ── 报表管理 ──
       {
+        path: 'rpt/home',
+        name: 'RptHome',
+        component: () => import('@/views/rpt/home.vue'),
+        meta: { title: '报表中心', icon: 'DataAnalysis' },
+      },
+      {
         path: 'rpt/asset/dashboard',
         name: 'RptAssetDashboard',
         component: () => import('@/views/rpt/asset/dashboard.vue'),

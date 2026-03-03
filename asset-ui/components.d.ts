@@ -9,7 +9,10 @@ declare module 'vue' {
   export interface GlobalComponents {
     ApprovalDialog: typeof import('./src/components/inv/ApprovalDialog.vue')['default']
     ApprovalTimeline: typeof import('./src/components/inv/ApprovalTimeline.vue')['default']
+    ChartContainer: typeof import('./src/components/rpt/ChartContainer.vue')['default']
     ContractSelector: typeof import('./src/components/opr/ContractSelector.vue')['default']
+    DrillDownPanel: typeof import('./src/components/rpt/DrillDownPanel.vue')['default']
+    DrillTable: typeof import('./src/components/rpt/DrillTable.vue')['default']
     ElAlert: typeof import('element-plus/es')['ElAlert']
     ElAside: typeof import('element-plus/es')['ElAside']
     ElAvatar: typeof import('element-plus/es')['ElAvatar']
@@ -77,11 +80,15 @@ declare module 'vue' {
     ElTree: typeof import('element-plus/es')['ElTree']
     ElTreeSelect: typeof import('element-plus/es')['ElTreeSelect']
     ElUpload: typeof import('element-plus/es')['ElUpload']
+    ExportButton: typeof import('./src/components/rpt/ExportButton.vue')['default']
     FeeItemSelector: typeof import('./src/components/inv/FeeItemSelector.vue')['default']
+    MetricCard: typeof import('./src/components/rpt/MetricCard.vue')['default']
     ReceivableCalendar: typeof import('./src/components/opr/ReceivableCalendar.vue')['default']
     RentSchemeSelector: typeof import('./src/components/inv/RentSchemeSelector.vue')['default']
+    ReportFilterBar: typeof import('./src/components/rpt/ReportFilterBar.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    TimeDimensionSwitch: typeof import('./src/components/rpt/TimeDimensionSwitch.vue')['default']
   }
   export interface ComponentCustomProperties {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']
