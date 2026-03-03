@@ -40,12 +40,15 @@ public class ReportDataPermissionAspect {
     public Object around(ProceedingJoinPoint point) throws Throwable {
         Long userId = SecurityUtil.getCurrentUserId();
         List<Long> permittedProjectIds = permissionService.getPermittedProjectIds(userId);
+        boolean hasFinViewPerm = permissionService.hasFinViewPermission(userId);
 
-        log.debug("[RptDataScope] userId={} 进入权限切面，可见项目数={}",
-                userId, permittedProjectIds == null ? "全部(admin)" : permittedProjectIds.size());
+        log.debug("[RptDataScope] userId={} 进入权限切面，可见项目数={}，财务查看权限={}",
+                userId, permittedProjectIds == null ? "全部(admin)" : permittedProjectIds.size(),
+                hasFinViewPerm);
 
         try {
             ReportPermissionContext.set(permittedProjectIds);
+            ReportPermissionContext.setFinViewPerm(hasFinViewPerm);
             return point.proceed();
         } finally {
             ReportPermissionContext.clear();

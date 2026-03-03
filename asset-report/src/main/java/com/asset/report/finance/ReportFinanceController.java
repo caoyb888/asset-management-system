@@ -2,6 +2,7 @@ package com.asset.report.finance;
 
 import com.asset.common.model.R;
 import com.asset.report.common.param.ReportQueryParam;
+import com.asset.report.common.permission.FinanceDataMaskUtil;
 import com.asset.report.common.permission.RptDataScope;
 import com.asset.report.vo.fin.*;
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,13 +47,23 @@ public class ReportFinanceController {
      * </p>
      */
     @Operation(summary = "财务数据看板",
-            description = "聚合接口，一次返回所有看板图表数据（应收/已收/欠款/逾期指标 + 近12月趋势 + 账龄分布 + 欠款TOP10）")
+            description = "聚合接口，一次返回所有看板图表数据（应收/已收/欠款/逾期指标 + 近12月趋势 + 账龄分布 + 欠款TOP10）。普通用户绝对金额脱敏为 null")
     @GetMapping("/dashboard")
     @RptDataScope
     public R<FinDashboardVO> dashboard(
             @Parameter(description = "查询参数（projectId/statMonth）")
             ReportQueryParam param) {
-        return R.ok(finService.dashboard(param));
+        FinDashboardVO vo = finService.dashboard(param);
+        if (FinanceDataMaskUtil.shouldMask()) {
+            // 脱敏：绝对金额置 null，保留同比/环比趋势百分比
+            vo.setTotalReceivable(null)
+              .setTotalReceived(null)
+              .setTotalOutstanding(null)
+              .setTotalOverdue(null)
+              .setTotalDepositBalance(null)
+              .setTotalPrepayBalance(null);
+        }
+        return R.ok(vo);
     }
 
     /**
@@ -64,13 +75,21 @@ public class ReportFinanceController {
      * </p>
      */
     @Operation(summary = "应收汇总报表",
-            description = "按月份/项目/费项维度汇总应收/已收/欠款/减免/收缴率，compareMode=YOY/MOM 时附带增长率，feeItemType 不传取全费项汇总")
+            description = "按月份/项目/费项维度汇总应收/已收/欠款/减免/收缴率，compareMode=YOY/MOM 时附带增长率，feeItemType 不传取全费项汇总。普通用户绝对金额脱敏")
     @GetMapping("/receivable-summary")
     @RptDataScope
     public R<List<FinReceivableSummaryVO>> receivableSummary(
             @Parameter(description = "查询参数（projectId/feeItemType/startMonth/endMonth/compareMode）")
             ReportQueryParam param) {
-        return R.ok(finService.receivableSummary(param));
+        List<FinReceivableSummaryVO> list = finService.receivableSummary(param);
+        if (FinanceDataMaskUtil.shouldMask()) {
+            list.forEach(r -> r.setReceivableAmount(null)
+                    .setReceivedAmount(null)
+                    .setOutstandingAmount(null)
+                    .setDeductionAmount(null)
+                    .setAdjustmentAmount(null));
+        }
+        return R.ok(list);
     }
 
     /**

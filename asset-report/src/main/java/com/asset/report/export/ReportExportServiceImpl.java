@@ -111,9 +111,11 @@ public class ReportExportServiceImpl implements ReportExportService {
 
         // 4. 捕获权限上下文（ThreadLocal 在异步线程不可见，需显式传递）
         List<Long> permIds = ReportPermissionContext.get();
+        boolean finViewPerm = ReportPermissionContext.hasFinViewPerm();
+        String username = SecurityUtil.getCurrentUsername();
 
         // 5. 提交异步任务
-        doExportAsync(logCode, dto, permIds, cacheKey);
+        doExportAsync(logCode, dto, permIds, finViewPerm, username, cacheKey);
 
         return logCode;
     }
@@ -145,10 +147,12 @@ public class ReportExportServiceImpl implements ReportExportService {
 
     @Async("reportExportExecutor")
     public void doExportAsync(String logCode, ExportTaskDTO dto,
-                              List<Long> permIds, String cacheKey) {
+                              List<Long> permIds, boolean finViewPerm,
+                              String username, String cacheKey) {
         long startMs = System.currentTimeMillis();
         // 注入权限上下文（异步线程独立）
         ReportPermissionContext.set(permIds);
+        ReportPermissionContext.setFinViewPerm(finViewPerm);
         try {
             String format = dto.getFormat() == null ? RptGenerationLog.FORMAT_EXCEL : dto.getFormat().toUpperCase();
             ReportQueryParam param = buildQueryParam(dto.getParams());
@@ -165,8 +169,10 @@ public class ReportExportServiceImpl implements ReportExportService {
             String dir = exportConfig.getOrCreateExportDir();
             String filePath = dir + File.separator + logCode + ".xlsx";
 
-            // 写 Excel（流式，内存友好）
-            int rowCount = writeExcel(filePath, def);
+            // 写 Excel（流式，内存友好），带水印
+            String exportTime = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                    .format(LocalDateTime.now());
+            int rowCount = writeExcel(filePath, def, username, exportTime);
 
             long elapsed = System.currentTimeMillis() - startMs;
             File file = new File(filePath);
@@ -207,10 +213,12 @@ public class ReportExportServiceImpl implements ReportExportService {
 
     // ==================== Excel 写入 ====================
 
-    private int writeExcel(String filePath, ExportDefinition def) {
+    private int writeExcel(String filePath, ExportDefinition def,
+                           String exportUser, String exportTime) {
         List<List<Object>> rows = def.dataRows();
         try (ExcelWriter writer = EasyExcel.write(filePath)
                 .head(def.headers())
+                .registerWriteHandler(new ExcelWatermarkHandler(exportUser, exportTime))
                 .build()) {
             WriteSheet sheet = EasyExcel.writerSheet(def.sheetName()).build();
             // 分批写入，每批 5000 行，避免 OOM
@@ -574,7 +582,9 @@ public class ReportExportServiceImpl implements ReportExportService {
 
         String dir = exportConfig.getOrCreateExportDir();
         String filePath = dir + File.separator + logCode + ".xlsx";
-        writeExcel(filePath, def);
+        String exportTime = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                .format(LocalDateTime.now());
+        writeExcel(filePath, def, "定时任务", exportTime);
 
         log.info("[Export-Sync] 文件生成成功：reportCode={}, path={}", reportCode, filePath);
         return filePath;

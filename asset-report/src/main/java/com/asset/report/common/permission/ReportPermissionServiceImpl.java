@@ -73,4 +73,16 @@ public class ReportPermissionServiceImpl implements ReportPermissionService {
         log.debug("[RptPerm] userId={} 可见项目数: {}", userId, projectIds.size());
         return new ArrayList<>(projectIds);
     }
+
+    @Override
+    public boolean hasFinViewPermission(Long userId) {
+        if (userId == null || userId <= 0) return false;
+        try {
+            // 管理员（data_scope=1 或 username=admin）拥有财务查看权限
+            return permMapper.isAdminUser(userId);
+        } catch (Exception e) {
+            log.warn("[RptPerm] 查询财务查看权限失败，userId={}: {}", userId, e.getMessage());
+            return false;
+        }
+    }
 }

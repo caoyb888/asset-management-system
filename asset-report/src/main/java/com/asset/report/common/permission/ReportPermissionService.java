@@ -26,4 +26,16 @@ public interface ReportPermissionService {
      * @return 可见项目ID列表（null=不限制）
      */
     List<Long> getPermittedProjectIds(Long userId);
+
+    /**
+     * 判断指定用户是否有财务绝对金额查看权限
+     * <p>
+     * 管理员（data_scope=1 或 username=admin）始终拥有此权限。
+     * 普通用户仅可查看同比/环比趋势数据，绝对金额需脱敏。
+     * </p>
+     *
+     * @param userId 当前登录用户ID
+     * @return true=可查看绝对金额，false=需脱敏
+     */
+    boolean hasFinViewPermission(Long userId);
 }

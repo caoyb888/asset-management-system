@@ -229,19 +229,19 @@
             <el-icon><MapLocation /></el-icon>
             <template #title>地区业务对比</template>
           </el-menu-item>
-          <el-menu-item index="/rpt/fin/dashboard">
+          <el-menu-item v-if="hasFinPerm" index="/rpt/fin/dashboard">
             <el-icon><DataAnalysis /></el-icon>
             <template #title>财务数据看板</template>
           </el-menu-item>
-          <el-menu-item index="/rpt/fin/outstanding">
+          <el-menu-item v-if="hasFinPerm" index="/rpt/fin/outstanding">
             <el-icon><TrendCharts /></el-icon>
             <template #title>欠款统计分析</template>
           </el-menu-item>
-          <el-menu-item index="/rpt/fin/aging">
+          <el-menu-item v-if="hasFinPerm" index="/rpt/fin/aging">
             <el-icon><DataLine /></el-icon>
             <template #title>账龄分析</template>
           </el-menu-item>
-          <el-menu-item index="/rpt/fin/collection">
+          <el-menu-item v-if="hasFinPerm" index="/rpt/fin/collection">
             <el-icon><Histogram /></el-icon>
             <template #title>收缴率趋势</template>
           </el-menu-item>
@@ -349,17 +349,30 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop, Star, User, Bell, Document, Briefcase, Setting, Coin, EditPen, Tickets, Checked, DataLine, PieChart, Operation, Memo, Switch, TrendCharts, UserFilled, CircleClose, Money, List, CreditCard, Postcard, Wallet, CollectionTag, Warning, CircleCheck, DataAnalysis, Key, Files, Menu, FolderOpened, Filter, MapLocation, Histogram, HomeFilled } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/modules/user'
 import { useAppStore } from '@/store/modules/app'
+import { getUserPermissions } from '@/api/rpt/permission'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const appStore = useAppStore()
+
+/** 是否有财务报表查看权限（控制菜单可见性） */
+const hasFinPerm = ref(true)  // 默认 true 避免菜单闪烁
+
+onMounted(async () => {
+  try {
+    const data = await getUserPermissions()
+    hasFinPerm.value = data.hasFinViewPerm
+  } catch {
+    // 查询失败时保持默认值（不影响核心功能）
+  }
+})
 
 const activeMenu = computed(() => route.path)
 const sidebarWidth = computed(() =>

@@ -16,11 +16,20 @@ import java.util.List;
  *   <li>非空列表：只能查看列表内的项目</li>
  *   <li>空列表：该用户没有任何项目权限，查询应返回空结果</li>
  * </ul>
+ *
+ * <h3>财务数据权限</h3>
+ * <ul>
+ *   <li>{@code hasFinViewPerm=true}：可查看财务绝对金额（管理员或拥有财务查看角色）</li>
+ *   <li>{@code hasFinViewPerm=false}：仅可查看同比/环比趋势，绝对金额脱敏为 null</li>
+ * </ul>
  */
 public final class ReportPermissionContext {
 
     /** 允许为 null（管理员无限制）或 List（空=无权限，非空=可见范围） */
     private static final ThreadLocal<List<Long>> PERMITTED_PROJECTS = new ThreadLocal<>();
+
+    /** 财务绝对金额查看权限（true=可看，false=脱敏）*/
+    private static final ThreadLocal<Boolean> FINANCE_VIEW_PERM = new ThreadLocal<>();
 
     private ReportPermissionContext() {}
 
@@ -43,10 +52,27 @@ public final class ReportPermissionContext {
     }
 
     /**
-     * 清除（在 AOP 切面的 finally 块中调用，避免内存泄漏）
+     * 设置财务绝对金额查看权限
+     */
+    public static void setFinViewPerm(boolean hasPerm) {
+        FINANCE_VIEW_PERM.set(hasPerm);
+    }
+
+    /**
+     * 判断当前用户是否有财务绝对金额查看权限
+     * <p>管理员（isAdmin=true）始终拥有此权限。</p>
+     */
+    public static boolean hasFinViewPerm() {
+        if (isAdmin()) return true;
+        return Boolean.TRUE.equals(FINANCE_VIEW_PERM.get());
+    }
+
+    /**
+     * 清除所有 ThreadLocal（在 AOP 切面的 finally 块中调用，避免内存泄漏）
      */
     public static void clear() {
         PERMITTED_PROJECTS.remove();
+        FINANCE_VIEW_PERM.remove();
     }
 
     /**
