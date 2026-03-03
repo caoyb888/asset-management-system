@@ -3,6 +3,8 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.asset.report.mapper.rpt.RptAgingAnalysisMapper">
 
+    <!-- ==================== ETL 专用 ==================== -->
+
     <!-- 删除指定日期旧数据 -->
     <delete id="deleteByStatDate">
         DELETE FROM rpt_aging_analysis
@@ -41,5 +43,124 @@
             total_outstanding = VALUES(total_outstanding),
             updated_at       = NOW()
     </insert>
+
+    <!-- ==================== 公共权限条件片段 ==================== -->
+
+    <sql id="permCondition">
+        <if test="permIds != null and permIds.size() > 0">
+            AND project_id IN
+            <foreach collection="permIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        </if>
+        <if test="permIds != null and permIds.size() == 0">
+            AND 1=0
+        </if>
+        <if test="projectId != null">
+            AND project_id = #{projectId}
+        </if>
+    </sql>
+
+    <!-- ==================== 报表查询 ==================== -->
+
+    <!--
+        查询最新统计日期
+        merchant_id=0, contract_id=0, fee_item_id=0 表示项目级汇总行
+    -->
+    <select id="selectMaxStatDate" resultType="java.time.LocalDate">
+        SELECT MAX(stat_date)
+        FROM rpt_aging_analysis
+        WHERE is_deleted = 0
+          AND merchant_id = 0
+          AND contract_id = 0
+          AND fee_item_id = 0
+        <include refid="permCondition"/>
+    </select>
+
+    <!--
+        查询指定日期的账龄分析（按商家维度）
+        fee_item_id=0 取商家级所有费项汇总行；merchantId=null 取所有商家
+    -->
+    <select id="selectAgingByMerchant"
+            resultType="com.asset.report.vo.fin.FinAgingAnalysisVO">
+        SELECT
+            stat_date           AS statDate,
+            project_id          AS projectId,
+            merchant_id         AS merchantId,
+            contract_id         AS contractId,
+            SUM(within_30)      AS within30,
+            SUM(days_31_60)     AS days3160,
+            SUM(days_61_90)     AS days6190,
+            SUM(days_91_180)    AS days91180,
+            SUM(days_181_365)   AS days181365,
+            SUM(over_365)       AS over365,
+            SUM(total_outstanding) AS totalOutstanding
+        FROM rpt_aging_analysis
+        WHERE is_deleted = 0
+          AND fee_item_id = 0
+          AND merchant_id != 0
+          AND contract_id = 0
+          AND stat_date = #{statDate}
+        <include refid="permCondition"/>
+        <if test="merchantId != null">
+            AND merchant_id = #{merchantId}
+        </if>
+        GROUP BY stat_date, project_id, merchant_id, contract_id
+        ORDER BY totalOutstanding DESC
+    </select>
+
+    <!--
+        查询指定日期的账龄项目汇总（merchant_id=0, contract_id=0 的汇总行）
+        用于看板展示整体账龄分布
+    -->
+    <select id="selectAgingProjectSummary"
+            resultType="com.asset.report.vo.fin.FinAgingAnalysisVO">
+        SELECT
+            stat_date           AS statDate,
+            project_id          AS projectId,
+            SUM(within_30)      AS within30,
+            SUM(days_31_60)     AS days3160,
+            SUM(days_61_90)     AS days6190,
+            SUM(days_91_180)    AS days91180,
+            SUM(days_181_365)   AS days181365,
+            SUM(over_365)       AS over365,
+            SUM(total_outstanding) AS totalOutstanding
+        FROM rpt_aging_analysis
+        WHERE is_deleted = 0
+          AND merchant_id = 0
+          AND contract_id = 0
+          AND fee_item_id = 0
+          AND stat_date = #{statDate}
+        <include refid="permCondition"/>
+        GROUP BY stat_date, project_id
+        ORDER BY totalOutstanding DESC
+    </select>
+
+    <!--
+        查询欠款 TOP N 商家
+        merchant_id != 0（排除项目级汇总行），按 total_outstanding 降序，取前 N 条
+    -->
+    <select id="selectOverdueTopN"
+            resultType="com.asset.report.vo.fin.FinAgingAnalysisVO">
+        SELECT
+            stat_date           AS statDate,
+            project_id          AS projectId,
+            merchant_id         AS merchantId,
+            contract_id         AS contractId,
+            within_30           AS within30,
+            days_31_60          AS days3160,
+            days_61_90          AS days6190,
+            days_91_180         AS days91180,
+            days_181_365        AS days181365,
+            over_365            AS over365,
+            total_outstanding   AS totalOutstanding
+        FROM rpt_aging_analysis
+        WHERE is_deleted = 0
+          AND merchant_id != 0
+          AND contract_id = 0
+          AND fee_item_id = 0
+          AND stat_date = #{statDate}
+        <include refid="permCondition"/>
+        ORDER BY total_outstanding DESC
+        LIMIT #{topN}
+    </select>
 
 </mapper>

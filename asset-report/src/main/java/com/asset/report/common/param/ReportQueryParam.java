@@ -46,6 +46,9 @@ public class ReportQueryParam {
     /** 费项ID（财务报表用） */
     private Long feeItemId;
 
+    /** 费项类型（财务报表用，如：租金/物业费/推广费，null=全费项汇总） */
+    private String feeItemType;
+
     /** 招商负责人ID（招商报表用） */
     private Long investmentManagerId;
 

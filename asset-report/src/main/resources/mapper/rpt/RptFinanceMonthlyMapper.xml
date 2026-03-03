@@ -3,6 +3,8 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.asset.report.mapper.rpt.RptFinanceMonthlyMapper">
 
+    <!-- ==================== ETL 专用 ==================== -->
+
     <!-- 删除指定月份旧数据 -->
     <delete id="deleteByStatMonth">
         DELETE FROM rpt_finance_monthly
@@ -49,5 +51,348 @@
             collection_rate    = VALUES(collection_rate),
             updated_at         = NOW()
     </insert>
+
+    <!-- ==================== 公共权限条件片段 ==================== -->
+
+    <!--
+        数据权限过滤：permIds=null 表示管理员无限制；否则强制过滤到可见项目列表。
+        同时支持指定单个 projectId 做进一步筛选。
+    -->
+    <sql id="permCondition">
+        <if test="permIds != null and permIds.size() > 0">
+            AND project_id IN
+            <foreach collection="permIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        </if>
+        <if test="permIds != null and permIds.size() == 0">
+            AND 1=0
+        </if>
+        <if test="projectId != null">
+            AND project_id = #{projectId}
+        </if>
+    </sql>
+
+    <!-- 月份范围过滤 -->
+    <sql id="monthRangeCondition">
+        <if test="startMonth != null and startMonth != ''">
+            AND stat_month &gt;= #{startMonth}
+        </if>
+        <if test="endMonth != null and endMonth != ''">
+            AND stat_month &lt;= #{endMonth}
+        </if>
+    </sql>
+
+    <!-- ==================== 报表查询 ==================== -->
+
+    <!-- 查询最新统计月份（项目级汇总行：fee_item_id=0） -->
+    <select id="selectMaxStatMonth" resultType="java.lang.String">
+        SELECT MAX(stat_month)
+        FROM rpt_finance_monthly
+        WHERE is_deleted = 0
+          AND fee_item_id = 0
+        <include refid="permCondition"/>
+    </select>
+
+    <!-- 查询指定月份的项目级汇总行（fee_item_id=0 表示全费项汇总） -->
+    <select id="selectProjectSummaryByMonth"
+            resultType="com.asset.report.entity.RptFinanceMonthly">
+        SELECT *
+        FROM rpt_finance_monthly
+        WHERE is_deleted = 0
+          AND fee_item_id = 0
+          AND stat_month = #{statMonth}
+        <include refid="permCondition"/>
+        ORDER BY project_id
+    </select>
+
+    <!-- 财务趋势（近N月应收/已收/欠款/收缴率，项目级汇总行） -->
+    <select id="selectFinTrend"
+            resultType="com.asset.report.vo.fin.FinTrendVO">
+        SELECT
+            stat_month                          AS timeDim,
+            project_id                          AS projectId,
+            SUM(receivable_amount)              AS receivableAmount,
+            SUM(received_amount)                AS receivedAmount,
+            SUM(outstanding_amount)             AS outstandingAmount,
+            SUM(overdue_amount)                 AS overdueAmount,
+            SUM(deduction_amount)               AS deductionAmount,
+            SUM(adjustment_amount)              AS adjustmentAmount,
+            CASE
+                WHEN SUM(receivable_amount) > 0
+                    THEN ROUND(SUM(received_amount) / SUM(receivable_amount) * 100, 2)
+                ELSE 0
+            END                                 AS collectionRate,
+            CASE
+                WHEN SUM(receivable_amount) > 0
+                    THEN ROUND(SUM(overdue_amount) / SUM(receivable_amount) * 100, 2)
+                ELSE 0
+            END                                 AS overdueRate,
+            SUM(deposit_balance)                AS depositBalance,
+            SUM(prepay_balance)                 AS prepayBalance
+        FROM rpt_finance_monthly
+        WHERE is_deleted = 0
+          AND fee_item_id = 0
+        <include refid="permCondition"/>
+        <include refid="monthRangeCondition"/>
+        GROUP BY stat_month, project_id
+        ORDER BY stat_month, project_id
+    </select>
+
+    <!-- 应收汇总报表（支持按费项类型细分） -->
+    <select id="selectReceivableSummary"
+            resultType="com.asset.report.vo.fin.FinReceivableSummaryVO">
+        SELECT
+            stat_month                          AS timeDim,
+            project_id                          AS projectId,
+            fee_item_type                       AS feeItemType,
+            SUM(receivable_amount)              AS receivableAmount,
+            SUM(received_amount)                AS receivedAmount,
+            SUM(outstanding_amount)             AS outstandingAmount,
+            SUM(deduction_amount)               AS deductionAmount,
+            SUM(adjustment_amount)              AS adjustmentAmount,
+            CASE
+                WHEN SUM(receivable_amount) > 0
+                    THEN ROUND(SUM(received_amount) / SUM(receivable_amount) * 100, 2)
+                ELSE 0
+            END                                 AS collectionRate
+        FROM rpt_finance_monthly
+        WHERE is_deleted = 0
+        <include refid="permCondition"/>
+        <include refid="monthRangeCondition"/>
+        <choose>
+            <when test="feeItemType != null and feeItemType != ''">
+                AND fee_item_type = #{feeItemType}
+            </when>
+            <otherwise>
+                AND fee_item_id = 0
+            </otherwise>
+        </choose>
+        GROUP BY stat_month, project_id, fee_item_type
+        ORDER BY stat_month, project_id
+    </select>
+
+    <!-- 收款汇总报表（支持按费项类型细分） -->
+    <select id="selectReceiptSummary"
+            resultType="com.asset.report.vo.fin.FinReceiptSummaryVO">
+        SELECT
+            stat_month                          AS timeDim,
+            project_id                          AS projectId,
+            fee_item_type                       AS feeItemType,
+            SUM(receivable_amount)              AS receivableAmount,
+            SUM(received_amount)                AS receivedAmount,
+            SUM(outstanding_amount)             AS outstandingAmount,
+            CASE
+                WHEN SUM(receivable_amount) > 0
+                    THEN ROUND(SUM(received_amount) / SUM(receivable_amount) * 100, 2)
+                ELSE 0
+            END                                 AS collectionRate
+        FROM rpt_finance_monthly
+        WHERE is_deleted = 0
+        <include refid="permCondition"/>
+        <include refid="monthRangeCondition"/>
+        <choose>
+            <when test="feeItemType != null and feeItemType != ''">
+                AND fee_item_type = #{feeItemType}
+            </when>
+            <otherwise>
+                AND fee_item_id = 0
+            </otherwise>
+        </choose>
+        GROUP BY stat_month, project_id, fee_item_type
+        ORDER BY stat_month, project_id
+    </select>
+
+    <!-- 欠款统计报表 -->
+    <select id="selectOutstandingSummary"
+            resultType="com.asset.report.vo.fin.FinOutstandingSummaryVO">
+        SELECT
+            stat_month                          AS timeDim,
+            project_id                          AS projectId,
+            fee_item_type                       AS feeItemType,
+            SUM(receivable_amount)              AS receivableAmount,
+            SUM(received_amount)                AS receivedAmount,
+            SUM(outstanding_amount)             AS outstandingAmount,
+            SUM(overdue_amount)                 AS overdueAmount,
+            CASE
+                WHEN SUM(receivable_amount) > 0
+                    THEN ROUND(SUM(overdue_amount) / SUM(receivable_amount) * 100, 2)
+                ELSE 0
+            END                                 AS overdueRate,
+            SUM(deduction_amount)               AS deductionAmount,
+            SUM(adjustment_amount)              AS adjustmentAmount
+        FROM rpt_finance_monthly
+        WHERE is_deleted = 0
+        <include refid="permCondition"/>
+        <include refid="monthRangeCondition"/>
+        <choose>
+            <when test="feeItemType != null and feeItemType != ''">
+                AND fee_item_type = #{feeItemType}
+            </when>
+            <otherwise>
+                AND fee_item_id = 0
+            </otherwise>
+        </choose>
+        GROUP BY stat_month, project_id, fee_item_type
+        ORDER BY stat_month, project_id
+    </select>
+
+    <!-- 逾期率统计（项目级汇总行） -->
+    <select id="selectOverdueRate"
+            resultType="com.asset.report.vo.fin.FinOverdueRateVO">
+        SELECT
+            stat_month                          AS timeDim,
+            project_id                          AS projectId,
+            SUM(receivable_amount)              AS receivableAmount,
+            SUM(overdue_amount)                 AS overdueAmount,
+            CASE
+                WHEN SUM(receivable_amount) > 0
+                    THEN ROUND(SUM(overdue_amount) / SUM(receivable_amount) * 100, 2)
+                ELSE 0
+            END                                 AS overdueRate
+        FROM rpt_finance_monthly
+        WHERE is_deleted = 0
+          AND fee_item_id = 0
+        <include refid="permCondition"/>
+        <include refid="monthRangeCondition"/>
+        GROUP BY stat_month, project_id
+        ORDER BY stat_month, project_id
+    </select>
+
+    <!-- 收缴率统计（支持按费项类型细分） -->
+    <select id="selectCollectionRate"
+            resultType="com.asset.report.vo.fin.FinCollectionRateVO">
+        SELECT
+            stat_month                          AS timeDim,
+            project_id                          AS projectId,
+            fee_item_type                       AS feeItemType,
+            SUM(receivable_amount)              AS receivableAmount,
+            SUM(received_amount)                AS receivedAmount,
+            SUM(outstanding_amount)             AS outstandingAmount,
+            CASE
+                WHEN SUM(receivable_amount) > 0
+                    THEN ROUND(SUM(received_amount) / SUM(receivable_amount) * 100, 2)
+                ELSE 0
+            END                                 AS collectionRate
+        FROM rpt_finance_monthly
+        WHERE is_deleted = 0
+        <include refid="permCondition"/>
+        <include refid="monthRangeCondition"/>
+        <choose>
+            <when test="feeItemType != null and feeItemType != ''">
+                AND fee_item_type = #{feeItemType}
+            </when>
+            <otherwise>
+                AND fee_item_id = 0
+            </otherwise>
+        </choose>
+        GROUP BY stat_month, project_id, fee_item_type
+        ORDER BY stat_month, project_id
+    </select>
+
+    <!-- 保证金余额趋势（P1，项目级汇总行） -->
+    <select id="selectDepositSummary"
+            resultType="com.asset.report.vo.fin.FinDepositSummaryVO">
+        SELECT
+            stat_month              AS timeDim,
+            project_id              AS projectId,
+            SUM(deposit_balance)    AS depositBalance
+        FROM rpt_finance_monthly
+        WHERE is_deleted = 0
+          AND fee_item_id = 0
+        <include refid="permCondition"/>
+        <include refid="monthRangeCondition"/>
+        GROUP BY stat_month, project_id
+        ORDER BY stat_month, project_id
+    </select>
+
+    <!-- 预收款余额趋势（P1，项目级汇总行） -->
+    <select id="selectPrepaySummary"
+            resultType="com.asset.report.vo.fin.FinPrepaySummaryVO">
+        SELECT
+            stat_month              AS timeDim,
+            project_id              AS projectId,
+            SUM(prepay_balance)     AS prepayBalance
+        FROM rpt_finance_monthly
+        WHERE is_deleted = 0
+          AND fee_item_id = 0
+        <include refid="permCondition"/>
+        <include refid="monthRangeCondition"/>
+        GROUP BY stat_month, project_id
+        ORDER BY stat_month, project_id
+    </select>
+
+    <!-- 减免/调整统计（P1，支持按费项类型细分） -->
+    <select id="selectDeductionAdjustment"
+            resultType="com.asset.report.vo.fin.FinDeductionAdjustmentVO">
+        SELECT
+            stat_month                          AS timeDim,
+            project_id                          AS projectId,
+            fee_item_type                       AS feeItemType,
+            SUM(receivable_amount)              AS receivableAmount,
+            SUM(deduction_amount)               AS deductionAmount,
+            SUM(adjustment_amount)              AS adjustmentAmount,
+            CASE
+                WHEN SUM(receivable_amount) > 0
+                    THEN ROUND(SUM(deduction_amount) / SUM(receivable_amount) * 100, 2)
+                ELSE 0
+            END                                 AS deductionRate,
+            CASE
+                WHEN SUM(receivable_amount) > 0
+                    THEN ROUND(SUM(adjustment_amount) / SUM(receivable_amount) * 100, 2)
+                ELSE 0
+            END                                 AS adjustmentRate
+        FROM rpt_finance_monthly
+        WHERE is_deleted = 0
+        <include refid="permCondition"/>
+        <include refid="monthRangeCondition"/>
+        <choose>
+            <when test="feeItemType != null and feeItemType != ''">
+                AND fee_item_type = #{feeItemType}
+            </when>
+            <otherwise>
+                AND fee_item_id = 0
+            </otherwise>
+        </choose>
+        GROUP BY stat_month, project_id, fee_item_type
+        ORDER BY stat_month, project_id
+    </select>
+
+    <!--
+        凭证统计（P1）
+        直接查询 fin_voucher 业务表，按凭证日期的月份聚合
+        注意：fin_voucher 使用 DATE_FORMAT 提取月份，不依赖 rpt_finance_monthly
+    -->
+    <select id="selectVoucherStats"
+            resultType="com.asset.report.vo.fin.FinVoucherStatsVO">
+        SELECT
+            DATE_FORMAT(v.voucher_date, '%Y-%m')    AS statMonth,
+            v.project_id                             AS projectId,
+            COUNT(v.id)                              AS totalVouchers,
+            SUM(CASE WHEN v.status = 0 THEN 1 ELSE 0 END) AS pendingVouchers,
+            SUM(CASE WHEN v.status = 1 THEN 1 ELSE 0 END) AS approvedVouchers,
+            SUM(CASE WHEN v.status = 2 THEN 1 ELSE 0 END) AS uploadedVouchers,
+            SUM(v.total_debit)                       AS totalDebit,
+            SUM(v.total_credit)                      AS totalCredit
+        FROM fin_voucher v
+        WHERE v.is_deleted = 0
+          AND v.voucher_date IS NOT NULL
+        <if test="permIds != null and permIds.size() > 0">
+            AND v.project_id IN
+            <foreach collection="permIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        </if>
+        <if test="permIds != null and permIds.size() == 0">
+            AND 1=0
+        </if>
+        <if test="projectId != null">
+            AND v.project_id = #{projectId}
+        </if>
+        <if test="startMonth != null and startMonth != ''">
+            AND DATE_FORMAT(v.voucher_date, '%Y-%m') &gt;= #{startMonth}
+        </if>
+        <if test="endMonth != null and endMonth != ''">
+            AND DATE_FORMAT(v.voucher_date, '%Y-%m') &lt;= #{endMonth}
+        </if>
+        GROUP BY DATE_FORMAT(v.voucher_date, '%Y-%m'), v.project_id
+        ORDER BY statMonth, v.project_id
+    </select>
 
 </mapper>
