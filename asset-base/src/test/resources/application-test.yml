@@ -32,11 +32,11 @@ spring:
       port: 6379
       database: 0
 
-  # 禁用 Spring Security 自动配置（测试中已通过 addFilters=false 绕过）
+  # 仅排除自定义 JWT 安全配置（保留 Spring Security 使 HttpSecurity Bean 正常创建）
+  # 测试中 @AutoConfigureMockMvc(addFilters=false) 已绕过所有过滤器
   autoconfigure:
     exclude:
-      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
-      - org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration
+      - com.asset.common.security.config.SecurityAutoConfiguration
 
 mybatis-plus:
   mapper-locations: classpath*:mapper/**/*.xml
@@ -48,6 +48,20 @@ mybatis-plus:
       logic-delete-field: isDeleted
       logic-delete-value: 1
       logic-not-delete-value: 0
+
+# XXL-Job 测试占位配置（避免占位符解析失败，执行器不会真正注册）
+xxl:
+  job:
+    admin:
+      addresses: http://127.0.0.1:8080/xxl-job-admin
+    accessToken: ""
+    executor:
+      appname: asset-base-test
+      address: ""
+      ip: ""
+      port: -1
+      logpath: /tmp/xxl-job-test
+      logretentiondays: 1
 
 logging:
   level:

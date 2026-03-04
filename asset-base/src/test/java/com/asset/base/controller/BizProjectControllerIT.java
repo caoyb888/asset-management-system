@@ -47,7 +47,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("项目管理接口集成测试")
 class BizProjectControllerIT {
 
-    private static final String BASE_URL = "/api/base/projects";
+    private static final String BASE_URL = "/base/projects";
 
     @Autowired
     private MockMvc mockMvc;
