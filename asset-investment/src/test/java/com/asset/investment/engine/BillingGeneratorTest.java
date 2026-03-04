@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDate;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -249,6 +250,63 @@ class BillingGeneratorTest {
                 LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31),
                 PaymentCycle.BIMONTHLY, BillingMode.PREPAY);
         assertEquals(6, periods.size());
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // 测试计划补充用例（BILLING-U-02 ~ BILLING-U-05）
+    // ═══════════════════════════════════════════════════════════
+
+    @Test
+    @DisplayName("BILLING-U-02 季付-当期-12月：4条，第2条billingStart=2026-04-01，dueDate=billingStart")
+    void billingU02_quarterly_current_12months_returns4Periods() {
+        List<BillingPeriod> periods = generator.generate(
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31),
+                PaymentCycle.QUARTERLY, BillingMode.CURRENT);
+
+        assertThat(periods).hasSize(4);
+        assertThat(periods.get(1).getBillingStart()).isEqualTo(LocalDate.of(2026, 4, 1));
+        // 当期模式：dueDate = billingStart
+        periods.forEach(p -> assertThat(p.getDueDate()).isEqualTo(p.getBillingStart()));
+    }
+
+    @Test
+    @DisplayName("BILLING-U-03 年付-后付-12月：1条，billingType=1，dueDate=2026-12-31")
+    void billingU03_annual_postpay_1year_returns1Period() {
+        List<BillingPeriod> periods = generator.generate(
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31),
+                PaymentCycle.ANNUAL, BillingMode.POSTPAY);
+
+        assertThat(periods).hasSize(1);
+        assertThat(periods.get(0).getBillingType()).isEqualTo(1);
+        assertThat(periods.get(0).getDueDate()).isEqualTo(LocalDate.of(2026, 12, 31));
+    }
+
+    @Test
+    @DisplayName("BILLING-U-04 月付-预付-含尾账期：2026-01-01~02-14 生成2条，第2条billingEnd=2026-02-14")
+    void billingU04_monthly_prepay_withPartialEndPeriod() {
+        List<BillingPeriod> periods = generator.generate(
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 2, 14),
+                PaymentCycle.MONTHLY, BillingMode.PREPAY);
+
+        assertThat(periods).hasSize(2);
+        assertThat(periods.get(0).getBillingStart()).isEqualTo(LocalDate.of(2026, 1, 1));
+        assertThat(periods.get(0).getBillingEnd()).isEqualTo(LocalDate.of(2026, 1, 31));
+        // 第2条截断到合同结束日
+        assertThat(periods.get(1).getBillingEnd()).isEqualTo(LocalDate.of(2026, 2, 14));
+    }
+
+    @Test
+    @DisplayName("BILLING-U-05 合同仅1天：2026-06-15~06-15 生成1条，billingStart=billingEnd=dueDate=2026-06-15")
+    void billingU05_singleDayContract_returns1Period() {
+        List<BillingPeriod> periods = generator.generate(
+                LocalDate.of(2026, 6, 15), LocalDate.of(2026, 6, 15),
+                PaymentCycle.MONTHLY, BillingMode.PREPAY);
+
+        assertThat(periods).hasSize(1);
+        assertThat(periods.get(0).getBillingType()).isEqualTo(1);
+        assertThat(periods.get(0).getBillingStart()).isEqualTo(LocalDate.of(2026, 6, 15));
+        assertThat(periods.get(0).getBillingEnd()).isEqualTo(LocalDate.of(2026, 6, 15));
+        assertThat(periods.get(0).getDueDate()).isEqualTo(LocalDate.of(2026, 6, 15));
     }
 
     @Test
