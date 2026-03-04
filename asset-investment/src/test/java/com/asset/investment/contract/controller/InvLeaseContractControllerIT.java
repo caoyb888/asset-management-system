@@ -78,6 +78,7 @@ class InvLeaseContractControllerIT {
     void ctrI02_createContract_returnIdAndDraftInDB() throws Exception {
         Map<String, Object> body = new HashMap<>();
         body.put("contractName", "IT测试合同");
+        body.put("contractType", 1);
         body.put("projectId", 90001);
         body.put("contractStart", "2026-06-01");
         body.put("contractEnd", "2028-05-31");

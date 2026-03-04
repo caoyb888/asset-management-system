@@ -228,7 +228,7 @@ class InvIntentionServiceTest {
         doReturn(approving).when(service).getById(2L);
         doReturn(true).when(service).update(any());
         // updateShopStatusToIntention 内部调用 intentionShopService.list
-        when(intentionShopService.list(any())).thenReturn(List.of());
+        when(intentionShopService.list(any(LambdaQueryWrapper.class))).thenReturn(List.of());
 
         ApprovalCallbackDTO dto = new ApprovalCallbackDTO();
         dto.setApproved(true);

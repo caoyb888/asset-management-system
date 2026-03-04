@@ -64,13 +64,13 @@ class InvOpeningApprovalControllerTest {
         approval.setContractId(30L);
         approval.setPlannedOpeningDate(LocalDate.of(2026, 6, 1));
         when(approvalService.getById(1L)).thenReturn(approval);
-        when(approvalService.update(any())).thenReturn(true);
+        when(approvalService.updateById(any())).thenReturn(true);
 
         // 执行驳回
         controller.approvalCallback(1L, Map.of("approved", false));
 
-        // 验证 update() 被调用，且 snapshotData 字段已设置（通过 ArgumentCaptor 捕获 Wrapper）
-        verify(approvalService, times(1)).update(any());
+        // 验证 updateById() 被调用，且 snapshotData 字段已设置（通过 ArgumentCaptor 捕获实体）
+        verify(approvalService, times(1)).updateById(any());
         // 通过直接调用 objectMapper 验证序列化可行
         JsonNode snapshot = objectMapper.valueToTree(approval);
         assertNotNull(snapshot.get("shopId"), "快照应包含 shopId");
@@ -83,12 +83,12 @@ class InvOpeningApprovalControllerTest {
     void approvalCallback_approved_noSnapshot() {
         InvOpeningApproval approval = buildApproval(2L, 1);
         when(approvalService.getById(2L)).thenReturn(approval);
-        when(approvalService.update(any())).thenReturn(true);
+        when(approvalService.updateById(any())).thenReturn(true);
 
         controller.approvalCallback(2L, Map.of("approved", true));
 
-        // 通过：update 被调用，但不涉及 snapshotData 的 set
-        verify(approvalService, times(1)).update(any());
+        // 通过：updateById 被调用，但不涉及 snapshotData 的 set
+        verify(approvalService, times(1)).updateById(any());
     }
 
     @Test

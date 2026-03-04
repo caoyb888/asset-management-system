@@ -29,8 +29,14 @@
     -->
     <select id="pageQueryWithCondition"
             resultType="com.asset.investment.intention.entity.InvIntention">
-        SELECT DISTINCT ii.*
+        SELECT DISTINCT ii.*,
+               bp.project_name,
+               bm.merchant_name,
+               bb.brand_name
         FROM inv_intention ii
+        LEFT JOIN biz_project  bp ON bp.id = ii.project_id  AND bp.is_deleted = 0
+        LEFT JOIN biz_merchant bm ON bm.id = ii.merchant_id AND bm.is_deleted = 0
+        LEFT JOIN biz_brand    bb ON bb.id = ii.brand_id    AND bb.is_deleted = 0
         <if test="q.buildingId != null or q.floorId != null or q.shopId != null
                   or (q.formatType != null and q.formatType != '')">
             LEFT JOIN inv_intention_shop iis

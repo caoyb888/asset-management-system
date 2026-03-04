@@ -113,14 +113,15 @@ public class InvOpeningApprovalController {
         if (existing == null) throw new BizException("记录不存在");
         if (existing.getStatus() != 1) throw new BizException("当前状态不在审批中");
         boolean approved = Boolean.TRUE.equals(body.get("approved"));
-        LambdaUpdateWrapper<InvOpeningApproval> uw = new LambdaUpdateWrapper<InvOpeningApproval>()
-                .eq(InvOpeningApproval::getId, id)
-                .set(InvOpeningApproval::getStatus, approved ? 2 : 3);
+        // 使用 updateById 走实体映射，确保 JacksonTypeHandler 正确序列化 JsonNode 字段
+        InvOpeningApproval update = new InvOpeningApproval();
+        update.setId(id);
+        update.setStatus(approved ? 2 : 3);
         // 驳回时：将当前单据数据序列化为快照，便于后续"基于历史创建"接口恢复数据
         if (!approved) {
-            uw.set(InvOpeningApproval::getSnapshotData, objectMapper.valueToTree(existing));
+            update.setSnapshotData(objectMapper.valueToTree(existing));
         }
-        approvalService.update(uw);
+        approvalService.updateById(update);
         return R.ok(null);
     }
 

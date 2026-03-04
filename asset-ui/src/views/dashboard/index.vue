@@ -148,7 +148,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   OfficeBuilding, ShoppingCart, Money, TrendCharts,
@@ -158,6 +158,8 @@ import {
 } from '@element-plus/icons-vue'
 import { useAppStore } from '@/store/modules/app'
 import { useUserStore } from '@/store/modules/user'
+import { getNoticePage } from '@/api/base/notice'
+import { getProjectPage } from '@/api/base/project'
 
 const appStore = useAppStore()
 const userStore = useUserStore()
@@ -180,8 +182,8 @@ function goTo(path: string) {
   router.push(path)
 }
 
-// 统计卡片
-const statCards = [
+// 统计卡片（reactive 以便异步更新数值）
+const statCards = reactive([
   {
     label: '项目总数',
     value: '--',
@@ -218,7 +220,7 @@ const statCards = [
     color: '#8b5cf6',
     bg: 'rgba(139,92,246,0.08)',
   },
-]
+])
 
 // 功能模块
 const modules = [
@@ -235,8 +237,37 @@ const modules = [
 // 待办事项（演示数据，实际应从接口获取）
 const todoList: { id: number; title: string; time: string; type: string; path: string }[] = []
 
-// 公告（演示数据）
-const notices: { id: number; title: string; date: string; badge: string; type: 'primary' | 'success' | 'warning' | 'danger' | 'info' }[] = []
+// 公告（已发布，从接口加载）
+const noticeTypeMap: Record<number, { badge: string; type: 'primary' | 'success' | 'warning' | 'danger' | 'info' }> = {
+  1: { badge: '通知', type: 'primary' },
+  2: { badge: '公告', type: 'warning' },
+  3: { badge: '政策', type: 'success' },
+}
+const notices = ref<{ id: number; title: string; date: string; badge: string; type: 'primary' | 'success' | 'warning' | 'danger' | 'info' }[]>([])
+
+onMounted(async () => {
+  // 已发布公告
+  try {
+    const res = await getNoticePage({ pageNum: 1, pageSize: 5, status: 1 })
+    const list = res.records ?? []
+    notices.value = list.map(n => {
+      const map = noticeTypeMap[n.noticeType] ?? { badge: '通知', type: 'primary' as const }
+      const timeStr = n.publishTime ?? n.createdAt ?? ''
+      const date = timeStr ? timeStr.slice(5, 10) : ''
+      return { id: n.id, title: n.title, date, badge: map.badge, type: map.type }
+    })
+  } catch {
+    // 加载失败时保持空列表，显示"暂无公告"
+  }
+
+  // 项目总数
+  try {
+    const res = await getProjectPage({ pageNum: 1, pageSize: 1 })
+    statCards[0].value = String(res.total)
+  } catch {
+    // 保持 '--'
+  }
+})
 
 // 系统概览
 const overview = [

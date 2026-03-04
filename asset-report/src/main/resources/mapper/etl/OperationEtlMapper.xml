@@ -35,7 +35,7 @@
             /* 合同变更数（本月生效） */
             COUNT(DISTINCT CASE
                 WHEN cc.effective_date >= DATE_FORMAT(#{statMonth}, '%Y-%m-01')
-                 AND cc.effective_date <  DATE_ADD(DATE_FORMAT(#{statMonth}, '%Y-%m-01'), INTERVAL 1 MONTH)
+                 AND cc.effective_date &lt;  DATE_ADD(DATE_FORMAT(#{statMonth}, '%Y-%m-01'), INTERVAL 1 MONTH)
                  AND cc.status = 2
                 THEN cc.id END)                                                     AS changeCount,
 
@@ -45,14 +45,14 @@
             /* 本月到期合同数 */
             COUNT(DISTINCT CASE
                 WHEN lc.contract_end >= DATE_FORMAT(#{statMonth}, '%Y-%m-01')
-                 AND lc.contract_end <  DATE_ADD(DATE_FORMAT(#{statMonth}, '%Y-%m-01'), INTERVAL 1 MONTH)
+                 AND lc.contract_end &lt;  DATE_ADD(DATE_FORMAT(#{statMonth}, '%Y-%m-01'), INTERVAL 1 MONTH)
                 THEN lc.id END)                                                     AS expiringContracts,
 
             /* 本月终止（解约/到期）合同数 */
             COUNT(DISTINCT CASE
                 WHEN lc.status IN (3, 4)
                  AND lc.updated_at >= DATE_FORMAT(#{statMonth}, '%Y-%m-01')
-                 AND lc.updated_at <  DATE_ADD(DATE_FORMAT(#{statMonth}, '%Y-%m-01'), INTERVAL 1 MONTH)
+                 AND lc.updated_at &lt;  DATE_ADD(DATE_FORMAT(#{statMonth}, '%Y-%m-01'), INTERVAL 1 MONTH)
                 THEN lc.id END)                                                     AS terminatedContracts
 
         FROM opr_revenue_report rr
@@ -103,18 +103,18 @@
             COALESCE(SUM(pf2.flow_count_sum), 0),
             COUNT(DISTINCT CASE
                 WHEN cc.effective_date >= DATE_FORMAT(#{statMonth}, '%Y-%m-01')
-                 AND cc.effective_date <  DATE_ADD(DATE_FORMAT(#{statMonth}, '%Y-%m-01'), INTERVAL 1 MONTH)
+                 AND cc.effective_date &lt;  DATE_ADD(DATE_FORMAT(#{statMonth}, '%Y-%m-01'), INTERVAL 1 MONTH)
                  AND cc.status = 2
                 THEN cc.id END),
             0,
             COUNT(DISTINCT CASE
                 WHEN lc.contract_end >= DATE_FORMAT(#{statMonth}, '%Y-%m-01')
-                 AND lc.contract_end <  DATE_ADD(DATE_FORMAT(#{statMonth}, '%Y-%m-01'), INTERVAL 1 MONTH)
+                 AND lc.contract_end &lt;  DATE_ADD(DATE_FORMAT(#{statMonth}, '%Y-%m-01'), INTERVAL 1 MONTH)
                 THEN lc.id END),
             COUNT(DISTINCT CASE
                 WHEN lc.status IN (3, 4)
                  AND lc.updated_at >= DATE_FORMAT(#{statMonth}, '%Y-%m-01')
-                 AND lc.updated_at <  DATE_ADD(DATE_FORMAT(#{statMonth}, '%Y-%m-01'), INTERVAL 1 MONTH)
+                 AND lc.updated_at &lt;  DATE_ADD(DATE_FORMAT(#{statMonth}, '%Y-%m-01'), INTERVAL 1 MONTH)
                 THEN lc.id END)
         FROM opr_revenue_report rr
         LEFT JOIN inv_lease_contract_shop cs

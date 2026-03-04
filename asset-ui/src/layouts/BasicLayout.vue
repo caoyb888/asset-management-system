@@ -407,9 +407,12 @@ async function handleCommand(command: string) {
   background-color: $sidebar-bg;
   transition: width 0.3s;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 
   .sidebar-logo {
     height: $header-height;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -427,6 +430,21 @@ async function handleCommand(command: string) {
 
   .el-menu {
     border-right: none;
+    flex: 1;
+    overflow-x: hidden;
+    overflow-y: auto;
+
+    // 细化滚动条样式，与深色侧边栏融合
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
   }
 }
 

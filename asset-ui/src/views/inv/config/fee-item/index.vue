@@ -31,8 +31,8 @@
             </template>
           </el-table-column>
           <el-table-column prop="sortOrder" label="序号" width="70" align="center" />
-          <el-table-column prop="itemCode" label="项目编码" width="110" />
-          <el-table-column prop="itemName" label="项目名称" min-width="120" />
+          <el-table-column prop="itemCode" label="项目编码" width="160" />
+          <el-table-column prop="itemName" label="项目名称" min-width="80" />
           <el-table-column prop="itemType" label="类型" width="110">
             <template #default="{ row }">
               <el-tag :type="itemTypeColor(row.itemType)" size="small">

@@ -79,6 +79,7 @@ class CfgConfigControllerIT {
     @DisplayName("CFG-I-02 新增计租方案-返回新ID-DB中记录存在")
     void cfgI02_createRentScheme_returnsIdAndPersists() throws Exception {
         Map<String, Object> body = new HashMap<>();
+        body.put("schemeCode", "TEST-SCH-001");
         body.put("schemeName", "测试固定方案");
         body.put("chargeType", 1);
         body.put("status", 1);

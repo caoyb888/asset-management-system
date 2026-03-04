@@ -327,26 +327,22 @@ ON DUPLICATE KEY UPDATE
 INSERT INTO inv_rent_decomposition
     (id, decomp_code, project_id, policy_id,
      total_annual_rent, total_annual_fee,
-     status, policy_snapshot, is_deleted, created_at, updated_at)
+     status, is_deleted, created_at, updated_at)
 VALUES
     (91001, 'RD-TEST-91001', 90001, 91002,
      NULL, NULL,
-     0,
-     JSON_OBJECT('policyCode', 'ZJ-TEST-91002', 'year1Rent', 100, 'year2Rent', 110),
-     0, NOW(), NOW())
+     0, 0, NOW(), NOW())
 ON DUPLICATE KEY UPDATE
     status = VALUES(status), updated_at = NOW();
 
 INSERT INTO inv_rent_decomposition
     (id, decomp_code, project_id, policy_id,
      total_annual_rent, total_annual_fee,
-     status, approval_id, policy_snapshot, is_deleted, created_at, updated_at)
+     status, approval_id, is_deleted, created_at, updated_at)
 VALUES
     (91002, 'RD-TEST-91002', 90001, 91002,
      600000.00, 180000.00,
-     1, 'MOCK-DECOMP-91002',
-     JSON_OBJECT('policyCode', 'ZJ-TEST-91002', 'year1Rent', 100, 'year2Rent', 110),
-     0, NOW(), NOW())
+     1, 'MOCK-DECOMP-91002', 0, NOW(), NOW())
 ON DUPLICATE KEY UPDATE
     status = VALUES(status), updated_at = NOW();
 

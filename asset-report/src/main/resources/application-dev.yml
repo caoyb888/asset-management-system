@@ -1,7 +1,11 @@
 spring:
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 0
+
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/asset_db?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/asset_report?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
     username: ${MYSQL_USER:root}
     password: ${MYSQL_PASS:root123}
     druid:
@@ -13,8 +17,22 @@ spring:
     redis:
       host: ${REDIS_HOST:127.0.0.1}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASS:}
       database: 0
+
+  mail:
+    host: ${MAIL_HOST:smtp.example.com}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USER:report@example.com}
+    password: ${MAIL_PASS:}
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+          timeout: 10000
+          connection-timeout: 10000
 
 mybatis-plus:
   mapper-locations: classpath*:mapper/**/*.xml
@@ -40,24 +58,6 @@ xxl:
       port: 9205
       logpath: /data/applogs/xxl-job/asset-report
       logretentiondays: 30
-
-# Spring Mail 配置（报表定时推送）
-# 生产环境通过环境变量注入真实 SMTP 信息
-spring:
-  mail:
-    host: ${MAIL_HOST:smtp.example.com}
-    port: ${MAIL_PORT:465}
-    username: ${MAIL_USER:report@example.com}
-    password: ${MAIL_PASS:}
-    default-encoding: UTF-8
-    properties:
-      mail:
-        smtp:
-          auth: true
-          ssl:
-            enable: true
-          timeout: 10000
-          connection-timeout: 10000
 
 # 报表推送配置
 report:

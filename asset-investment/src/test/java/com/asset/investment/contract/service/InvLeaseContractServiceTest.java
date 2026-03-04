@@ -14,6 +14,10 @@ import com.asset.investment.engine.RentCalculateStrategyRouter;
 import com.asset.investment.intention.entity.InvIntention;
 import com.asset.investment.intention.service.InvIntentionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,6 +26,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -40,6 +46,7 @@ import static org.mockito.Mockito.*;
  * 使用 Mockito @Spy + @InjectMocks，不启动 Spring 容器
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("招商合同 Service 单元测试")
 class InvLeaseContractServiceTest {
 
@@ -82,6 +89,14 @@ class InvLeaseContractServiceTest {
     @Spy
     @InjectMocks
     InvLeaseContractServiceImpl service;
+
+    @BeforeAll
+    static void initMybatisPlusLambdaCache() {
+        // 无 Spring 容器时手动初始化 MyBatisPlus Lambda 缓存，否则 LambdaUpdateWrapper 抛异常
+        TableInfoHelper.initTableInfo(
+                new MapperBuilderAssistant(new MybatisConfiguration(), ""),
+                InvLeaseContract.class);
+    }
 
     @BeforeEach
     void setUp() throws InterruptedException {

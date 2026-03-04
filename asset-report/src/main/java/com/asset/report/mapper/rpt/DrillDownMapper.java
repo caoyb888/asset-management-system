@@ -1,4 +1,4 @@
-package com.asset.report.drill;
+package com.asset.report.mapper.rpt;
 
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
