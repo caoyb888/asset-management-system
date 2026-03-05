@@ -2,7 +2,7 @@
   <div class="form-page">
     <el-card shadow="never" class="form-card">
       <div class="card-header">
-        <el-button :icon="ArrowLeft" text @click="router.push("/inv/intentions")">返回</el-button>
+        <el-button :icon="ArrowLeft" text @click="router.push('/inv/intentions')">返回</el-button>
         <span class="header-title">{{ isEdit ? '编辑意向协议' : '新增意向协议' }}</span>
         <div />
       </div>

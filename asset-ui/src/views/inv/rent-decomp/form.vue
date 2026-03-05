@@ -2,7 +2,7 @@
   <div class="form-page">
     <el-card shadow="never" class="form-card">
       <div class="card-header">
-        <el-button :icon="ArrowLeft" text @click="router.push("/inv/rent-decomps")">返回</el-button>
+        <el-button :icon="ArrowLeft" text @click="router.push('/inv/rent-decomps')">返回</el-button>
         <span class="header-title">{{ isEdit ? '编辑租金分解' : '新增租金分解' }}</span>
         <div />
       </div>
