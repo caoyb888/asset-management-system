@@ -2,7 +2,7 @@
   <div class="form-page">
     <el-card shadow="never" class="form-card">
       <div class="card-header">
-        <el-button :icon="ArrowLeft" text @click="router.back()">返回</el-button>
+        <el-button :icon="ArrowLeft" text @click="router.push('/inv/intentions')">返回</el-button>
         <span class="header-title">意向转合同</span>
         <div />
       </div>
@@ -71,7 +71,7 @@
         >
           确认转合同
         </el-button>
-        <el-button size="large" @click="router.back()">取消</el-button>
+        <el-button size="large" @click="router.push('/inv/intentions')">取消</el-button>
       </div>
     </el-card>
   </div>

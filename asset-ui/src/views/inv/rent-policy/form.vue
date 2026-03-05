@@ -2,7 +2,7 @@
   <div class="form-page">
     <el-card shadow="never" class="form-card">
       <div class="card-header">
-        <el-button :icon="ArrowLeft" text @click="router.back()">返回</el-button>
+        <el-button :icon="ArrowLeft" text @click="router.push('/inv/rent-policies')">返回</el-button>
         <span class="header-title">{{ isEdit ? '编辑租决政策' : '新增租决政策' }}</span>
         <div />
       </div>
@@ -375,26 +375,30 @@ async function handleSaveIndicators() {
 
 // ─── 初始化 ───────────────────────────────────────────────
 async function loadData(id: number) {
-  const [detail, indicators] = await Promise.all([
-    getRentPolicyDetail(id),
-    getPolicyIndicators(id),
-  ])
-  const d: RentPolicyVO = detail
-  currentStatus.value = d.status ?? 0
-  form.value.projectId = d.projectId ?? null
-  form.value.policyType = d.policyType ?? 1
-  form.value.year1Rent = d.year1Rent
-  form.value.year2Rent = d.year2Rent
-  form.value.year1PropertyFee = d.year1PropertyFee
-  form.value.year2PropertyFee = d.year2PropertyFee
-  form.value.minLeaseTerm = d.minLeaseTerm
-  form.value.maxLeaseTerm = d.maxLeaseTerm
-  form.value.rentGrowthRate = d.rentGrowthRate
-  form.value.feeGrowthRate = d.feeGrowthRate
-  form.value.freeRentPeriod = d.freeRentPeriod
-  form.value.depositMonths = d.depositMonths
-  form.value.paymentCycle = d.paymentCycle
-  indicatorRows.value = indicators
+  try {
+    const [detail, indicators] = await Promise.all([
+      getRentPolicyDetail(id),
+      getPolicyIndicators(id),
+    ])
+    const d: RentPolicyVO = detail
+    currentStatus.value = d.status ?? 0
+    form.value.projectId = d.projectId ?? null
+    form.value.policyType = d.policyType ?? 1
+    form.value.year1Rent = d.year1Rent
+    form.value.year2Rent = d.year2Rent
+    form.value.year1PropertyFee = d.year1PropertyFee
+    form.value.year2PropertyFee = d.year2PropertyFee
+    form.value.minLeaseTerm = d.minLeaseTerm
+    form.value.maxLeaseTerm = d.maxLeaseTerm
+    form.value.rentGrowthRate = d.rentGrowthRate
+    form.value.feeGrowthRate = d.feeGrowthRate
+    form.value.freeRentPeriod = d.freeRentPeriod
+    form.value.depositMonths = d.depositMonths
+    form.value.paymentCycle = d.paymentCycle
+    indicatorRows.value = indicators
+  } catch (err: unknown) {
+    ElMessage.error((err as { message?: string })?.message || '加载数据失败，请刷新重试')
+  }
 }
 
 onMounted(async () => {
