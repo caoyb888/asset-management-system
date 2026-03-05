@@ -32,7 +32,7 @@
         SELECT DISTINCT ii.*,
                bp.project_name,
                bm.merchant_name,
-               bb.brand_name
+               bb.brand_name_cn AS brand_name
         FROM inv_intention ii
         LEFT JOIN biz_project  bp ON bp.id = ii.project_id  AND bp.is_deleted = 0
         LEFT JOIN biz_merchant bm ON bm.id = ii.merchant_id AND bm.is_deleted = 0

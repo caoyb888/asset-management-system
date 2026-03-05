@@ -371,3 +371,25 @@ request.get('/inv/contracts', { params })
 - `/api/*`     → `asset-base`（端口 8001）
 
 **新增 API 文件时必须检查：** 路径以 `/opr/`、`/fin/`、`/inv/` 或其他模块前缀开头，而非 `/api/opr/` 等。
+
+---
+
+### biz_brand 表品牌名称字段为 brand_name_cn，非 brand_name
+
+**问题描述：** `biz_brand` 表中品牌名称列名是 `brand_name_cn`，而非直觉上的 `brand_name`。凡涉及 JOIN `biz_brand` 取品牌名称的 SQL，必须使用 `bb.brand_name_cn`，并用 `AS brand_name` 别名映射到实体字段。
+
+**错误写法：**
+```sql
+-- ❌ 错误：biz_brand 没有 brand_name 列，会报 Unknown column 'bb.brand_name'
+LEFT JOIN biz_brand bb ON bb.id = ii.brand_id
+SELECT bb.brand_name
+```
+
+**正确写法：**
+```sql
+-- ✅ 正确：使用 brand_name_cn 并起别名
+LEFT JOIN biz_brand bb ON bb.id = ii.brand_id AND bb.is_deleted = 0
+SELECT bb.brand_name_cn AS brand_name
+```
+
+**受影响文件：** `asset-investment/src/main/resources/mapper/InvIntentionMapper.xml`（已修正）
