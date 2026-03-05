@@ -73,16 +73,8 @@ public class InvLeaseContractServiceImpl extends ServiceImpl<InvLeaseContractMap
 
     @Override
     public IPage<InvLeaseContract> pageQuery(ContractQueryDTO query) {
-        LambdaQueryWrapper<InvLeaseContract> wrapper = new LambdaQueryWrapper<InvLeaseContract>()
-                .eq(query.getProjectId() != null, InvLeaseContract::getProjectId, query.getProjectId())
-                .eq(query.getStatus() != null, InvLeaseContract::getStatus, query.getStatus())
-                .eq(query.getMerchantId() != null, InvLeaseContract::getMerchantId, query.getMerchantId())
-                .and(query.getKeyword() != null && !query.getKeyword().isBlank(), w -> w
-                        .like(InvLeaseContract::getContractName, query.getKeyword())
-                        .or().like(InvLeaseContract::getContractCode, query.getKeyword()))
-                .eq(InvLeaseContract::getIsCurrent, 1)
-                .orderByDesc(InvLeaseContract::getCreatedAt);
-        return page(new Page<>(query.getPageNum(), query.getPageSize()), wrapper);
+        return baseMapper.pageQueryWithCondition(
+                new Page<>(query.getPageNum(), query.getPageSize()), query);
     }
 
     // ====================================================

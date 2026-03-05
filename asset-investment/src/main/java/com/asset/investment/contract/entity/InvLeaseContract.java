@@ -2,6 +2,7 @@ package com.asset.investment.contract.entity;
 
 import com.asset.common.model.BaseEntity;
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -19,8 +20,17 @@ public class InvLeaseContract extends BaseEntity {
     private String contractCode;
     private String contractName;
     private Long projectId;
+    /** 项目名称（联表查询冗余，非 DB 字段） */
+    @TableField(exist = false)
+    private String projectName;
     private Long merchantId;
+    /** 商家名称（联表查询冗余，非 DB 字段） */
+    @TableField(exist = false)
+    private String merchantName;
     private Long brandId;
+    /** 品牌名称（联表查询冗余，非 DB 字段） */
+    @TableField(exist = false)
+    private String brandName;
     private Long intentionId;
     private String signingEntity;
     private Integer contractType;

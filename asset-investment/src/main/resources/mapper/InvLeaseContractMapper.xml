@@ -28,6 +28,37 @@
           AND is_deleted = 0
         ORDER BY contract_end ASC
     -->
-    <!-- TODO: 第五阶段补充联表查询和到期预警查询 -->
+    <!--
+        合同多条件分页查询
+        LEFT JOIN 项目/商家/品牌，返回名称字段供列表页展示
+        注意：biz_brand 品牌名称列为 brand_name_cn，需 AS brand_name 映射
+    -->
+    <select id="pageQueryWithCondition"
+            resultType="com.asset.investment.contract.entity.InvLeaseContract">
+        SELECT ic.*,
+               bp.project_name,
+               bm.merchant_name,
+               bb.brand_name_cn AS brand_name
+        FROM inv_lease_contract ic
+        LEFT JOIN biz_project  bp ON bp.id = ic.project_id  AND bp.is_deleted = 0
+        LEFT JOIN biz_merchant bm ON bm.id = ic.merchant_id AND bm.is_deleted = 0
+        LEFT JOIN biz_brand    bb ON bb.id = ic.brand_id    AND bb.is_deleted = 0
+        WHERE ic.is_deleted = 0
+          AND ic.is_current = 1
+        <if test="q.projectId != null">
+            AND ic.project_id = #{q.projectId}
+        </if>
+        <if test="q.status != null">
+            AND ic.status = #{q.status}
+        </if>
+        <if test="q.merchantId != null">
+            AND ic.merchant_id = #{q.merchantId}
+        </if>
+        <if test="q.keyword != null and q.keyword != ''">
+            AND (ic.contract_name LIKE CONCAT('%', #{q.keyword}, '%')
+              OR ic.contract_code LIKE CONCAT('%', #{q.keyword}, '%'))
+        </if>
+        ORDER BY ic.created_at DESC
+    </select>
 
 </mapper>
