@@ -43,12 +43,8 @@ public class InvOpeningApprovalController {
             @RequestParam(required = false) Long projectId,
             @RequestParam(required = false) Integer status,
             @RequestParam(required = false) Long contractId) {
-        LambdaQueryWrapper<InvOpeningApproval> wrapper = new LambdaQueryWrapper<InvOpeningApproval>()
-                .eq(projectId != null, InvOpeningApproval::getProjectId, projectId)
-                .eq(status != null, InvOpeningApproval::getStatus, status)
-                .eq(contractId != null, InvOpeningApproval::getContractId, contractId)
-                .orderByDesc(InvOpeningApproval::getCreatedAt);
-        return R.ok(approvalService.page(new Page<>(pageNum, pageSize), wrapper));
+        return R.ok(approvalService.pageQueryWithCondition(
+                new Page<>(pageNum, pageSize), projectId, status, contractId));
     }
 
     @Operation(summary = "查询详情")

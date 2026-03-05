@@ -35,8 +35,8 @@
         <el-table-column prop="approvalCode" label="审批单号" width="160" />
         <el-table-column prop="contractCode" label="关联合同" width="160" />
         <el-table-column prop="merchantName" label="商家" />
-        <el-table-column prop="shopNo" label="商铺号" width="100" />
-        <el-table-column prop="plannedOpenDate" label="计划开业日" width="120" />
+        <el-table-column prop="shopCode" label="商铺号" width="100" />
+        <el-table-column prop="plannedOpeningDate" label="计划开业日" width="120" />
         <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="STATUS_MAP[row.status]?.type ?? 'info'">{{ STATUS_MAP[row.status]?.label ?? '-' }}</el-tag>
@@ -51,8 +51,8 @@
 
       <div class="pagination">
         <el-pagination
-          v-model:current-page="query.page"
-          v-model:page-size="query.size"
+          v-model:current-page="query.pageNum"
+          v-model:page-size="query.pageSize"
           :total="total"
           :page-sizes="[10, 20, 50]"
           layout="total, sizes, prev, pager, next, jumper"
@@ -75,7 +75,7 @@ const router = useRouter()
 const loading = ref(false)
 const list = ref<OpeningApprovalVO[]>([])
 const total = ref(0)
-const query = reactive({ page: 1, size: 10, status: undefined as number | undefined })
+const query = reactive({ pageNum: 1, pageSize: 10, status: undefined as number | undefined })
 
 type TagType = 'primary' | 'success' | 'warning' | 'danger' | 'info' | undefined
 const STATUS_MAP: Record<number, { label: string; type: TagType }> = {
@@ -97,7 +97,7 @@ async function fetchList() {
 }
 
 function handleReset() {
-  query.page = 1; query.status = undefined; fetchList()
+  query.pageNum = 1; query.status = undefined; fetchList()
 }
 
 onMounted(fetchList)

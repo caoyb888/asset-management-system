@@ -10,8 +10,11 @@ export interface OpeningApprovalVO {
   buildingId: number
   floorId: number
   shopId: number
+  shopCode: string          // 联表查询冗余
   contractId: number
+  contractCode: string      // 联表查询冗余
   merchantId: number
+  merchantName: string      // 联表查询冗余
   plannedOpeningDate: string
   actualOpeningDate: string
   status: number    // 0草稿 1审批中 2通过 3驳回

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.asset.investment.opening.mapper.InvOpeningApprovalMapper">
+
+    <!--
+        开业审批分页查询
+        LEFT JOIN 合同/商家/商铺，返回列表页所需名称字段
+        注意：列表页不需要 snapshot_data，使用 resultType 避免 JacksonTypeHandler 干扰
+    -->
+    <select id="pageQueryWithCondition"
+            resultType="com.asset.investment.opening.entity.InvOpeningApproval">
+        SELECT oa.*,
+               ic.contract_code,
+               bm.merchant_name,
+               bs.shop_code
+        FROM inv_opening_approval oa
+        LEFT JOIN inv_lease_contract ic ON ic.id = oa.contract_id AND ic.is_deleted = 0
+        LEFT JOIN biz_merchant       bm ON bm.id = oa.merchant_id AND bm.is_deleted = 0
+        LEFT JOIN biz_shop           bs ON bs.id = oa.shop_id     AND bs.is_deleted = 0
+        WHERE oa.is_deleted = 0
+        <if test="projectId != null">
+            AND oa.project_id = #{projectId}
+        </if>
+        <if test="status != null">
+            AND oa.status = #{status}
+        </if>
+        <if test="contractId != null">
+            AND oa.contract_id = #{contractId}
+        </if>
+        ORDER BY oa.created_at DESC
+    </select>
+
+</mapper>

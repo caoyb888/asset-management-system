@@ -23,8 +23,17 @@ public class InvOpeningApproval extends BaseEntity {
     private Long buildingId;
     private Long floorId;
     private Long shopId;
+    /** 商铺编码（联表查询冗余，非 DB 字段） */
+    @TableField(exist = false)
+    private String shopCode;
     private Long contractId;
+    /** 合同编号（联表查询冗余，非 DB 字段） */
+    @TableField(exist = false)
+    private String contractCode;
     private Long merchantId;
+    /** 商家名称（联表查询冗余，非 DB 字段） */
+    @TableField(exist = false)
+    private String merchantName;
     private LocalDate plannedOpeningDate;
     private LocalDate actualOpeningDate;
     /** 状态: 0待提交/1审批中/2通过/3驳回 */
