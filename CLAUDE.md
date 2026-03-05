@@ -393,3 +393,29 @@ SELECT bb.brand_name_cn AS brand_name
 ```
 
 **受影响文件：** `asset-investment/src/main/resources/mapper/InvIntentionMapper.xml`（已修正）
+
+---
+
+### 路由切换后工作区空白：禁止在 router-view 上使用 transition mode="out-in"
+
+**问题描述：** `BasicLayout.vue` 的 `<router-view>` 原来包裹了 `<transition name="fade" mode="out-in">`。`mode="out-in"` 依赖旧组件触发 `transitionend` 事件后才渲染新组件。当离开页面是复杂组件（如含 `el-loading`、大量子组件的向导表单）时，`transitionend` 有时无法正常触发，导致 Vue 永久等待 leave 结束，新页面始终不渲染，工作区呈现空白，只有强制刷新才能恢复。
+
+**错误写法：**
+```html
+<!-- ❌ 错误：mode="out-in" 在复杂页面下会导致路由切换后工作区空白 -->
+<router-view v-slot="{ Component }">
+  <transition name="fade" mode="out-in">
+    <component :is="Component" />
+  </transition>
+</router-view>
+```
+
+**正确写法：**
+```html
+<!-- ✅ 正确：去掉 transition，保留 :key 强制刷新组件实例 -->
+<router-view v-slot="{ Component, route }">
+  <component :is="Component" :key="route.fullPath" />
+</router-view>
+```
+
+**受影响文件：** `asset-ui/src/layouts/BasicLayout.vue`（已修正）

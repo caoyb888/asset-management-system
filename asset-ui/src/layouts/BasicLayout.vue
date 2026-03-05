@@ -342,10 +342,8 @@
 
       <!-- 内容区 -->
       <el-main class="layout-content">
-        <router-view v-slot="{ Component }">
-          <transition name="fade" mode="out-in">
-            <component :is="Component" />
-          </transition>
+        <router-view v-slot="{ Component, route }">
+          <component :is="Component" :key="route.fullPath" />
         </router-view>
       </el-main>
     </el-container>
@@ -494,13 +492,4 @@ async function handleCommand(command: string) {
   padding: 16px;
 }
 
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.15s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
 </style>
