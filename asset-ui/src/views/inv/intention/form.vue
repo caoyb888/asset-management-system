@@ -2,11 +2,12 @@
   <div class="form-page">
     <el-card shadow="never" class="form-card">
       <div class="card-header">
-        <el-button :icon="ArrowLeft" text @click="router.push('/inv/intentions')">返回</el-button>
+        <el-button :icon="ArrowLeft" text @click="handleReturn">返回</el-button>
         <span class="header-title">{{ isEdit ? '编辑意向协议' : '新增意向协议' }}</span>
         <div />
       </div>
 
+      <template v-if="!leaving">
       <!-- 向导步骤条 -->
       <el-steps :active="currentStep" align-center class="mb-6" finish-status="success">
         <el-step title="计租方案" />
@@ -460,16 +461,17 @@
           <ApprovalTimeline :current-status="intentionCurrentStatus" />
         </div>
       </template>
+      </template><!-- end v-if="!leaving" -->
     </el-card>
-  </div>
 
-  <!-- 审批发起弹窗 -->
-  <ApprovalDialog
-    v-model:visible="approvalDialogVisible"
-    title="提交意向协议审批"
-    :loading="submitting"
-    @confirm="onApprovalConfirm"
-  />
+    <!-- 审批发起弹窗 -->
+    <ApprovalDialog
+      v-model:visible="approvalDialogVisible"
+      title="提交意向协议审批"
+      :loading="submitting"
+      @confirm="onApprovalConfirm"
+    />
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -518,6 +520,7 @@ const isEdit = computed(() => !!routeId.value)
 const intentionId = ref<number | null>(null)
 const intentionCurrentStatus = ref(0)  // 审批状态 0草稿 1审批中 2通过 3驳回 4已转合同
 const approvalDialogVisible = ref(false)
+const leaving = ref(false)
 
 // ─── 步骤状态 ────────────────────────────────────────────────────────────────
 const currentStep = ref(0)
@@ -1079,23 +1082,34 @@ async function loadEditData(id: number) {
   }
 }
 
+// ─── 返回 ────────────────────────────────────────────────────────────────────
+async function handleReturn() {
+  leaving.value = true       // 触发 v-if，卸载 el-steps / el-table 复杂子树
+  await nextTick()           // 等 Vue 完成 DOM 更新
+  router.push('/inv/intentions')
+}
+
 // ─── 初始化 ──────────────────────────────────────────────────────────────────
 onMounted(async () => {
-  // 并行预加载下拉选项（编辑模式下也需要这些列表以正确显示已选项）
-  await Promise.all([searchProjects(''), searchMerchants(''), searchBrands('')])
+  try {
+    // 并行预加载下拉选项（编辑模式下也需要这些列表以正确显示已选项）
+    await Promise.all([searchProjects(''), searchMerchants(''), searchBrands('')])
 
-  if (isEdit.value && routeId.value) {
-    // 编辑模式：初始化 store 并从后端加载数据
-    intentionStore.initEdit(routeId.value)
-    intentionId.value = routeId.value
-    await loadEditData(routeId.value)
-  } else {
-    // 新增模式：若 store 中有上次未完成的数据则恢复，否则重置
-    if (intentionStore.rentScheme.schemeId !== null) {
-      restoreFromStore()
+    if (isEdit.value && routeId.value) {
+      // 编辑模式：初始化 store 并从后端加载数据
+      intentionStore.initEdit(routeId.value)
+      intentionId.value = routeId.value
+      await loadEditData(routeId.value)
     } else {
-      intentionStore.initCreate()
+      // 新增模式：若 store 中有上次未完成的数据则恢复，否则重置
+      if (intentionStore.rentScheme.schemeId !== null) {
+        restoreFromStore()
+      } else {
+        intentionStore.initCreate()
+      }
     }
+  } catch (err: unknown) {
+    ElMessage.error((err as { message?: string })?.message || '初始化失败')
   }
 })
 </script>

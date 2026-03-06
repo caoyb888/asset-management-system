@@ -2,12 +2,12 @@
   <div class="form-page">
     <el-card shadow="never" class="form-card">
       <div class="card-header">
-        <el-button :icon="ArrowLeft" text @click="router.push('/inv/rent-policies')">返回</el-button>
+        <el-button :icon="ArrowLeft" text @click="handleReturn">返回</el-button>
         <span class="header-title">{{ isEdit ? '编辑租决政策' : '新增租决政策' }}</span>
         <div />
       </div>
 
-      <el-tabs v-model="activeTab">
+      <el-tabs v-if="!leaving" v-model="activeTab">
 
         <!-- ===== Tab 1: 政策配置 ===== -->
         <el-tab-pane label="政策配置" name="policy">
@@ -217,19 +217,19 @@
         </el-tab-pane>
       </el-tabs>
     </el-card>
-  </div>
 
-  <!-- 审批发起弹窗 -->
-  <ApprovalDialog
-    v-model:visible="approvalDialogVisible"
-    title="提交租决政策审批"
-    :loading="submitting"
-    @confirm="onApprovalConfirm"
-  />
+    <!-- 审批发起弹窗 -->
+    <ApprovalDialog
+      v-model:visible="approvalDialogVisible"
+      title="提交租决政策审批"
+      :loading="submitting"
+      @confirm="onApprovalConfirm"
+    />
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, Plus, Delete } from '@element-plus/icons-vue'
@@ -252,6 +252,7 @@ const routeId = computed(() => route.query.id ? Number(route.query.id) : null)
 const isEdit = computed(() => !!routeId.value)
 const isReadonly = computed(() => route.query.readonly === '1')
 const activeTab = ref('policy')
+const leaving = ref(false)
 
 const recordId = ref<number | null>(null)
 const currentStatus = ref(0)
@@ -373,6 +374,13 @@ async function handleSaveIndicators() {
   }
 }
 
+// ─── 返回 ─────────────────────────────────────────────────
+async function handleReturn() {
+  leaving.value = true       // 触发 v-if，卸载 el-tabs / el-table
+  await nextTick()           // 等 Vue 完成 DOM 更新
+  router.push('/inv/rent-policies')
+}
+
 // ─── 初始化 ───────────────────────────────────────────────
 async function loadData(id: number) {
   try {
@@ -402,10 +410,14 @@ async function loadData(id: number) {
 }
 
 onMounted(async () => {
-  await searchProjects('')
-  if (isEdit.value && routeId.value) {
-    recordId.value = routeId.value
-    await loadData(routeId.value)
+  try {
+    await searchProjects('')
+    if (isEdit.value && routeId.value) {
+      recordId.value = routeId.value
+      await loadData(routeId.value)
+    }
+  } catch (err: unknown) {
+    ElMessage.error((err as { message?: string })?.message || '初始化失败')
   }
 })
 </script>

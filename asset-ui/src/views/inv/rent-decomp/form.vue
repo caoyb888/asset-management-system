@@ -2,7 +2,7 @@
   <div class="form-page">
     <el-card shadow="never" class="form-card">
       <div class="card-header">
-        <el-button :icon="ArrowLeft" text @click="router.push('/inv/rent-decomps')">返回</el-button>
+        <el-button :icon="ArrowLeft" text @click="handleReturn">返回</el-button>
         <span class="header-title">{{ isEdit ? '编辑租金分解' : '新增租金分解' }}</span>
         <div />
       </div>
@@ -200,19 +200,19 @@
         </div>
       </template>
     </el-card>
-  </div>
 
-  <!-- 审批发起弹窗 -->
-  <ApprovalDialog
-    v-model:visible="approvalDialogVisible"
-    title="提交租金分解审批"
-    :loading="submitting"
-    @confirm="onApprovalConfirm"
-  />
+    <!-- 审批发起弹窗 -->
+    <ApprovalDialog
+      v-model:visible="approvalDialogVisible"
+      title="提交租金分解审批"
+      :loading="submitting"
+      @confirm="onApprovalConfirm"
+    />
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, reactive } from 'vue'
+import { ref, computed, onMounted, reactive, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, Plus, Delete } from '@element-plus/icons-vue'
@@ -415,6 +415,13 @@ async function mockApprove(approved: boolean) {
   }
 }
 
+// ─── 返回列表（先收起复杂子树再导航，避免空白页）──────────────
+async function handleReturn() {
+  recordId.value = null   // 触发 v-if，卸载 el-tabs / el-table
+  await nextTick()        // 等 Vue 完成 DOM 更新
+  router.push('/inv/rent-decomps')
+}
+
 // ─── 同步明细到分组 ──────────────────────────────────────
 function syncDetails(details: RentDecompDetailVO[]) {
   detailsByCategory[1] = []
@@ -429,31 +436,39 @@ function syncDetails(details: RentDecompDetailVO[]) {
 
 // ─── 初始化 ───────────────────────────────────────────────
 async function loadData(id: number) {
-  const [detail, details, policies] = await Promise.all([
-    getRentDecompDetail(id),
-    getRentDecompDetails(id),
-    getApprovedPolicies(),
-  ])
-  const d: RentDecompVO = detail
-  decompCode.value = d.decompCode
-  form.value.projectId = d.projectId ?? null
-  form.value.policyId = d.policyId ?? null
-  totalAnnualRent.value = d.totalAnnualRent
-  totalAnnualFee.value = d.totalAnnualFee
-  currentStatus.value = d.status ?? 0
-  policyOptions.value = policies
-  syncDetails(details)
+  try {
+    const [detail, details, policies] = await Promise.all([
+      getRentDecompDetail(id),
+      getRentDecompDetails(id),
+      getApprovedPolicies(),
+    ])
+    const d: RentDecompVO = detail
+    decompCode.value = d.decompCode
+    form.value.projectId = d.projectId ?? null
+    form.value.policyId = d.policyId ?? null
+    totalAnnualRent.value = d.totalAnnualRent
+    totalAnnualFee.value = d.totalAnnualFee
+    currentStatus.value = d.status ?? 0
+    policyOptions.value = policies
+    syncDetails(details)
+  } catch (err: unknown) {
+    ElMessage.error((err as { message?: string })?.message || '加载数据失败')
+  }
 }
 
 onMounted(async () => {
-  const [, policies] = await Promise.all([
-    searchProjects(''),
-    getApprovedPolicies(),
-  ])
-  policyOptions.value = policies
-  if (isEdit.value && routeId.value) {
-    recordId.value = routeId.value
-    await loadData(routeId.value)
+  try {
+    const [, policies] = await Promise.all([
+      searchProjects(''),
+      getApprovedPolicies(),
+    ])
+    policyOptions.value = policies
+    if (isEdit.value && routeId.value) {
+      recordId.value = routeId.value
+      await loadData(routeId.value)
+    }
+  } catch (err: unknown) {
+    ElMessage.error((err as { message?: string })?.message || '初始化失败')
   }
 })
 </script>

@@ -419,3 +419,67 @@ SELECT bb.brand_name_cn AS brand_name
 ```
 
 **受影响文件：** `asset-ui/src/layouts/BasicLayout.vue`（已修正）
+
+---
+
+### 含 el-tabs/el-table 的表单页返回后工作区空白且菜单无响应
+
+**问题描述：** 在含有 `el-tabs` + `el-table`（内嵌 `el-input`/`el-input-number` 可编辑单元格）的表单页（如租金分解 `rent-decomp/form.vue`），点击返回按钮后，工作区变为空白且点击左侧菜单无任何反应，只有强制刷新才能恢复。根本原因是 `el-tabs` 相关的 `ResizeObserver`、`useWindowFocus`、`useDocumentVisibility` 等 Element Plus 内部观察者，在组件一次性卸载时未能完全清理，导致遗留状态阻断后续渲染或事件响应。
+
+**三重修复方案（缺一不可）：**
+
+**修复 1 — 消除 Fragment 根节点：** 将模板中作为第二根节点的 `<ApprovalDialog>` 移入主 `<div>` 内，使组件变为单根节点。Fragment 组件在 `:key` 切换时，Vue 对多根节点的并发卸载存在潜在清理不完整的风险。
+
+```html
+<!-- ❌ 错误：Fragment 结构（两个根节点） -->
+<template>
+  <div class="form-page">...</div>
+  <ApprovalDialog ... />
+</template>
+
+<!-- ✅ 正确：单根节点 -->
+<template>
+  <div class="form-page">
+    ...
+    <ApprovalDialog ... />
+  </div>
+</template>
+```
+
+**修复 2 — 返回前先卸载复杂子树：** 不要直接调用 `router.push`，而是先将控制 `el-tabs` 显示的响应式变量置为触发 `v-if` 隐藏的值，`await nextTick()` 让 Vue 完成 DOM 更新（即先卸载 `el-tabs`/`el-table`），再执行路由跳转。
+
+```typescript
+// ❌ 错误：直接跳转，el-tabs + el-table 和 router-view 切换同时发生
+router.push('/inv/rent-decomps')
+
+// ✅ 正确：先收起复杂子树，再跳转
+async function handleReturn() {
+  recordId.value = null  // 触发 v-if，卸载 el-tabs / el-table
+  await nextTick()       // 等 Vue 完成 DOM 更新
+  router.push('/inv/rent-decomps')
+}
+```
+
+**修复 3 — async 生命周期钩子加 try/catch：** `onMounted` 和 `loadData` 中的异步调用必须包裹 `try/catch`，防止未处理的 Promise rejection 向上传播干扰 Vue 内部错误处理机制。
+
+```typescript
+// ❌ 错误：无 try/catch，async 错误向上传播
+async function loadData(id: number) {
+  const [detail, details] = await Promise.all([...])
+  ...
+}
+
+// ✅ 正确：捕获错误，防止传播
+async function loadData(id: number) {
+  try {
+    const [detail, details] = await Promise.all([...])
+    ...
+  } catch (err: unknown) {
+    ElMessage.error((err as { message?: string })?.message || '加载数据失败')
+  }
+}
+```
+
+**受影响文件：** `asset-ui/src/views/inv/rent-decomp/form.vue`（已修正）
+
+**适用范围：** 凡是表单页包含 `el-tabs` + `el-table`（内嵌可编辑单元格）且点击返回后出现空白页/菜单无响应的场景，均应应用以上三重修复。
