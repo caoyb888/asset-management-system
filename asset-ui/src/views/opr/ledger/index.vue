@@ -242,8 +242,8 @@ async function loadData() {
   loading.value = true
   try {
     const res = await getLedgerPage(queryForm)
-    tableData.value = res.data?.records || []
-    total.value = res.data?.total || 0
+    tableData.value = res.records || []
+    total.value = res.total || 0
   } finally {
     loading.value = false
   }
@@ -297,7 +297,7 @@ async function handleGenerateReceivable(row: OprContractLedger) {
       type: 'warning',
     })
     const res = await generateReceivable(row.id)
-    ElMessage.success(`应收计划生成成功，共 ${res.data} 条`)
+    ElMessage.success(`应收计划生成成功，共 ${res} 条`)
     loadData()
   } catch (e) {
     // 取消操作

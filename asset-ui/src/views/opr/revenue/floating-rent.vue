@@ -201,7 +201,7 @@ async function loadList() {
   loading.value = true
   try {
     const res = await floatingRentApi.page(query) as any
-    if (res.data) { tableData.value = res.data.records || []; total.value = res.data.total || 0 }
+    tableData.value = res.records || []; total.value = res.total || 0
   } finally {
     loading.value = false
   }
@@ -230,7 +230,7 @@ async function doCalculate() {
       contractId: calcForm.contractId,
       calcMonth: calcForm.calcMonth,
     }) as any
-    ElMessage.success('计算成功，记录ID=' + res.data)
+    ElMessage.success('计算成功，记录ID=' + res)
     loadList()
   } finally {
     calculating.value = false
@@ -249,7 +249,7 @@ async function openDetail(row: OprFloatingRent) {
   currentDetail.value = null
   try {
     const res = await floatingRentApi.detail(row.id) as any
-    currentDetail.value = res.data
+    currentDetail.value = res
   } finally {
     detailLoading.value = false
   }
@@ -260,8 +260,8 @@ async function doGenerateReceivable() {
   generatingReceivable.value = true
   try {
     const res = await floatingRentApi.generateReceivable(currentDetail.value.id) as any
-    ElMessage.success('应收计划已生成，ID=' + res.data)
-    currentDetail.value.receivableId = res.data
+    ElMessage.success('应收计划已生成，ID=' + res)
+    currentDetail.value.receivableId = res
     loadList()
   } finally {
     generatingReceivable.value = false

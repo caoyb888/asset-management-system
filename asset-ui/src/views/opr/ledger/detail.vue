@@ -350,7 +350,7 @@ async function loadDetail() {
   loading.value = true
   try {
     const res = await getLedgerById(id)
-    detail.value = res.data
+    detail.value = res
   } finally {
     loading.value = false
   }
@@ -358,8 +358,8 @@ async function loadDetail() {
 
 async function loadFeeItems() {
   try {
-    const res = await request.get('/api/inv/config/fee-items', { params: { pageSize: 100 } })
-    feeItems.value = res.data?.records || []
+    const res = await request.get('/inv/config/fee-items', { params: { pageSize: 100 } })
+    feeItems.value = res.records || []
   } catch {
     feeItems.value = []
   }
@@ -452,7 +452,7 @@ async function handleDoubleSign() {
 async function handleGenerateReceivable() {
   await ElMessageBox.confirm('确认生成应收计划？此操作不可撤销。', '生成应收计划', { type: 'warning' })
   const res = await generateReceivable(id)
-  ElMessage.success(`应收计划生成成功，共 ${res.data} 条`)
+  ElMessage.success(`应收计划生成成功，共 ${res} 条`)
   loadDetail()
 }
 
@@ -501,7 +501,7 @@ watch(activeTab, (tab) => {
 async function loadChangeHistory(contractId: number) {
   try {
     const res = await getChangeHistory(contractId)
-    changeHistory.value = res.data || []
+    changeHistory.value = res || []
   } catch {
     changeHistory.value = []
   }

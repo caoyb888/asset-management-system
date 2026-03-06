@@ -178,8 +178,8 @@ async function loadData() {
   loading.value = true
   try {
     const res = await getChangePage(queryForm)
-    tableData.value = res.data?.records || []
-    total.value = res.data?.total || 0
+    tableData.value = res.records || []
+    total.value = res.total || 0
   } finally {
     loading.value = false
   }

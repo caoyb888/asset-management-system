@@ -365,8 +365,8 @@ async function searchContracts(keyword: string) {
   if (!keyword) return
   contractLoading.value = true
   try {
-    const res = await request.get('/api/inv/contracts', { params: { keyword, pageSize: 20 } })
-    contractOptions.value = res.data?.records || []
+    const res = await request.get('/inv/contracts', { params: { keyword, pageSize: 20 } })
+    contractOptions.value = res.records || []
   } catch {
     contractOptions.value = []
   } finally {
@@ -410,7 +410,7 @@ async function saveDraft() {
       savedChangeId.value = editId
     } else {
       const res = await createChange(dto)
-      savedChangeId.value = res.data
+      savedChangeId.value = res
     }
   } finally {
     saving.value = false
@@ -423,7 +423,7 @@ async function loadImpact() {
   impactData.value = null
   try {
     const res = await previewImpact(savedChangeId.value)
-    impactData.value = res.data
+    impactData.value = res
   } catch {
     ElMessage.warning('影响预览计算失败，可直接提交草稿')
   } finally {
@@ -440,7 +440,7 @@ async function loadEditData() {
   if (!editId) return
   try {
     const res = await getChangeById(editId)
-    const d: ChangeDetailVO = res.data
+    const d: ChangeDetailVO = res as any
     step0Form.contractId = d.contractId
     step1Form.changeTypeCodes = d.changeTypeCodes || []
     step1Form.effectiveDate = d.effectiveDate || ''

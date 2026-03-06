@@ -176,7 +176,7 @@ async function loadDetail() {
   loading.value = true
   try {
     const res = await getChangeById(id)
-    detail.value = res.data
+    detail.value = res
   } finally {
     loading.value = false
   }

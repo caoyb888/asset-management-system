@@ -154,10 +154,8 @@ async function loadList() {
   loading.value = true
   try {
     const res = await getTerminationPage(query)
-    if (res.data) {
-      list.value = res.data.records || []
-      total.value = res.data.total || 0
-    }
+    list.value = res.records || []
+    total.value = res.total || 0
   } finally {
     loading.value = false
   }

@@ -205,7 +205,7 @@ async function loadDailyData() {
   calendarLoading.value = true
   try {
     const res = await revenueReportApi.dailyDetail(form.contractId, form.reportMonth) as any
-    dailyData.value = res.data || {}
+    dailyData.value = res || {}
   } finally {
     calendarLoading.value = false
   }
@@ -258,7 +258,7 @@ async function triggerFloatingRent() {
       contractId: form.contractId,
       calcMonth: form.reportMonth,
     }) as any
-    ElMessage.success('浮动租金计算成功，记录ID=' + res.data)
+    ElMessage.success('浮动租金计算成功，记录ID=' + res)
     router.push(`/opr/floating-rent?contractId=${form.contractId}&calcMonth=${form.reportMonth}`)
   } catch { /* 错误由拦截器统一提示 */ }
 }

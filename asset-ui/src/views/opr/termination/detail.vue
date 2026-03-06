@@ -165,7 +165,7 @@ async function loadDetail() {
   loading.value = true
   try {
     const res = await getTerminationById(id)
-    detail.value = res.data
+    detail.value = res
   } finally {
     loading.value = false
   }

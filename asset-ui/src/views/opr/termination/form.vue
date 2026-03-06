@@ -209,10 +209,10 @@ const submitLoading = ref(false)
 async function searchContract() {
   if (!step1.contractCode.trim()) return
   try {
-    const res = await request.get('/api/inv/contracts', {
+    const res = await request.get('/inv/contracts', {
       params: { contractCode: step1.contractCode, pageSize: 10 }
     })
-    contractList.value = res.data?.records || []
+    contractList.value = res.records || []
     if (!contractList.value.length) ElMessage.info('未找到匹配合同')
   } catch (e: any) {
     ElMessage.error('搜索失败')
@@ -256,7 +256,7 @@ async function nextToStep3() {
       id = savedTermination.value.id
     } else {
       const res = await createTermination(dto)
-      id = res.data
+      id = res
     }
 
     // 触发清算计算
@@ -282,8 +282,8 @@ async function recalculate() {
   try {
     await calculateSettlement(savedTermination.value.id)
     const res = await getTerminationById(savedTermination.value.id)
-    savedTermination.value = res.data
-    settlements.value = res.data?.settlements || []
+    savedTermination.value = res
+    settlements.value = res.settlements || []
     ElMessage.success('重新计算完成')
   } catch (e: any) {
     ElMessage.error(e?.response?.data?.msg || '计算失败')
@@ -312,7 +312,7 @@ async function loadEditData() {
   if (!editId.value) return
   try {
     const res = await getTerminationById(editId.value)
-    const data = res.data as TerminationDetailVO
+    const data = res as TerminationDetailVO
     savedTermination.value = data
     settlements.value = data.settlements || []
 

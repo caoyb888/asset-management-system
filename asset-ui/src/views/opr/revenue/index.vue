@@ -188,10 +188,8 @@ async function loadList() {
   loading.value = true
   try {
     const res = await revenueReportApi.page(query) as any
-    if (res.data) {
-      tableData.value = res.data.records || []
-      total.value     = res.data.total || 0
-    }
+    tableData.value = res.records || []
+    total.value     = res.total || 0
   } finally {
     loading.value = false
   }
@@ -235,8 +233,8 @@ async function doImport() {
   importResult.value = null
   try {
     const res = await revenueReportApi.importExcel(selectedFile.value) as any
-    importResult.value = res.data
-    ElMessage.success(`导入完成，成功 ${res.data.successCount} 条`)
+    importResult.value = res
+    ElMessage.success(`导入完成，成功 ${res.successCount} 条`)
     loadList()
   } finally {
     importing.value = false
@@ -246,7 +244,7 @@ async function doImport() {
 // 导出
 async function handleExport() {
   const res = await revenueReportApi.exportExcel(query) as any
-  const blob = new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  const blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
   const url  = URL.createObjectURL(blob)
   const a    = document.createElement('a')
   a.href     = url
@@ -257,7 +255,7 @@ async function handleExport() {
 
 async function handleDownloadTemplate() {
   const res = await revenueReportApi.downloadTemplate() as any
-  const blob = new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  const blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
   const url  = URL.createObjectURL(blob)
   const a    = document.createElement('a')
   a.href     = url

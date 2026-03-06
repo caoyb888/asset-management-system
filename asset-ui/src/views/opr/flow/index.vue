@@ -295,40 +295,40 @@ const importResult = reactive({ successCount: 0, failCount: 0, errorList: [] as 
 
 async function loadProjects() {
   try {
-    const res = await request.get('/api/base/projects', { params: { pageSize: 999 } })
-    projectList.value = res.data?.records || []
+    const res = await request.get('/base/projects', { params: { pageSize: 999 } })
+    projectList.value = res.records || []
     projectList.value.forEach((p: any) => { projectMap.value[p.id] = p.projectName })
   } catch (e) {}
 }
 
 async function loadBuildings(projectId: number) {
   try {
-    const res = await request.get('/api/base/buildings', { params: { projectId, pageSize: 999 } })
-    buildingList.value = res.data?.records || []
+    const res = await request.get('/base/buildings', { params: { projectId, pageSize: 999 } })
+    buildingList.value = res.records || []
     buildingList.value.forEach((b: any) => { buildingMap.value[b.id] = b.buildingName })
   } catch (e) { buildingList.value = [] }
 }
 
 async function loadFloors(buildingId: number) {
   try {
-    const res = await request.get('/api/base/floors', { params: { buildingId, pageSize: 999 } })
-    floorList.value = res.data?.records || []
+    const res = await request.get('/base/floors', { params: { buildingId, pageSize: 999 } })
+    floorList.value = res.records || []
     floorList.value.forEach((f: any) => { floorMap.value[f.id] = f.floorName })
   } catch (e) { floorList.value = [] }
 }
 
 async function loadFormBuildings(projectId: number) {
   try {
-    const res = await request.get('/api/base/buildings', { params: { projectId, pageSize: 999 } })
-    formBuildingList.value = res.data?.records || []
+    const res = await request.get('/base/buildings', { params: { projectId, pageSize: 999 } })
+    formBuildingList.value = res.records || []
     formBuildingList.value.forEach((b: any) => { buildingMap.value[b.id] = b.buildingName })
   } catch (e) { formBuildingList.value = [] }
 }
 
 async function loadFormFloors(buildingId: number) {
   try {
-    const res = await request.get('/api/base/floors', { params: { buildingId, pageSize: 999 } })
-    formFloorList.value = res.data?.records || []
+    const res = await request.get('/base/floors', { params: { buildingId, pageSize: 999 } })
+    formFloorList.value = res.records || []
     formFloorList.value.forEach((f: any) => { floorMap.value[f.id] = f.floorName })
   } catch (e) { formFloorList.value = [] }
 }
@@ -345,8 +345,8 @@ async function loadList() {
   loading.value = true
   try {
     const res = await getFlowPage(query)
-    list.value = res.data?.records || []
-    total.value = res.data?.total || 0
+    list.value = res.records || []
+    total.value = res.total || 0
   } finally {
     loading.value = false
   }
@@ -355,8 +355,8 @@ async function loadList() {
 async function loadStats() {
   try {
     const res = await getFlowStatistics({ projectId: statsFilter.projectId })
-    Object.assign(stats, res.data || {})
-    renderChart(res.data?.trendPoints || [])
+    Object.assign(stats, res || {})
+    renderChart(res.trendPoints || [])
   } catch (e) {}
 }
 
@@ -517,7 +517,7 @@ async function doDelete(id: number) {
 async function doImport(file: File) {
   try {
     const res = await importFlowExcel(file)
-    const data = res.data || {}
+    const data = res || {}
     importResult.successCount = data.successCount || 0
     importResult.failCount = data.failCount || 0
     importResult.errorList = data.errorList || []
@@ -535,7 +535,7 @@ async function doImport(file: File) {
 async function doExport() {
   try {
     const res = await exportFlowExcel(query)
-    const url = URL.createObjectURL(res.data as Blob)
+    const url = URL.createObjectURL(res as Blob)
     const a = document.createElement('a')
     a.href = url
     a.download = `客流填报_${new Date().toISOString().slice(0, 10)}.xlsx`
