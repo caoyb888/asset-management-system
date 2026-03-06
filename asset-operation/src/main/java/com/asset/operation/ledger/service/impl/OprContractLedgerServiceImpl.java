@@ -128,7 +128,7 @@ public class OprContractLedgerServiceImpl extends ServiceImpl<OprContractLedgerM
         // 查询品牌名称
         if (ledger.getBrandId() != null) {
             try {
-                String brandSQL = "SELECT brand_name FROM biz_brand WHERE id = ? AND is_deleted = 0 LIMIT 1";
+                String brandSQL = "SELECT brand_name_cn AS brand_name FROM biz_brand WHERE id = ? AND is_deleted = 0 LIMIT 1";
                 String name = jdbcTemplate.queryForObject(brandSQL, String.class, ledger.getBrandId());
                 vo.setBrandName(name);
             } catch (Exception ignored) {}

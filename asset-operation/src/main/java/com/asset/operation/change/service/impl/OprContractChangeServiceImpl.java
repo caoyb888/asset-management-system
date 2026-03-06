@@ -297,7 +297,7 @@ public class OprContractChangeServiceImpl extends ServiceImpl<OprContractChangeM
         if (change.getContractId() != null) {
             try {
                 Map<String, Object> contract = jdbcTemplate.queryForMap(
-                        "SELECT contract_code, contract_name, merchant_id FROM inv_lease_contract WHERE id = ? LIMIT 1",
+                        "SELECT contract_code, contract_name, merchant_id FROM inv_lease_contract WHERE id = ? AND is_deleted = 0 LIMIT 1",
                         change.getContractId());
                 vo.setContractCode((String) contract.get("contract_code"));
                 vo.setContractName((String) contract.get("contract_name"));
