@@ -483,3 +483,41 @@ async function loadData(id: number) {
 **受影响文件：** `asset-ui/src/views/inv/rent-decomp/form.vue`（已修正）
 
 **适用范围：** 凡是表单页包含 `el-tabs` + `el-table`（内嵌可编辑单元格）且点击返回后出现空白页/菜单无响应的场景，均应应用以上三重修复。
+
+---
+
+### 新增微服务模块必须在 application-dev.yml 中配置 mybatis-plus
+
+**问题描述：** `asset-operation` 模块的 `application-dev.yml` 缺少 `mybatis-plus` 配置块，导致 `map-underscore-to-camel-case` 未启用。MyBatis-Plus 无法将数据库 snake_case 列名（如 `double_sign_status`、`ledger_code`、`receivable_status`）映射到 Java 实体的 camelCase 字段，所有查询返回的实体对象字段值均为 `null`，前台列表页看不到任何数据。
+
+**曾出错的模块：** 营运管理（asset-operation）
+
+**错误写法：**
+```yaml
+# ❌ 错误：application-dev.yml 中缺少 mybatis-plus 配置，字段映射全部失败
+spring:
+  datasource:
+    ...
+logging:
+  ...
+# 没有 mybatis-plus 配置块！
+```
+
+**正确写法（每个微服务模块必须包含）：**
+```yaml
+# ✅ 正确：所有微服务模块的 application-dev.yml 必须包含以下配置
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    db-config:
+      logic-delete-field: isDeleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+```
+
+**新增微服务模块时必须检查：** `application-dev.yml` 和 `application-test.yml` 均包含完整的 `mybatis-plus` 配置块，与 `asset-base` 等已有模块保持一致。
+
+**受影响文件：** `asset-operation/src/main/resources/application-dev.yml`（已修正）
