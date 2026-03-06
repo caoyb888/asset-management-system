@@ -249,8 +249,8 @@ const rules: FormRules = {
 watch(() => [props.visible, props.rowId], async ([vis, id]) => {
   if (!vis) return
   if (id && (props.mode === 'edit' || props.mode === 'view')) {
-    const res = await getReceiptDetail(id as number)
-    const data = res.data
+    const res = await getReceiptDetail(id as number) as any
+    const data = res
     form.value = {
       contractId: data.contractId,
       totalAmount: data.totalAmount,

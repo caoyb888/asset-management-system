@@ -274,7 +274,7 @@ async function loadAccount() {
   searched.value = false
   try {
     const res: any = await getDepositAccount(searchForm.contractId)
-    account.value = res.data ?? null
+    account.value = res ?? null
     searched.value = true
     if (account.value) { txQuery.contractId = searchForm.contractId; loadTransactions() }
   } catch { account.value = null; searched.value = true }
@@ -302,8 +302,8 @@ async function loadTransactions() {
   txLoading.value = true
   try {
     const res: any = await getDepositTransactions(txQuery)
-    transactions.value = res.data?.records ?? []
-    txTotal.value = res.data?.total ?? 0
+    transactions.value = res.records ?? []
+    txTotal.value = res.total ?? 0
   } finally { txLoading.value = false }
 }
 

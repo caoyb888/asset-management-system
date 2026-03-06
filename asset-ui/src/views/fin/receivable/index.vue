@@ -371,18 +371,17 @@ async function loadData() {
   loading.value = true
   try {
     if (activeTab.value === 'detail') {
-      const res = await getReceivablePage(query)
-      const page = res.data?.data
-      detailList.value = page?.records ?? []
-      total.value = page?.total ?? 0
+      const res = await getReceivablePage(query) as any
+      detailList.value = res?.records ?? []
+      total.value = res?.total ?? 0
     } else if (activeTab.value === 'summary') {
       const res = await getReceivableSummary({
         contractId: query.contractId,
         projectId: query.projectId,
         merchantId: query.merchantId,
-      })
-      summaryList.value = res.data?.data?.records ?? []
-      total.value = res.data?.data?.total ?? 0
+      }) as any
+      summaryList.value = res?.records ?? []
+      total.value = res?.total ?? 0
     }
   } finally {
     loading.value = false
@@ -392,8 +391,8 @@ async function loadData() {
 async function loadOverdueStats() {
   loading.value = true
   try {
-    const res = await getOverdueStatistics()
-    overdueStats.value = res.data?.data ?? null
+    const res = await getOverdueStatistics() as any
+    overdueStats.value = res ?? null
   } finally {
     loading.value = false
   }
@@ -414,7 +413,7 @@ function handleSizeChange(size: number) { query.pageSize = size; query.pageNum =
 async function handleExport() {
   try {
     const res = await exportReceivable(query)
-    const url = URL.createObjectURL(new Blob([res.data]))
+    const url = URL.createObjectURL(new Blob([res as any]))
     const a = document.createElement('a')
     a.href = url
     a.download = `应收明细_${new Date().toISOString().slice(0, 10)}.xlsx`

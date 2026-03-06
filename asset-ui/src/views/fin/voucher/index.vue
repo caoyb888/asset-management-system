@@ -326,8 +326,8 @@ async function loadList() {
       params.dateTo   = dateRange.value[1]
     }
     const res: any = await getVoucherPage(params)
-    list.value  = res.data?.records ?? []
-    total.value = res.data?.total   ?? 0
+    list.value  = res.records ?? []
+    total.value = res.total   ?? 0
   } finally {
     loading.value = false
   }
@@ -377,7 +377,7 @@ async function openDetail(row: VoucherDetailVO) {
   detailVO.value = null
   detailVisible.value = true
   const res: any = await getVoucherDetail(row.id)
-  detailVO.value = res.data
+  detailVO.value = res
 }
 
 async function doAuditDetail() {

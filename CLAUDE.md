@@ -521,3 +521,40 @@ mybatis-plus:
 **新增微服务模块时必须检查：** `application-dev.yml` 和 `application-test.yml` 均包含完整的 `mybatis-plus` 配置块，与 `asset-base` 等已有模块保持一致。
 
 **受影响文件：** `asset-operation/src/main/resources/application-dev.yml`（已修正）
+
+---
+
+### 前端 API 响应已自动解包：禁止重复访问 res.data
+
+**问题描述：** `src/api/request.ts` 的响应拦截器已对后端统一返回格式 `{code, msg, data}` 做了解包处理——当 `code === 200` 时直接 `return res.data`，即调用方拿到的 `res` 已经是 `data` 本身。如果 Vue 组件中再写 `res.data?.records`，实际等价于 `原始响应.data.data.records`，结果为 `undefined`，导致列表页无数据显示但不报错（静默失败）。
+
+**曾出错的模块：** 营运管理（opr）——13 个 Vue 页面全部存在此问题
+
+**错误写法：**
+```ts
+// ❌ 错误：res 已经是解包后的 data，再访问 .data 得到 undefined
+const res = await api.page(query)
+tableData.value = res.data?.records || []   // undefined?.records → undefined → []
+total.value     = res.data?.total || 0      // undefined?.total → undefined → 0
+```
+
+**正确写法：**
+```ts
+// ✅ 正确：res 就是 data，直接访问 records/total
+const res = await api.page(query) as any
+tableData.value = res.records || []
+total.value     = res.total || 0
+```
+
+**request.ts 拦截器逻辑（关键代码）：**
+```ts
+service.interceptors.response.use((response) => {
+  const res = response.data          // 后端返回 {code, msg, data}
+  if (res.code === 200) return res.data  // ← 已解包，调用方拿到的就是 data
+  // ... 错误处理
+})
+```
+
+**新增 API 接口或 Vue 页面时必须检查：** 分页接口返回值直接使用 `res.records` 和 `res.total`，详情接口直接使用 `res` 作为实体对象，不要再套一层 `.data`。
+
+**受影响文件：** `asset-ui/src/views/opr/` 下 13 个 Vue 文件（已全部修正）

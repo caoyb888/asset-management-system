@@ -192,8 +192,8 @@ async function loadData() {
   loading.value = true
   try {
     const res = await getReceiptPage(query.value)
-    tableData.value = res.data?.records || []
-    total.value = res.data?.total || 0
+    tableData.value = (res as any)?.records || []
+    total.value = (res as any)?.total || 0
   } finally {
     loading.value = false
   }

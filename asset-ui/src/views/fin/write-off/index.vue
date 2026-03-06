@@ -291,8 +291,8 @@ async function loadData() {
   loading.value = true
   try {
     const res = await getWriteOffPage(query)
-    tableData.value = res.data?.records || []
-    total.value = res.data?.total || 0
+    tableData.value = (res as any)?.records || []
+    total.value = (res as any)?.total || 0
   } finally {
     loading.value = false
   }
@@ -347,7 +347,7 @@ const detailData = ref<WriteOffDetailVO | null>(null)
 
 async function viewDetail(row: WriteOffDetailVO) {
   const res = await getWriteOffDetail(row.id)
-  detailData.value = res.data
+  detailData.value = res as any
   detailDialog.visible = true
 }
 
@@ -419,7 +419,7 @@ async function onReceiptChange(val: number | undefined) {
   }
   try {
     const res = await getWritableReceivables(val)
-    writableList.value = res.data || []
+    writableList.value = (res as any) || []
     selectedIds.value = new Set()
     writableList.value.forEach(r => {
       writeOffAmounts[r.id] = r.outstandingAmount

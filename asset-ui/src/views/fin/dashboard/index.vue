@@ -141,7 +141,7 @@ async function loadSummary() {
   summaryLoading.value = true
   try {
     const res: any = await getDashboardSummary()
-    summary.value = res.data ?? null
+    summary.value = res ?? null
     await nextTick()
     renderFeeChart(summary.value?.feeTypeDistribution ?? [])
     renderWriteOffChart(summary.value?.writeOffTypeDistribution ?? [])
@@ -155,7 +155,7 @@ async function loadTrend() {
   trendLoading.value = true
   try {
     const res: any = await getReceiptTrend()
-    const data: ReceiptTrendVO[] = res.data ?? []
+    const data: ReceiptTrendVO[] = res ?? []
     await nextTick()
     renderTrendChart(data)
   } finally {
@@ -168,7 +168,7 @@ async function loadOverdueTop() {
   overdueLoading.value = true
   try {
     const res: any = await getOverdueTop()
-    const data: OverdueTopVO[] = res.data ?? []
+    const data: OverdueTopVO[] = res ?? []
     await nextTick()
     renderOverdueChart(data)
   } finally {
