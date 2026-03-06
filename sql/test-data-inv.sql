@@ -7,7 +7,7 @@
 -- 约定：所有测试数据 ID 固定在 91001 ~ 91099 区间，与业务自增 ID 隔离
 -- 前提：需先执行 sql/test-data-dev.sql（依赖 biz_project/biz_shop/biz_merchant 等基础数据）
 -- 执行：脚本幂等，可重复执行（ON DUPLICATE KEY UPDATE）
--- 更新：2026-03-04
+-- 更新：2026-03-06（追加合同91003的商铺/费项/提成阶段/账期数据，供营运模块测试）
 -- =============================================================================
 
 SET NAMES utf8mb4;
@@ -370,21 +370,118 @@ ON DUPLICATE KEY UPDATE
     updated_at = NOW();
 
 -- =============================================================================
+-- 14. 合同91003 — 营运模块依赖的商铺/费项/提成阶段/账期数据
+--     合同91003 是生效合同(status=2)，关联商铺90001、商家90002、品牌90001
+--     以下数据供 ReceivablePlanGenerator / FloatingRentCalculator 等引擎消费
+-- =============================================================================
+
+-- -----------------------------------------------------------------------------
+-- 14.1 合同商铺关联：合同91003 → 商铺90001 (A101, 300㎡)
+-- -----------------------------------------------------------------------------
+INSERT INTO inv_lease_contract_shop
+    (id, contract_id, shop_id, building_id, floor_id, format_type,
+     area, rent_unit_price, property_unit_price,
+     is_deleted, created_at, updated_at)
+VALUES
+    (91002, 91003, 90001, 90001, 90001, '餐饮',
+     300.00, 50.00, 15.00,
+     0, NOW(), NOW())
+ON DUPLICATE KEY UPDATE
+    area = VALUES(area), rent_unit_price = VALUES(rent_unit_price), updated_at = NOW();
+
+-- -----------------------------------------------------------------------------
+-- 14.2 合同费项①：固定租金（chargeType=1）
+--      unitPrice=50 × area=300 = 月租15,000；合同期24个月 → 总额360,000
+-- -----------------------------------------------------------------------------
+INSERT INTO inv_lease_contract_fee
+    (id, contract_id, fee_item_id, fee_name, charge_type,
+     unit_price, area, amount,
+     start_date, end_date, period_index,
+     formula_params, is_deleted, created_at, updated_at)
+VALUES
+    (91002, 91003, 91001, '租金', 1,
+     50.00, 300.00, 360000.00,
+     '2025-01-01', '2026-12-31', 1,
+     NULL, 0, NOW(), NOW())
+ON DUPLICATE KEY UPDATE
+    unit_price = VALUES(unit_price), area = VALUES(area),
+    amount = VALUES(amount), updated_at = NOW();
+
+-- -----------------------------------------------------------------------------
+-- 14.3 合同费项②：固定提成（chargeType=2），供浮动租金计算引擎测试
+--      commission_rate=10%, min_commission_amount=8000
+-- -----------------------------------------------------------------------------
+INSERT INTO inv_lease_contract_fee
+    (id, contract_id, fee_item_id, fee_name, charge_type,
+     unit_price, area, amount,
+     start_date, end_date, period_index,
+     formula_params, is_deleted, created_at, updated_at)
+VALUES
+    (91003, 91003, 91001, '提成租金', 2,
+     NULL, 300.00, NULL,
+     '2025-01-01', '2026-12-31', 1,
+     NULL, 0, NOW(), NOW())
+ON DUPLICATE KEY UPDATE
+    charge_type = VALUES(charge_type), updated_at = NOW();
+
+-- 提成费项的阶段参数（commission_rate / min_commission_amount）
+INSERT INTO inv_lease_contract_fee_stage
+    (id, contract_fee_id, shop_id,
+     stage_start, stage_end,
+     unit_price, commission_rate, min_commission_amount, amount,
+     is_deleted, created_at, updated_at)
+VALUES
+    (91001, 91003, 90001,
+     '2025-01-01', '2026-12-31',
+     NULL, 10.00, 8000.00, NULL,
+     0, NOW(), NOW())
+ON DUPLICATE KEY UPDATE
+    commission_rate = VALUES(commission_rate),
+    min_commission_amount = VALUES(min_commission_amount),
+    updated_at = NOW();
+
+-- -----------------------------------------------------------------------------
+-- 14.4 合同账期（inv_lease_contract_billing）
+--      合同91003 费项91001(租金) 的12个月账期（2026年1~12月）
+--      每月 amount=15,000；billingType=1首期 / 2常规；status=0待结
+-- -----------------------------------------------------------------------------
+INSERT INTO inv_lease_contract_billing
+    (id, contract_id, fee_item_id, billing_start, billing_end, due_date,
+     amount, billing_type, status, is_deleted, created_at, updated_at)
+VALUES
+    (91001, 91003, 91001, '2026-01-01', '2026-01-31', '2026-01-01', 15000.00, 1, 0, 0, NOW(), NOW()),
+    (91002, 91003, 91001, '2026-02-01', '2026-02-28', '2026-02-01', 15000.00, 2, 0, 0, NOW(), NOW()),
+    (91003, 91003, 91001, '2026-03-01', '2026-03-31', '2026-03-01', 15000.00, 2, 0, 0, NOW(), NOW()),
+    (91004, 91003, 91001, '2026-04-01', '2026-04-30', '2026-04-01', 15000.00, 2, 0, 0, NOW(), NOW()),
+    (91005, 91003, 91001, '2026-05-01', '2026-05-31', '2026-05-01', 15000.00, 2, 0, 0, NOW(), NOW()),
+    (91006, 91003, 91001, '2026-06-01', '2026-06-30', '2026-06-01', 15000.00, 2, 0, 0, NOW(), NOW()),
+    (91007, 91003, 91001, '2026-07-01', '2026-07-31', '2026-07-01', 15000.00, 2, 0, 0, NOW(), NOW()),
+    (91008, 91003, 91001, '2026-08-01', '2026-08-31', '2026-08-01', 15000.00, 2, 0, 0, NOW(), NOW()),
+    (91009, 91003, 91001, '2026-09-01', '2026-09-30', '2026-09-01', 15000.00, 2, 0, 0, NOW(), NOW()),
+    (91010, 91003, 91001, '2026-10-01', '2026-10-31', '2026-10-01', 15000.00, 2, 0, 0, NOW(), NOW()),
+    (91011, 91003, 91001, '2026-11-01', '2026-11-30', '2026-11-01', 15000.00, 2, 0, 0, NOW(), NOW()),
+    (91012, 91003, 91001, '2026-12-01', '2026-12-31', '2026-12-01', 15000.00, 2, 0, 0, NOW(), NOW())
+ON DUPLICATE KEY UPDATE
+    amount = VALUES(amount), billing_type = VALUES(billing_type), updated_at = NOW();
+
+-- =============================================================================
 -- 数据加载完成
 -- 共插入/更新：
---   cfg_rent_scheme       × 2  (91001, 91002)
---   cfg_fee_item          × 3  (91001, 91002, 91003)
---   inv_intention         × 4  (91001, 91002, 91003, 91004)
---   inv_intention_shop    × 1  (91001)
---   inv_intention_fee     × 1  (91001)
---   inv_lease_contract    × 3  (91001, 91002, 91003)
---   inv_lease_contract_shop × 1 (91001)
---   inv_lease_contract_fee  × 1 (91001)
---   inv_opening_approval  × 3  (91001, 91002, 91003)
---   inv_rent_policy       × 2  (91001, 91002)
---   inv_rent_policy_indicator × 1 (91001)
---   inv_rent_decomposition  × 2 (91001, 91002)
---   inv_rent_decomp_detail  × 1 (91001)
+--   cfg_rent_scheme             × 2  (91001, 91002)
+--   cfg_fee_item                × 3  (91001, 91002, 91003)
+--   inv_intention               × 4  (91001~91004)
+--   inv_intention_shop          × 1  (91001)
+--   inv_intention_fee           × 1  (91001)
+--   inv_lease_contract          × 3  (91001~91003)
+--   inv_lease_contract_shop     × 2  (91001, 91002)    ← +1 合同91003→商铺90001
+--   inv_lease_contract_fee      × 3  (91001~91003)     ← +2 合同91003固定+提成
+--   inv_lease_contract_fee_stage× 1  (91001)           ← +1 提成阶段参数
+--   inv_lease_contract_billing  × 12 (91001~91012)     ← +12 合同91003月账期
+--   inv_opening_approval        × 3  (91001~91003)
+--   inv_rent_policy             × 2  (91001, 91002)
+--   inv_rent_policy_indicator   × 1  (91001)
+--   inv_rent_decomposition      × 2  (91001, 91002)
+--   inv_rent_decomp_detail      × 1  (91001)
 -- =============================================================================
 
 SET FOREIGN_KEY_CHECKS = 1;

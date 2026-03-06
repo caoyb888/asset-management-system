@@ -6,7 +6,7 @@
 --        不随 @Transactional 测试用例回滚
 -- 约定：所有测试数据 ID 固定在 90001 ~ 90099 区间，与业务自增 ID 隔离
 -- 执行：脚本幂等，可重复执行（INSERT IGNORE / ON DUPLICATE KEY UPDATE）
--- 更新：2026-03-03
+-- 更新：2026-03-06（shop 90001 shop_status 改为 1-已租，供营运解约测试）
 -- =============================================================================
 
 SET NAMES utf8mb4;
@@ -173,7 +173,7 @@ ON DUPLICATE KEY UPDATE floor_name = VALUES(floor_name), updated_at = NOW();
 
 -- -----------------------------------------------------------------------------
 -- 9. 商铺（biz_shop）
---    90001 A101：空置300㎡，用于拆分测试（sourceShopId）
+--    90001 A101：已租300㎡，合同91003生效中，供拆分测试+营运解约测试
 --    90002 A102：在租100㎡，用于合并测试（来源之一）
 --    90003 A103：空置100㎡，用于合并测试（来源之一）
 --    90004 A201：空置200㎡，位于2F，用于跨楼层合并校验（拒绝与1F合并）
@@ -187,11 +187,12 @@ INSERT INTO biz_shop
 VALUES
     (90001, 90001, 90001, 90001, 'A101', 1,
      300.00, 305.00, 310.00, 300.00,
-     0,  -- 空置
+     1,  -- 已租（合同91003生效中，营运解约后置为0-空置）
      1, 1, 1,
      NULL, '餐饮', '产城科技', '王经理', '13900000001',
      0, 90001, NOW(), 90001, NOW())
-ON DUPLICATE KEY UPDATE shop_code = VALUES(shop_code), rent_area = VALUES(rent_area), updated_at = NOW();
+ON DUPLICATE KEY UPDATE shop_code = VALUES(shop_code), rent_area = VALUES(rent_area),
+    shop_status = VALUES(shop_status), updated_at = NOW();
 
 INSERT INTO biz_shop
     (id, project_id, building_id, floor_id, shop_code, shop_type,
