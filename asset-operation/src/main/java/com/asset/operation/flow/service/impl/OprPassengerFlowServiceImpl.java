@@ -97,6 +97,9 @@ public class OprPassengerFlowServiceImpl extends ServiceImpl<OprPassengerFlowMap
     public void update(Long id, PassengerFlowCreateDTO dto) {
         OprPassengerFlow existing = getById(id);
         if (existing == null) throw new BizException("记录不存在，id=" + id);
+        if (existing.getSourceType() != null && existing.getSourceType() != 1) {
+            throw new BizException("仅手动录入的客流记录可编辑");
+        }
         validateRequired(dto);
         checkDuplicate(id, dto.getProjectId(), dto.getBuildingId(), dto.getFloorId(), dto.getReportDate());
 
