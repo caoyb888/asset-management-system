@@ -332,9 +332,7 @@ public class OprContractChangeServiceImpl extends ServiceImpl<OprContractChangeM
                 .eq(OprContractChangeType::getChangeId, change.getId())
                 .eq(OprContractChangeType::getIsDeleted, 0))
                 .stream().map(OprContractChangeType::getChangeTypeCode).collect(Collectors.toList());
-        // 将 codes 暂存到 impactSummary（避免额外字段），实际前端从 VO 中取
-        // 直接在列表 VO 中返回 codes，但主表没有该字段，需要调用方自行处理
-        // 此处通过 transient 或 VO 解决，保持实体干净，调用方在 controller 中额外组装
+        change.setChangeTypeCodes(codes);
     }
 
     private void saveChangeTypes(Long changeId, List<String> typeCodes) {

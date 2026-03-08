@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import java.time.LocalDate;
+import java.util.List;
 
 /** 合同变更主表 - 对应 opr_contract_change */
 @Data
@@ -37,4 +38,8 @@ public class OprContractChange extends BaseEntity {
     /** 变更影响预览暂存（受影响应收笔数/金额差异），缓存最近一次预览结果 */
     @TableField(typeHandler = JacksonTypeHandler.class)
     private JsonNode impactSummary;
+
+    /** 变更类型编码列表（非数据库字段，分页列表展示用） */
+    @TableField(exist = false)
+    private List<String> changeTypeCodes;
 }
