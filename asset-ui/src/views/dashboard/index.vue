@@ -160,6 +160,8 @@ import { useAppStore } from '@/store/modules/app'
 import { useUserStore } from '@/store/modules/user'
 import { getNoticePage } from '@/api/base/notice'
 import { getProjectPage } from '@/api/base/project'
+import { getShopPage } from '@/api/base/shop'
+import { getDashboardSummary } from '@/api/fin/dashboard'
 
 const appStore = useAppStore()
 const userStore = useUserStore()
@@ -264,6 +266,37 @@ onMounted(async () => {
   try {
     const res = await getProjectPage({ pageNum: 1, pageSize: 1 })
     statCards[0].value = String(res.total)
+  } catch {
+    // 保持 '--'
+  }
+
+  // 在租商铺数 + 综合出租率
+  try {
+    const [rentedRes, totalRes] = await Promise.all([
+      getShopPage({ pageNum: 1, pageSize: 1, shopStatus: 1 }) as any,
+      getShopPage({ pageNum: 1, pageSize: 1 }) as any,
+    ])
+    const rentedCount = rentedRes.total ?? 0
+    const totalCount = totalRes.total ?? 0
+    statCards[1].value = String(rentedCount)
+    if (totalCount > 0) {
+      const rate = Math.round((rentedCount / totalCount) * 100)
+      statCards[3].value = rate + '%'
+    }
+  } catch {
+    // 保持 '--'
+  }
+
+  // 本月应收
+  try {
+    const summary = await getDashboardSummary() as any
+    const amount = summary?.monthReceivable ?? 0
+    // 金额超过万元时显示"x.xx万"，否则显示原值
+    if (amount >= 10000) {
+      statCards[2].value = (amount / 10000).toFixed(2) + '万'
+    } else {
+      statCards[2].value = String(amount)
+    }
   } catch {
     // 保持 '--'
   }
