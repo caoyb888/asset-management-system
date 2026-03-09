@@ -3,10 +3,7 @@ package com.asset.finance.deposit;
 import com.asset.finance.FinanceTestBase;
 import com.asset.finance.common.exception.FinBizException;
 import com.asset.finance.common.exception.FinErrorCode;
-import com.asset.finance.deposit.dto.DepositForfeitDTO;
-import com.asset.finance.deposit.dto.DepositOffsetDTO;
-import com.asset.finance.deposit.dto.DepositPayInDTO;
-import com.asset.finance.deposit.dto.DepositRefundDTO;
+import com.asset.finance.deposit.dto.*;
 import com.asset.finance.deposit.entity.FinDepositAccount;
 import com.asset.finance.deposit.entity.FinDepositTransaction;
 import com.asset.finance.deposit.mapper.FinDepositAccountMapper;
@@ -18,17 +15,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.annotation.Commit;
-import org.springframework.test.context.transaction.TestTransaction;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -37,10 +27,16 @@ import static org.assertj.core.api.Assertions.*;
  *
  * <p>覆盖场景：
  * <ol>
- *   <li>余额恒等式：balance = total_in - total_offset - total_refund - total_forfeit</li>
- *   <li>余额不足时冲抵 → 抛出 FIN_4002</li>
- *   <li>乐观锁超限（模拟并发冲突）→ 抛出 FIN_5002</li>
- *   <li>并发保证金缴纳：多线程同时 payIn，总余额正确</li>
+ *   <li>DEP-01：余额恒等式：balance = total_in - total_offset - total_refund - total_forfeit</li>
+ *   <li>DEP-02：余额不足时冲抵 → 抛出 FIN_4002</li>
+ *   <li>DEP-03：退款审批通过后余额恒等式</li>
+ *   <li>DEP-04：罚没审批通过后余额恒等式</li>
+ *   <li>DEP-05：审批回调重复触发幂等</li>
+ *   <li>DEP-06：查询账户信息-含统计字段</li>
+ *   <li>DEP-07：流水分页查询-按交易类型筛选</li>
+ *   <li>DEP-08：冲抵审批通过-同时更新应收</li>
+ *   <li>DEP-09：审批驳回-余额不变</li>
+ *   <li>DEP-10：连续缴纳-余额累加</li>
  * </ol>
  */
 @DisplayName("保证金管理 Service 测试")
@@ -212,6 +208,154 @@ class FinDepositServiceTest extends FinanceTestBase {
         assertThat(after2.getBalance())
                 .as("重复回调余额不应再次扣减")
                 .isEqualByComparingTo(balanceAfter1);
+    }
+
+    // ─── DEP-06：查询账户信息-含统计字段 ────────────────────────────────────────
+
+    @Test
+    @DisplayName("DEP-06：getAccount 返回含 balance/totalIn 等统计字段")
+    void getAccount_shouldContainStatisticsFields() {
+        DepositAccountVO vo = depositService.getAccount(CONTRACT_ID);
+
+        assertThat(vo).as("账户VO不应为空").isNotNull();
+        assertThat(vo.getBalance())
+                .as("余额应为5000")
+                .isEqualByComparingTo("5000.00");
+        assertThat(vo.getTotalIn())
+                .as("累计缴纳应为5000")
+                .isEqualByComparingTo("5000.00");
+        assertThat(vo.getContractId())
+                .as("合同ID应匹配")
+                .isEqualTo(CONTRACT_ID);
+    }
+
+    // ─── DEP-07：流水分页查询-按交易类型筛选 ──────────────────────────────────────
+
+    @Test
+    @DisplayName("DEP-07：pageTransaction 按 transType=1 仅返回收入流水")
+    void pageTransaction_byTransType_shouldFilter() {
+        // 发起一笔退款（transType=3）
+        DepositRefundDTO refundDTO = new DepositRefundDTO();
+        refundDTO.setContractId(CONTRACT_ID);
+        refundDTO.setAmount(new BigDecimal("100.00"));
+        refundDTO.setReason("测试退款");
+        depositService.processRefund(refundDTO);
+
+        // 按 transType=1（收入）查询
+        DepositQueryDTO query = new DepositQueryDTO();
+        query.setContractId(CONTRACT_ID);
+        query.setTransType(1);
+        query.setPageNum(1);
+        query.setPageSize(50);
+
+        IPage<FinDepositTransaction> page = depositService.pageTransaction(query);
+
+        assertThat(page.getRecords())
+                .as("按transType=1筛选应仅返回收入流水")
+                .isNotEmpty()
+                .allSatisfy(tx -> assertThat(tx.getTransType()).isEqualTo(1));
+    }
+
+    // ─── DEP-08：冲抵审批通过-同时更新应收 ────────────────────────────────────────
+
+    @Test
+    @DisplayName("DEP-08：冲抵审批通过后 account.balance=4000，应收 received+=1000")
+    void offsetApproved_shouldUpdateReceivable() {
+        // 插入应收1000
+        FinReceivable ar = buildReceivable(CONTRACT_ID, new BigDecimal("1000.00"));
+        receivableMapper.insert(ar);
+
+        // 发起冲抵
+        DepositOffsetDTO dto = new DepositOffsetDTO();
+        dto.setContractId(CONTRACT_ID);
+        dto.setReceivableId(ar.getId());
+        dto.setAmount(new BigDecimal("1000.00"));
+
+        Long txId = depositService.processOffset(dto);
+
+        // 模拟审批通过
+        FinDepositTransaction tx = transactionMapper.selectById(txId);
+        String approvalId = "MOCK-OFFSET-APPR-" + txId;
+        tx.setApprovalId(approvalId);
+        transactionMapper.updateById(tx);
+        depositService.approveCallback(approvalId, true);
+
+        // 验证账户
+        FinDepositAccount account = accountMapper.selectByContractId(CONTRACT_ID);
+        assertThat(account.getBalance())
+                .as("冲抵后余额应为4000")
+                .isEqualByComparingTo("4000.00");
+        assertThat(account.getTotalOffset())
+                .as("累计冲抵应为1000")
+                .isEqualByComparingTo("1000.00");
+
+        // 验证应收
+        FinReceivable updatedAr = receivableMapper.selectById(ar.getId());
+        assertThat(updatedAr.getReceivedAmount())
+                .as("应收已收金额应增加1000")
+                .isEqualByComparingTo("1000.00");
+        assertThat(updatedAr.getOutstandingAmount())
+                .as("应收欠费应为0")
+                .isEqualByComparingTo("0.00");
+    }
+
+    // ─── DEP-09：审批驳回-余额不变 ────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("DEP-09：退款审批驳回后余额不变，流水status=2")
+    void refundRejected_shouldNotChangeBalance() {
+        DepositRefundDTO refundDTO = new DepositRefundDTO();
+        refundDTO.setContractId(CONTRACT_ID);
+        refundDTO.setAmount(new BigDecimal("500.00"));
+        refundDTO.setReason("测试驳回");
+        Long txId = depositService.processRefund(refundDTO);
+
+        FinDepositTransaction tx = transactionMapper.selectById(txId);
+        String approvalId = "MOCK-REJECT-APPR-" + txId;
+        tx.setApprovalId(approvalId);
+        transactionMapper.updateById(tx);
+
+        depositService.approveCallback(approvalId, false);
+
+        // 验证余额不变
+        FinDepositAccount account = accountMapper.selectByContractId(CONTRACT_ID);
+        assertThat(account.getBalance())
+                .as("驳回后余额应仍为5000")
+                .isEqualByComparingTo("5000.00");
+
+        // 验证流水状态
+        FinDepositTransaction updatedTx = transactionMapper.selectById(txId);
+        assertThat(updatedTx.getStatus())
+                .as("驳回后流水状态应为2")
+                .isEqualTo(2);
+    }
+
+    // ─── DEP-10：连续缴纳-余额累加 ────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("DEP-10：连续缴纳3000+2000后余额为10000")
+    void consecutivePayIn_shouldAccumulate() {
+        // setUp 已缴纳5000，再缴纳3000
+        DepositPayInDTO payIn1 = new DepositPayInDTO();
+        payIn1.setContractId(CONTRACT_ID);
+        payIn1.setAmount(new BigDecimal("3000.00"));
+        payIn1.setReason("追加缴纳1");
+        depositService.payIn(payIn1);
+
+        // 再缴纳2000
+        DepositPayInDTO payIn2 = new DepositPayInDTO();
+        payIn2.setContractId(CONTRACT_ID);
+        payIn2.setAmount(new BigDecimal("2000.00"));
+        payIn2.setReason("追加缴纳2");
+        depositService.payIn(payIn2);
+
+        FinDepositAccount account = accountMapper.selectByContractId(CONTRACT_ID);
+        assertThat(account.getBalance())
+                .as("余额应为5000+3000+2000=10000")
+                .isEqualByComparingTo("10000.00");
+        assertThat(account.getTotalIn())
+                .as("累计缴纳应为10000")
+                .isEqualByComparingTo("10000.00");
     }
 
     // ─── 私有辅助 ──────────────────────────────────────────────────────────────
