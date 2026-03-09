@@ -7,12 +7,14 @@ export interface LoginParams {
 }
 
 export interface LoginResult {
-  /** JWT Access Token（30分钟有效）*/
-  accessToken: string
-  /** Refresh Token（UUID，7天有效，存 localStorage）*/
-  refreshToken: string
+  /** JWT Access Token（后端实际返回字段名为 token）*/
+  token: string
+  /** 兼容旧字段名 accessToken */
+  accessToken?: string
+  /** Refresh Token（后端暂未实现，可能为空）*/
+  refreshToken?: string
   tokenType: string
-  expiresIn: number
+  expiresIn?: number
 }
 
 export interface UserInfo {

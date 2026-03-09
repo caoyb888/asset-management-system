@@ -41,10 +41,13 @@ export const useUserStore = defineStore('user', {
   actions: {
     async login(params: LoginParams) {
       const result = await login(params)
-      this.token = result.accessToken
-      this.refreshToken = result.refreshToken
-      setToken(result.accessToken)
-      setRefreshToken(result.refreshToken)
+      // 后端返回字段名为 token，兼容 accessToken
+      const accessToken = result.token || result.accessToken || ''
+      const rt = result.refreshToken || ''
+      this.token = accessToken
+      this.refreshToken = rt
+      setToken(accessToken)
+      setRefreshToken(rt)
     },
 
     async getInfo() {

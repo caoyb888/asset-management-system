@@ -25,13 +25,17 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 核销管理 ServiceImpl
@@ -77,6 +81,53 @@ public class FinWriteOffServiceImpl extends ServiceImpl<FinWriteOffMapper, FinWr
                 .orderByDesc(FinWriteOff::getId);
 
         IPage<FinWriteOff> page = page(new Page<>(query.getPageNum(), query.getPageSize()), wrapper);
+
+        // 批量补充关联名称，避免 N+1
+        List<FinWriteOff> records = page.getRecords();
+        if (!records.isEmpty()) {
+            // 收款单号
+            Set<Long> receiptIds = records.stream()
+                    .map(FinWriteOff::getReceiptId).filter(id -> id != null && id > 0)
+                    .collect(Collectors.toSet());
+            Map<Long, String> receiptCodeMap = new HashMap<>();
+            if (!receiptIds.isEmpty()) {
+                String inSql = receiptIds.stream().map(String::valueOf).collect(Collectors.joining(","));
+                jdbcTemplate.query(
+                        "SELECT id, receipt_code FROM fin_receipt WHERE id IN (" + inSql + ") AND is_deleted=0",
+                        (RowCallbackHandler) rs -> receiptCodeMap.put(rs.getLong("id"), rs.getString("receipt_code")));
+            }
+            // 合同名称
+            Set<Long> contractIds = records.stream()
+                    .map(FinWriteOff::getContractId).filter(id -> id != null && id > 0)
+                    .collect(Collectors.toSet());
+            Map<Long, String> contractNameMap = new HashMap<>();
+            if (!contractIds.isEmpty()) {
+                String inSql = contractIds.stream().map(String::valueOf).collect(Collectors.joining(","));
+                jdbcTemplate.query(
+                        "SELECT id, contract_name FROM inv_lease_contract WHERE id IN (" + inSql + ") AND is_deleted=0",
+                        (RowCallbackHandler) rs -> contractNameMap.put(rs.getLong("id"), rs.getString("contract_name")));
+            }
+            // 商家名称
+            Set<Long> merchantIds = records.stream()
+                    .map(FinWriteOff::getMerchantId).filter(id -> id != null && id > 0)
+                    .collect(Collectors.toSet());
+            Map<Long, String> merchantNameMap = new HashMap<>();
+            if (!merchantIds.isEmpty()) {
+                String inSql = merchantIds.stream().map(String::valueOf).collect(Collectors.joining(","));
+                jdbcTemplate.query(
+                        "SELECT id, merchant_name FROM biz_merchant WHERE id IN (" + inSql + ") AND is_deleted=0",
+                        (RowCallbackHandler) rs -> merchantNameMap.put(rs.getLong("id"), rs.getString("merchant_name")));
+            }
+
+            return page.convert(wo -> {
+                WriteOffDetailVO vo = toDetailVO(wo, false);
+                vo.setReceiptCode(receiptCodeMap.get(wo.getReceiptId()));
+                vo.setContractName(contractNameMap.get(wo.getContractId()));
+                vo.setMerchantName(merchantNameMap.get(wo.getMerchantId()));
+                return vo;
+            });
+        }
+
         return page.convert(wo -> toDetailVO(wo, false));
     }
 

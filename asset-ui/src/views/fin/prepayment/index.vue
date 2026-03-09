@@ -19,9 +19,8 @@
       </el-form>
     </el-card>
 
-    <!-- 账户信息区 -->
+    <!-- 账户余额卡片（仅查询合同后显示） -->
     <template v-if="account">
-      <!-- 余额卡片 -->
       <el-row :gutter="16">
         <el-col :span="6">
           <div class="balance-stat-card main-balance">
@@ -45,71 +44,68 @@
           </div>
         </el-col>
       </el-row>
-
-      <!-- 流水明细 -->
-      <el-card shadow="never" class="table-card">
-        <div class="card-header">
-          <div class="header-left">
-            <span class="header-title">预收款流水记录</span>
-          </div>
-          <div class="header-actions">
-            <el-select
-              v-model="txQuery.transType"
-              placeholder="全部类型"
-              clearable
-              style="width:130px"
-              @change="loadTransactions"
-            >
-              <el-option label="转入" :value="1" />
-              <el-option label="抵冲" :value="2" />
-              <el-option label="退款" :value="3" />
-            </el-select>
-          </div>
-        </div>
-
-        <div class="table-body">
-          <el-table :data="transactions" v-loading="txLoading" stripe border style="width:100%">
-            <el-table-column label="交易日期" prop="transDate" width="110" align="center" />
-            <el-table-column label="交易类型" width="90" align="center">
-              <template #default="{ row }">
-                <el-tag :type="transTypeTag(row.transType)" size="small">{{ transTypeLabel(row.transType) }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="金额（元）" align="right" width="130">
-              <template #default="{ row }">
-                <span :class="row.transType === 1 ? 'amount-in' : 'amount-out'">
-                  {{ row.transType === 1 ? '+' : '-' }}{{ formatAmount(row.amount) }}
-                </span>
-              </template>
-            </el-table-column>
-            <el-table-column label="余额快照（元）" align="right" width="130">
-              <template #default="{ row }">{{ formatAmount(row.balanceAfter) }}</template>
-            </el-table-column>
-            <el-table-column label="关联单据" prop="sourceCode" min-width="160" show-overflow-tooltip />
-            <el-table-column label="备注" prop="remark" min-width="180" show-overflow-tooltip />
-            <el-table-column label="创建时间" prop="createTime" width="160" align="center" />
-          </el-table>
-
-          <div class="pagination">
-            <el-pagination
-              v-model:current-page="txQuery.pageNum"
-              v-model:page-size="txQuery.pageSize"
-              :total="txTotal"
-              :page-sizes="[10, 20, 50]"
-              layout="total, sizes, prev, pager, next"
-              background
-              @change="loadTransactions"
-            />
-          </div>
-        </div>
-      </el-card>
     </template>
 
-    <el-card v-else-if="searched" shadow="never" class="empty-card">
+    <el-card v-if="searched && !account" shadow="never" class="empty-card">
       <el-empty description="该合同暂无预收款账户，录入后自动创建" :image-size="100" />
     </el-card>
-    <el-card v-else shadow="never" class="empty-card">
-      <el-empty description="请输入合同ID查询预收款账户" :image-size="100" />
+
+    <!-- 流水明细（始终显示） -->
+    <el-card shadow="never" class="table-card">
+      <div class="card-header">
+        <div class="header-left">
+          <span class="header-title">预收款流水记录</span>
+        </div>
+        <div class="header-actions">
+          <el-select
+            v-model="txQuery.transType"
+            placeholder="全部类型"
+            clearable
+            style="width:130px"
+            @change="loadTransactions"
+          >
+            <el-option label="转入" :value="1" />
+            <el-option label="抵冲" :value="2" />
+            <el-option label="退款" :value="3" />
+          </el-select>
+        </div>
+      </div>
+
+      <div class="table-body">
+        <el-table :data="transactions" v-loading="txLoading" stripe border style="width:100%">
+          <el-table-column label="交易日期" prop="transDate" width="110" align="center" />
+          <el-table-column label="交易类型" width="90" align="center">
+            <template #default="{ row }">
+              <el-tag :type="transTypeTag(row.transType)" size="small">{{ transTypeLabel(row.transType) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="金额（元）" align="right" width="130">
+            <template #default="{ row }">
+              <span :class="row.transType === 1 ? 'amount-in' : 'amount-out'">
+                {{ row.transType === 1 ? '+' : '-' }}{{ formatAmount(row.amount) }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="余额快照（元）" align="right" width="130">
+            <template #default="{ row }">{{ formatAmount(row.balanceAfter) }}</template>
+          </el-table-column>
+          <el-table-column label="关联单据" prop="sourceCode" min-width="160" show-overflow-tooltip />
+          <el-table-column label="备注" prop="remark" min-width="180" show-overflow-tooltip />
+          <el-table-column label="创建时间" prop="createTime" width="160" align="center" />
+        </el-table>
+
+        <div class="pagination">
+          <el-pagination
+            v-model:current-page="txQuery.pageNum"
+            v-model:page-size="txQuery.pageSize"
+            :total="txTotal"
+            :page-sizes="[10, 20, 50]"
+            layout="total, sizes, prev, pager, next"
+            background
+            @change="loadTransactions"
+          />
+        </div>
+      </div>
     </el-card>
 
     <!-- ─── 录入预收款弹窗 ─── -->
@@ -183,7 +179,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh, Plus, Connection, Money } from '@element-plus/icons-vue'
 import {
@@ -201,13 +197,22 @@ const account = ref<PrepayAccountVO | null>(null)
 const searched = ref(false)
 
 async function loadAccount() {
-  if (!searchForm.contractId) { ElMessage.warning('请输入合同ID'); return }
+  if (!searchForm.contractId) {
+    account.value = null
+    searched.value = false
+    txQuery.contractId = undefined
+    txQuery.pageNum = 1
+    loadTransactions()
+    return
+  }
   searched.value = false
   try {
     const res: any = await getPrepayAccount(searchForm.contractId)
     account.value = res ?? null
     searched.value = true
-    if (account.value) { txQuery.contractId = searchForm.contractId; loadTransactions() }
+    txQuery.contractId = searchForm.contractId
+    txQuery.pageNum = 1
+    loadTransactions()
   } catch { account.value = null; searched.value = true }
 }
 
@@ -215,8 +220,13 @@ function resetSearch() {
   searchForm.contractId = undefined
   account.value = null
   searched.value = false
-  transactions.value = []
+  txQuery.contractId = undefined
+  txQuery.transType = undefined
+  txQuery.pageNum = 1
+  loadTransactions()
 }
+
+onMounted(() => loadTransactions())
 
 const txLoading = ref(false)
 const transactions = ref<PrepayTransaction[]>([])
@@ -229,7 +239,6 @@ const txQuery = reactive({
 })
 
 async function loadTransactions() {
-  if (!txQuery.contractId) return
   txLoading.value = true
   try {
     const res: any = await getPrepayTransactions(txQuery)
