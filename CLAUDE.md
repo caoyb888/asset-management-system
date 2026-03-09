@@ -558,3 +558,111 @@ service.interceptors.response.use((response) => {
 **新增 API 接口或 Vue 页面时必须检查：** 分页接口返回值直接使用 `res.records` 和 `res.total`，详情接口直接使用 `res` 作为实体对象，不要再套一层 `.data`。
 
 **受影响文件：** `asset-ui/src/views/opr/` 下 13 个 Vue 文件（已全部修正）
+
+---
+
+### 登录 Token 字段名不匹配：后端返回 token，前端需用 result.token
+
+**问题描述：** 后端 `/auth/login` 接口返回 `{ "token": "eyJ...", "tokenType": "Bearer" }`，字段名为 `token`。但前端 `src/store/modules/user.ts` 的 login action 读取的是 `result.accessToken`（值为 `undefined`），导致 `localStorage` 中存入字符串 `"undefined"`。所有后续 API 请求带 `Authorization: Bearer undefined`，JWT 验证失败返回 401，所有需鉴权的页面均无法加载数据（静默失败，无明显报错）。
+
+**曾出错的模块：** 财务管理（fin）所有页面
+
+**错误写法：**
+```ts
+// ❌ 错误：后端实际返回字段名是 token，不是 accessToken
+this.token = result.accessToken   // undefined
+setToken(result.accessToken)      // localStorage 存入 "undefined"
+```
+
+**正确写法：**
+```ts
+// ✅ 正确：兼容两种字段名
+const accessToken = result.token || result.accessToken || ''
+this.token = accessToken
+setToken(accessToken)
+```
+
+**受影响文件：** `asset-ui/src/store/modules/user.ts`、`asset-ui/src/api/auth.ts`（已修正）
+
+**排查提示：** 若所有 fin/opr/inv 页面均无数据但不报明显错误，首先检查 Network 面板请求是否返回 401，再检查 localStorage 中 `asset_token` 的值是否为 `"undefined"`。
+
+---
+
+### JdbcTemplate.query() Lambda 歧义：必须显式转型为 RowCallbackHandler
+
+**问题描述：** Spring `JdbcTemplate.query(String sql, lambda)` 有两个重载版本：`query(String, ResultSetExtractor<T>)` 和 `query(String, RowCallbackHandler)`。当 lambda 只做副作用操作（如往 Map 中 put）而无返回值时，编译器无法判断应匹配哪个重载，报 `reference to query is ambiguous` 编译错误。
+
+**曾出错的文件：** `asset-finance/.../FinWriteOffServiceImpl.java`
+
+**错误写法：**
+```java
+// ❌ 错误：编译器无法推断 lambda 对应哪个重载
+jdbcTemplate.query(
+    "SELECT id, name FROM table WHERE id IN (...)",
+    rs -> map.put(rs.getLong("id"), rs.getString("name")));
+```
+
+**正确写法：**
+```java
+// ✅ 正确：显式转型消除歧义
+jdbcTemplate.query(
+    "SELECT id, name FROM table WHERE id IN (...)",
+    (RowCallbackHandler) rs -> map.put(rs.getLong("id"), rs.getString("name")));
+```
+
+**同时需要添加 import：**
+```java
+import org.springframework.jdbc.core.RowCallbackHandler;
+```
+
+---
+
+### 以合同账户为中心的页面：流水表格不能放在 v-if="account" 内部
+
+**问题描述：** 保证金（`fin/deposits`）、预收款（`fin/prepayments`）等以"先查合同账户、再看流水"为交互模式的页面，若将流水表格放在 `<template v-if="account">` 内部，且 `loadTransactions()` 中有 `if (!txQuery.contractId) return` 守卫，则页面打开时 `account` 为 null，流水表格永远不渲染，即使 `onMounted` 调用了加载函数也无数据显示（静默失败）。
+
+**错误结构：**
+```html
+<!-- ❌ 错误：流水表格在 v-if="account" 内，account 为 null 时表格不渲染 -->
+<template v-if="account">
+  <!-- 余额卡片 -->
+  <!-- 操作按钮 -->
+  <!-- 流水表格 ← 永远看不到 -->
+</template>
+<el-card v-else>请输入合同ID</el-card>
+```
+
+```ts
+// ❌ 错误：有 contractId 守卫，onMounted 调用也无效
+async function loadTransactions() {
+  if (!txQuery.contractId) return  // ← 拦截了初始加载
+  ...
+}
+// 且没有 onMounted
+```
+
+**正确结构：**
+```html
+<!-- ✅ 正确：账户卡片和流水表格分离，流水始终渲染 -->
+<template v-if="account">
+  <!-- 余额卡片 + 操作按钮 -->
+</template>
+<el-card v-if="searched && !account">暂无账户</el-card>
+
+<!-- 流水表格独立在外，始终可见 -->
+<el-card class="table-card">
+  <el-table :data="transactions" .../>
+</el-card>
+```
+
+```ts
+// ✅ 正确：移除 contractId 守卫，加 onMounted
+async function loadTransactions() {
+  // 不加 contractId 守卫，无合同时加载全部流水
+  txLoading.value = true
+  ...
+}
+onMounted(() => loadTransactions())
+```
+
+**受影响文件：** `asset-ui/src/views/fin/deposit/index.vue`、`asset-ui/src/views/fin/prepayment/index.vue`（已修正）
