@@ -65,10 +65,11 @@ public class FinDashboardServiceImpl implements FinDashboardService {
         vo.setCurrentOverdue(currentOverdue);
 
         // ── 本月核销笔数（已通过 status=1）──────────────────────────────────
+        // 使用 LIKE 替代 DATE_FORMAT 以兼容 H2 和 MySQL
         Long writeOffCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM fin_write_off " +
-                "WHERE status = 1 AND DATE_FORMAT(created_at, '%Y-%m') = ? AND is_deleted = 0",
-                Long.class, currentMonth);
+                "WHERE status = 1 AND CAST(created_at AS VARCHAR) LIKE ? AND is_deleted = 0",
+                Long.class, currentMonth + "%");
         vo.setMonthWriteOffCount(writeOffCount != null ? writeOffCount : 0L);
 
         // ── 应收费项分布（饼图）──────────────────────────────────────────────
@@ -99,18 +100,29 @@ public class FinDashboardServiceImpl implements FinDashboardService {
     @Override
     public List<ReceiptTrendVO> getReceiptTrend() {
         // 查近12个月实收数据（status != 3 排除已作废收款单）
-        String sql = "SELECT DATE_FORMAT(receipt_date, '%Y-%m') AS month, " +
-                "       SUM(total_amount) AS amount " +
+        // 在 Java 层计算起始日期和月份提取，兼容 H2 和 MySQL
+        LocalDate startDate = LocalDate.now().minusMonths(11).withDayOfMonth(1);
+        String sql = "SELECT receipt_date, total_amount " +
                 "FROM fin_receipt " +
                 "WHERE is_deleted = 0 AND status != 3 " +
-                "  AND receipt_date >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 11 MONTH), '%Y-%m-01') " +
-                "GROUP BY DATE_FORMAT(receipt_date, '%Y-%m') " +
-                "ORDER BY month ASC";
+                "  AND receipt_date >= ?";
 
-        List<ReceiptTrendVO> dbResult = jdbcTemplate.query(sql,
-                (rs, rowNum) -> new ReceiptTrendVO(
-                        rs.getString("month"),
-                        rs.getBigDecimal("amount")));
+        // 在 Java 层按月聚合（兼容所有数据库）
+        Map<String, BigDecimal> monthMap = new LinkedHashMap<>();
+        DateTimeFormatter monthFmt = DateTimeFormatter.ofPattern("yyyy-MM");
+        jdbcTemplate.query(sql,
+                (rs) -> {
+                    LocalDate rd = rs.getDate("receipt_date").toLocalDate();
+                    String month = rd.format(monthFmt);
+                    BigDecimal amount = rs.getBigDecimal("total_amount");
+                    monthMap.merge(month, amount, BigDecimal::add);
+                },
+                java.sql.Date.valueOf(startDate));
+
+        List<ReceiptTrendVO> dbResult = monthMap.entrySet().stream()
+                .map(e -> new ReceiptTrendVO(e.getKey(), e.getValue()))
+                .sorted(Comparator.comparing(ReceiptTrendVO::getMonth))
+                .collect(Collectors.toList());
 
         // 补全近12个月，无数据月份填0
         return fillMissingMonths(dbResult);

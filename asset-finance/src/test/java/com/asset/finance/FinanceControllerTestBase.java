@@ -40,6 +40,7 @@ import static org.mockito.Mockito.when;
                         "com.asset.common.security.config.SecurityAutoConfiguration," +
                         "org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration," +
                         "org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration," +
+                        "org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration," +
                         "org.redisson.spring.starter.RedissonAutoConfigurationV2"
         }
 )
