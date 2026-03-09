@@ -20,11 +20,12 @@ spring:
     import-check:
       enabled: false
 
-  # 关闭 Redis 自动配置（单元测试不需要缓存）
+  # 关闭 Redis / Redisson 自动配置（单元测试不需要缓存）
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
       - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+      - org.redisson.spring.starter.RedissonAutoConfigurationV2
 
   # H2 schema 初始化
   sql:
