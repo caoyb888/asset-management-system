@@ -139,6 +139,7 @@ ON DUPLICATE KEY UPDATE
     received_amount   = VALUES(received_amount),
     outstanding_amount= VALUES(outstanding_amount),
     status            = VALUES(status),
+    created_by        = VALUES(created_by),
     updated_by        = VALUES(updated_by);
 
 
