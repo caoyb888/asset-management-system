@@ -358,8 +358,8 @@ async function loadDetail() {
 
 async function loadFeeItems() {
   try {
-    const res = await request.get('/inv/config/fee-items', { params: { pageSize: 100 } })
-    feeItems.value = res.records || []
+    const res = await request.get('/inv/config/fee-items') as any
+    feeItems.value = Array.isArray(res) ? res : []
   } catch {
     feeItems.value = []
   }

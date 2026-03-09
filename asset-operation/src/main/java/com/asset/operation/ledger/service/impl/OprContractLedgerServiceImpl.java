@@ -301,9 +301,9 @@ public class OprContractLedgerServiceImpl extends ServiceImpl<OprContractLedgerM
             return;
         }
 
-        // 为每条应收生成幂等键并更新推送状态
-        // 实际生产中应通过 MQ 异步发送，此处同步处理（集成财务系统时替换）
+        // 为每条应收生成幂等键并更新推送状态，同步写入 fin_receivable
         LocalDateTime now = LocalDateTime.now();
+        int pushed = 0;
         for (OprReceivablePlan plan : plans) {
             String idempotentKey = "receivable_" + plan.getId() + "_" + plan.getVersion();
             receivablePlanMapper.update(null, new LambdaUpdateWrapper<OprReceivablePlan>()
@@ -312,6 +312,44 @@ public class OprContractLedgerServiceImpl extends ServiceImpl<OprContractLedgerM
                     .set(OprReceivablePlan::getPushStatus, 1)
                     .set(OprReceivablePlan::getPushTime, now)
             );
+
+            // 按幂等键检查 fin_receivable 是否已存在，防止重复推送
+            Integer exists = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM fin_receivable WHERE receivable_code=? AND is_deleted=0",
+                    Integer.class, idempotentKey);
+            if (exists != null && exists > 0) {
+                log.info("[应收推送] 幂等键 {} 已存在，跳过", idempotentKey);
+                continue;
+            }
+
+            // 计算权责月
+            String accrualMonth = plan.getBillingStart() != null
+                    ? plan.getBillingStart().format(DateTimeFormatter.ofPattern("yyyy-MM")) : null;
+
+            // 写入 fin_receivable
+            jdbcTemplate.update(
+                    "INSERT INTO fin_receivable (receivable_code, contract_id, ledger_id, project_id, merchant_id, " +
+                    "shop_id, fee_item_id, fee_name, billing_start, billing_end, accrual_month, due_date, " +
+                    "original_amount, adjust_amount, deduction_amount, actual_amount, received_amount, " +
+                    "outstanding_amount, status, is_deleted, created_by, updated_by) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, 0, ?, 0, 0, '0', '0')",
+                    idempotentKey,
+                    ledger.getContractId(),
+                    ledgerId,
+                    ledger.getProjectId(),
+                    ledger.getMerchantId(),
+                    plan.getShopId(),
+                    plan.getFeeItemId(),
+                    plan.getFeeName(),
+                    plan.getBillingStart(),
+                    plan.getBillingEnd(),
+                    accrualMonth,
+                    plan.getDueDate(),
+                    plan.getAmount(),        // original_amount
+                    plan.getAmount(),        // actual_amount = original（初始无调整）
+                    plan.getAmount()         // outstanding_amount = actual（初始未收）
+            );
+            pushed++;
         }
 
         // 更新台账应收状态为"已推送"
@@ -320,7 +358,7 @@ public class OprContractLedgerServiceImpl extends ServiceImpl<OprContractLedgerM
                 .set(OprContractLedger::getReceivableStatus, 2)
                 .set(OprContractLedger::getPushTime, now)
         );
-        log.info("[应收推送] 台账 {} 推送 {} 条应收计划完成", ledgerId, plans.size());
+        log.info("[应收推送] 台账 {} 推送 {} 条应收计划到 fin_receivable 完成", ledgerId, pushed);
     }
 
     // ====================================================
