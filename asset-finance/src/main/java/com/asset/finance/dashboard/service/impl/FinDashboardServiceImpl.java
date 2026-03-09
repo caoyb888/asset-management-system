@@ -50,11 +50,14 @@ public class FinDashboardServiceImpl implements FinDashboardService {
                 BigDecimal.class, currentMonth);
         vo.setMonthReceivable(monthReceivable);
 
-        // ── 本月已收合计 ──────────────────────────────────────────────────────
+        // ── 本月已收合计（本月收款单金额，排除已作废）────────────────────────
+        String monthStart = currentMonth + "-01";
+        String monthEnd   = LocalDate.now().withDayOfMonth(1).plusMonths(1)
+                            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         BigDecimal monthReceived = jdbcTemplate.queryForObject(
-                "SELECT COALESCE(SUM(received_amount), 0) FROM fin_receivable " +
-                "WHERE accrual_month = ? AND is_deleted = 0",
-                BigDecimal.class, currentMonth);
+                "SELECT COALESCE(SUM(total_amount), 0) FROM fin_receipt " +
+                "WHERE receipt_date >= ? AND receipt_date < ? AND status != 3 AND is_deleted = 0",
+                BigDecimal.class, monthStart, monthEnd);
         vo.setMonthReceived(monthReceived);
 
         // ── 当前欠费合计（已逾期 status IN(0,1)）────────────────────────────
@@ -65,11 +68,10 @@ public class FinDashboardServiceImpl implements FinDashboardService {
         vo.setCurrentOverdue(currentOverdue);
 
         // ── 本月核销笔数（已通过 status=1）──────────────────────────────────
-        // 使用 LIKE 替代 DATE_FORMAT 以兼容 H2 和 MySQL
         Long writeOffCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM fin_write_off " +
-                "WHERE status = 1 AND CAST(created_at AS VARCHAR) LIKE ? AND is_deleted = 0",
-                Long.class, currentMonth + "%");
+                "WHERE status = 1 AND DATE_FORMAT(created_at, '%Y-%m') = ? AND is_deleted = 0",
+                Long.class, currentMonth);
         vo.setMonthWriteOffCount(writeOffCount != null ? writeOffCount : 0L);
 
         // ── 应收费项分布（饼图）──────────────────────────────────────────────
