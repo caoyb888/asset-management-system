@@ -23,11 +23,20 @@ public class ShopRentalVO {
     /** 项目ID */
     private Long projectId;
 
+    /** 项目名称 */
+    private String projectName;
+
     /** 楼栋ID（0=项目级汇总） */
     private Long buildingId;
 
+    /** 楼栋名称 */
+    private String buildingName;
+
     /** 楼层ID（0=楼栋级汇总） */
     private Long floorId;
+
+    /** 楼层名称 */
+    private String floorName;
 
     /** 业态类型（空串=全业态汇总） */
     private String formatType;

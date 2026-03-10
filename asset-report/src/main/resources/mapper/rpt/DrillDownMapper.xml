@@ -88,11 +88,11 @@
             s.building_id   AS buildingId,
             s.project_id    AS projectId,
             s.shop_type     AS shopType,
-            s.plan_format   AS planFormat,
+            s.planned_format AS planFormat,
             s.rent_area     AS rentArea,
-            s.actual_area   AS actualArea,
+            s.measured_area  AS actualArea,
             s.shop_status   AS shopStatus
-        FROM biz_shop s
+        FROM asset_db.biz_shop s
         WHERE s.floor_id   = #{floorId}
           AND s.is_deleted = 0
         ORDER BY s.shop_code
@@ -147,12 +147,12 @@
             r.received_amount   AS receivedAmount,
             r.outstanding_amount AS outstandingAmount,
             r.status            AS status
-        FROM fin_receivable r
+        FROM asset_db.fin_receivable r
         WHERE r.project_id  = #{projectId}
           AND r.is_deleted  = 0
           <if test="feeItemType != null and feeItemType != ''">
             AND EXISTS (
-                SELECT 1 FROM cfg_fee_item fi
+                SELECT 1 FROM asset_db.cfg_fee_item fi
                 WHERE fi.id = r.fee_item_id
                   AND fi.charge_type = #{feeItemType}
                   AND fi.is_deleted  = 0

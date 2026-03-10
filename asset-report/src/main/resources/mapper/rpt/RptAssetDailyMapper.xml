@@ -150,25 +150,34 @@
 
     <select id="selectShopRentalPage" resultType="com.asset.report.vo.asset.ShopRentalVO">
         SELECT
-            stat_date    AS statDate,
-            project_id   AS projectId,
-            building_id  AS buildingId,
-            floor_id     AS floorId,
-            format_type  AS formatType,
-            total_shops, rented_shops, vacant_shops, decorating_shops, opened_shops,
-            total_area, rented_area, vacant_area, decoration_area,
-            vacancy_rate, rental_rate, opening_rate
-        FROM rpt_asset_daily
-        WHERE is_deleted = 0
-          AND stat_date = #{statDate}
-        <if test="projectId != null">AND project_id = #{projectId}</if>
-        <if test="buildingId != null and buildingId != 0">AND building_id = #{buildingId}</if>
-        <if test="floorId != null and floorId != 0">AND floor_id = #{floorId}</if>
-        <if test="formatType != null and formatType != ''">AND format_type = #{formatType}</if>
+            a.stat_date    AS statDate,
+            a.project_id   AS projectId,
+            p.project_name AS projectName,
+            a.building_id  AS buildingId,
+            b.building_name AS buildingName,
+            a.floor_id     AS floorId,
+            f.floor_name   AS floorName,
+            a.format_type  AS formatType,
+            a.total_shops, a.rented_shops, a.vacant_shops, a.decorating_shops, a.opened_shops,
+            a.total_area, a.rented_area, a.vacant_area, a.decoration_area,
+            a.vacancy_rate, a.rental_rate, a.opening_rate
+        FROM rpt_asset_daily a
+        LEFT JOIN asset_db.biz_project  p ON p.id = a.project_id  AND p.is_deleted = 0
+        LEFT JOIN asset_db.biz_building b ON b.id = a.building_id AND b.is_deleted = 0
+        LEFT JOIN asset_db.biz_floor    f ON f.id = a.floor_id    AND f.is_deleted = 0
+        WHERE a.is_deleted = 0
+          AND a.stat_date = #{statDate}
+        <if test="projectId != null">AND a.project_id = #{projectId}</if>
+        <if test="buildingId != null and buildingId != 0">AND a.building_id = #{buildingId}</if>
+        <if test="floorId != null and floorId != 0">AND a.floor_id = #{floorId}</if>
+        <if test="formatType != null and formatType != ''">AND a.format_type = #{formatType}</if>
         <!-- 商铺租赁报表只展示楼栋及更细粒度（排除项目级汇总行）-->
-        AND NOT (building_id = 0 AND floor_id = 0 AND format_type = '')
-        <include refid="permFilter"/>
-        ORDER BY project_id, building_id, floor_id, format_type
+        AND NOT (a.building_id = 0 AND a.floor_id = 0 AND a.format_type = '')
+        <if test="permIds != null">
+            AND a.project_id IN
+            <foreach collection="permIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        </if>
+        ORDER BY a.project_id, a.building_id, a.floor_id, a.format_type
     </select>
 
     <!-- ==================== 品牌/业态分布（按 format_type 分组） ==================== -->
@@ -275,7 +284,7 @@
                 THEN ROUND(SUM(a.vacant_area) / SUM(a.total_area) * 100, 2)
                 ELSE 0 END                      AS vacancyRate
         FROM rpt_asset_daily a
-        INNER JOIN biz_project p ON a.project_id = p.id AND p.is_deleted = 0
+        INNER JOIN asset_db.biz_project p ON a.project_id = p.id AND p.is_deleted = 0
         WHERE a.is_deleted = 0
           AND a.stat_date = #{statDate}
           AND a.building_id = 0
@@ -334,7 +343,7 @@
             CASE
                 WHEN s.parent_shop_id IS NOT NULL THEN 'SPLIT'
                 WHEN EXISTS (
-                    SELECT 1 FROM biz_shop c
+                    SELECT 1 FROM asset_db.biz_shop c
                     WHERE c.parent_shop_id = s.id AND c.is_deleted = 0
                 ) THEN 'MERGE'
                 ELSE 'ORIGINAL'
@@ -343,11 +352,11 @@
             s.parent_shop_id    AS parentShopId,
             ps.shop_code        AS parentShopCode,
             s.rent_area         AS rentArea,
-            s.actual_area       AS actualArea,
+            s.measured_area     AS actualArea,
             s.shop_status       AS shopStatus,
-            s.plan_format       AS planFormat
-        FROM biz_shop s
-        LEFT JOIN biz_shop ps ON s.parent_shop_id = ps.id AND ps.is_deleted = 0
+            s.planned_format    AS planFormat
+        FROM asset_db.biz_shop s
+        LEFT JOIN asset_db.biz_shop ps ON s.parent_shop_id = ps.id AND ps.is_deleted = 0
         WHERE s.is_deleted = 0
         <if test="projectId != null">AND s.project_id = #{projectId}</if>
         <if test="buildingId != null">AND s.building_id = #{buildingId}</if>
@@ -361,7 +370,7 @@
 
     <select id="countShopSplitMerge" resultType="long">
         SELECT COUNT(*)
-        FROM biz_shop s
+        FROM asset_db.biz_shop s
         WHERE s.is_deleted = 0
         <if test="projectId != null">AND s.project_id = #{projectId}</if>
         <if test="buildingId != null">AND s.building_id = #{buildingId}</if>

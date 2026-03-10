@@ -372,7 +372,7 @@
             SUM(CASE WHEN v.status = 2 THEN 1 ELSE 0 END) AS uploadedVouchers,
             SUM(v.total_debit)                       AS totalDebit,
             SUM(v.total_credit)                      AS totalCredit
-        FROM fin_voucher v
+        FROM asset_db.fin_voucher v
         WHERE v.is_deleted = 0
           AND v.voucher_date IS NOT NULL
         <if test="permIds != null and permIds.size() > 0">

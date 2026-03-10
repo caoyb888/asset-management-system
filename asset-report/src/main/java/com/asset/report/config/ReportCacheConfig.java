@@ -1,5 +1,8 @@
 package com.asset.report.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
@@ -58,6 +61,14 @@ public class ReportCacheConfig {
 
     @Bean
     public CacheManager reportCacheManager(RedisConnectionFactory connectionFactory) {
+        // 配置支持 Java 8 日期类型（LocalDate/LocalDateTime）的 ObjectMapper
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        objectMapper.activateDefaultTyping(
+                objectMapper.getPolymorphicTypeValidator(),
+                ObjectMapper.DefaultTyping.NON_FINAL);
+
         // 默认序列化配置（JSON）
         RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofMinutes(5))                           // 默认 TTL 5 分钟
@@ -66,7 +77,7 @@ public class ReportCacheConfig {
                                 new StringRedisSerializer()))
                 .serializeValuesWith(
                         RedisSerializationContext.SerializationPair.fromSerializer(
-                                new GenericJackson2JsonRedisSerializer()))
+                                new GenericJackson2JsonRedisSerializer(objectMapper)))
                 .disableCachingNullValues();                               // 不缓存 null 值
 
         // 各缓存空间的差异化 TTL
