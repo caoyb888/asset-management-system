@@ -55,14 +55,14 @@
                  AND lc.updated_at &lt;  DATE_ADD(DATE_FORMAT(#{statMonth}, '%Y-%m-01'), INTERVAL 1 MONTH)
                 THEN lc.id END)                                                     AS terminatedContracts
 
-        FROM opr_revenue_report rr
+        FROM asset_db.opr_revenue_report rr
         /* 关联合同获取楼栋/业态信息 */
-        LEFT JOIN inv_lease_contract_shop cs
+        LEFT JOIN asset_db.inv_lease_contract_shop cs
                ON cs.contract_id = rr.contract_id AND cs.is_deleted = 0
         /* 浮动租金（按合同月汇总） */
         LEFT JOIN (
             SELECT contract_id, SUM(floating_rent) AS floating_rent
-            FROM opr_floating_rent
+            FROM asset_db.opr_floating_rent
             WHERE calc_month = #{statMonth}
               AND is_deleted = 0
             GROUP BY contract_id
@@ -71,17 +71,17 @@
         LEFT JOIN (
             SELECT project_id, COALESCE(building_id, 0) AS building_id,
                    SUM(flow_count) AS flow_count_sum
-            FROM opr_passenger_flow
+            FROM asset_db.opr_passenger_flow
             WHERE DATE_FORMAT(report_date, '%Y-%m') = #{statMonth}
               AND is_deleted = 0
             GROUP BY project_id, COALESCE(building_id, 0)
         ) pf ON pf.project_id = rr.project_id
              AND pf.building_id = COALESCE(cs.building_id, 0)
         /* 合同变更（按项目） */
-        LEFT JOIN opr_contract_change cc
+        LEFT JOIN asset_db.opr_contract_change cc
                ON cc.project_id = rr.project_id AND cc.is_deleted = 0
         /* 合同信息（到期/终止统计） */
-        LEFT JOIN inv_lease_contract lc
+        LEFT JOIN asset_db.inv_lease_contract lc
                ON lc.id = rr.contract_id AND lc.is_deleted = 0
 
         WHERE rr.is_deleted = 0
@@ -116,24 +116,24 @@
                  AND lc.updated_at >= DATE_FORMAT(#{statMonth}, '%Y-%m-01')
                  AND lc.updated_at &lt;  DATE_ADD(DATE_FORMAT(#{statMonth}, '%Y-%m-01'), INTERVAL 1 MONTH)
                 THEN lc.id END)
-        FROM opr_revenue_report rr
-        LEFT JOIN inv_lease_contract_shop cs
+        FROM asset_db.opr_revenue_report rr
+        LEFT JOIN asset_db.inv_lease_contract_shop cs
                ON cs.contract_id = rr.contract_id AND cs.is_deleted = 0
         LEFT JOIN (
             SELECT contract_id, SUM(floating_rent) AS floating_rent
-            FROM opr_floating_rent
+            FROM asset_db.opr_floating_rent
             WHERE calc_month = #{statMonth} AND is_deleted = 0
             GROUP BY contract_id
         ) fr ON fr.contract_id = rr.contract_id
         LEFT JOIN (
             SELECT project_id, SUM(flow_count) AS flow_count_sum
-            FROM opr_passenger_flow
+            FROM asset_db.opr_passenger_flow
             WHERE DATE_FORMAT(report_date, '%Y-%m') = #{statMonth} AND is_deleted = 0
             GROUP BY project_id
         ) pf2 ON pf2.project_id = rr.project_id
-        LEFT JOIN opr_contract_change cc
+        LEFT JOIN asset_db.opr_contract_change cc
                ON cc.project_id = rr.project_id AND cc.is_deleted = 0
-        LEFT JOIN inv_lease_contract lc
+        LEFT JOIN asset_db.inv_lease_contract lc
                ON lc.id = rr.contract_id AND lc.is_deleted = 0
         WHERE rr.is_deleted = 0
           AND rr.report_month = #{statMonth}

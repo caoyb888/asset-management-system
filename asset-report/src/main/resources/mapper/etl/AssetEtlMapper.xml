@@ -20,7 +20,7 @@
             s.project_id                                                            AS projectId,
             COALESCE(cs.building_id, 0)                                             AS buildingId,
             COALESCE(cs.floor_id,   0)                                              AS floorId,
-            COALESCE(s.plan_format, '')                                             AS formatType,
+            COALESCE(s.planned_format, '')                                          AS formatType,
 
             /* 商铺数量 */
             COUNT(DISTINCT s.id)                                                    AS totalShops,
@@ -50,11 +50,11 @@
 
             /* 空置率/出租率/开业率 由 Java 层计算，此处不做除法 */
 
-        FROM biz_shop s
-        LEFT JOIN inv_lease_contract_shop cs
+        FROM asset_db.biz_shop s
+        LEFT JOIN asset_db.inv_lease_contract_shop cs
                ON cs.shop_id = s.id
               AND cs.is_deleted = 0
-        LEFT JOIN inv_lease_contract lc
+        LEFT JOIN asset_db.inv_lease_contract lc
                ON lc.id = cs.contract_id
               AND lc.status IN (2, 3)   /* 生效 + 到期（到期合同商铺状态可能尚未更新） */
               AND lc.is_deleted = 0
@@ -64,7 +64,7 @@
         GROUP BY s.project_id,
                  COALESCE(cs.building_id, 0),
                  COALESCE(cs.floor_id,   0),
-                 COALESCE(s.plan_format, '')
+                 COALESCE(s.planned_format, '')
 
         /* ---- 项目+楼栋+楼层 汇总行 ---- */
         UNION ALL
@@ -95,10 +95,10 @@
                  AND lc.opening_date IS NULL
                 THEN COALESCE(cs.area, s.rent_area, 0)
                 ELSE 0 END)
-        FROM biz_shop s
-        LEFT JOIN inv_lease_contract_shop cs
+        FROM asset_db.biz_shop s
+        LEFT JOIN asset_db.inv_lease_contract_shop cs
                ON cs.shop_id = s.id AND cs.is_deleted = 0
-        LEFT JOIN inv_lease_contract lc
+        LEFT JOIN asset_db.inv_lease_contract lc
                ON lc.id = cs.contract_id AND lc.status IN (2,3) AND lc.is_deleted = 0
         WHERE s.is_deleted = 0
           AND cs.floor_id IS NOT NULL   /* 只有有楼层数据的才做此汇总 */
@@ -135,10 +135,10 @@
                  AND lc.opening_date IS NULL
                 THEN COALESCE(cs.area, s.rent_area, 0)
                 ELSE 0 END)
-        FROM biz_shop s
-        LEFT JOIN inv_lease_contract_shop cs
+        FROM asset_db.biz_shop s
+        LEFT JOIN asset_db.inv_lease_contract_shop cs
                ON cs.shop_id = s.id AND cs.is_deleted = 0
-        LEFT JOIN inv_lease_contract lc
+        LEFT JOIN asset_db.inv_lease_contract lc
                ON lc.id = cs.contract_id AND lc.status IN (2,3) AND lc.is_deleted = 0
         WHERE s.is_deleted = 0
           AND cs.building_id IS NOT NULL
@@ -174,10 +174,10 @@
                  AND lc.opening_date IS NULL
                 THEN COALESCE(cs.area, s.rent_area, 0)
                 ELSE 0 END)
-        FROM biz_shop s
-        LEFT JOIN inv_lease_contract_shop cs
+        FROM asset_db.biz_shop s
+        LEFT JOIN asset_db.inv_lease_contract_shop cs
                ON cs.shop_id = s.id AND cs.is_deleted = 0
-        LEFT JOIN inv_lease_contract lc
+        LEFT JOIN asset_db.inv_lease_contract lc
                ON lc.id = cs.contract_id AND lc.status IN (2,3) AND lc.is_deleted = 0
         WHERE s.is_deleted = 0
         GROUP BY s.project_id

@@ -45,7 +45,7 @@
             /* 调整合计 */
             SUM(COALESCE(r.adjust_amount, 0))                                       AS adjustmentAmount
 
-        FROM fin_receivable r
+        FROM asset_db.fin_receivable r
         WHERE r.is_deleted = 0
           AND r.accrual_month = #{statMonth}
           AND r.project_id IS NOT NULL
@@ -57,7 +57,7 @@
         SELECT
             r.project_id,
             0                                                                       AS feeItemId,
-            NULL                                                                    AS feeItemType,
+            ''                                                                      AS feeItemType,
             SUM(COALESCE(r.actual_amount, 0)),
             SUM(COALESCE(r.received_amount, 0)),
             SUM(CASE
@@ -69,7 +69,7 @@
             END),
             SUM(COALESCE(r.deduction_amount, 0)),
             SUM(COALESCE(r.adjust_amount, 0))
-        FROM fin_receivable r
+        FROM asset_db.fin_receivable r
         WHERE r.is_deleted = 0
           AND r.accrual_month = #{statMonth}
           AND r.project_id IS NOT NULL
@@ -82,7 +82,7 @@
             da.project_id                                                           AS projectId,
             0                                                                       AS feeItemId,
             SUM(da.balance)                                                         AS depositBalance
-        FROM fin_deposit_account da
+        FROM asset_db.fin_deposit_account da
         WHERE da.is_deleted = 0
           AND da.project_id IS NOT NULL
         GROUP BY da.project_id
@@ -94,7 +94,7 @@
             pa.project_id                                                           AS projectId,
             0                                                                       AS feeItemId,
             SUM(pa.balance)                                                         AS prepayBalance
-        FROM fin_prepay_account pa
+        FROM asset_db.fin_prepay_account pa
         WHERE pa.is_deleted = 0
           AND pa.project_id IS NOT NULL
         GROUP BY pa.project_id

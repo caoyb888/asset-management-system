@@ -48,10 +48,10 @@
                       / SUM(CASE WHEN lc.status = 2 THEN COALESCE(cs.area, 0) ELSE 0 END)
                  ELSE 0 END                                                         AS avgRentPrice
 
-        FROM inv_lease_contract lc
-        LEFT JOIN inv_lease_contract_shop cs
+        FROM asset_db.inv_lease_contract lc
+        LEFT JOIN asset_db.inv_lease_contract_shop cs
                ON cs.contract_id = lc.id AND cs.is_deleted = 0
-        LEFT JOIN inv_intention ii
+        LEFT JOIN asset_db.inv_intention ii
                ON ii.id = lc.intention_id AND ii.is_deleted = 0
 
         WHERE lc.is_deleted = 0
@@ -84,10 +84,10 @@
                  THEN SUM(CASE WHEN lc.status = 2 THEN COALESCE(lc.total_amount, 0) ELSE 0 END)
                       / SUM(CASE WHEN lc.status = 2 THEN COALESCE(cs.area, 0) ELSE 0 END)
                  ELSE 0 END
-        FROM inv_lease_contract lc
-        LEFT JOIN inv_lease_contract_shop cs
+        FROM asset_db.inv_lease_contract lc
+        LEFT JOIN asset_db.inv_lease_contract_shop cs
                ON cs.contract_id = lc.id AND cs.is_deleted = 0
-        LEFT JOIN inv_intention ii
+        LEFT JOIN asset_db.inv_intention ii
                ON ii.id = lc.intention_id AND ii.is_deleted = 0
         WHERE lc.is_deleted = 0
           AND lc.project_id IS NOT NULL

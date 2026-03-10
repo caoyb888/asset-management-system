@@ -52,7 +52,7 @@
 
             /* totalOutstanding 由 Java 层加总校验 */
 
-        FROM fin_receivable r
+        FROM asset_db.fin_receivable r
         WHERE r.is_deleted = 0
           AND r.outstanding_amount > 0       /* 仍有欠款 */
           AND r.due_date IS NOT NULL
@@ -89,7 +89,7 @@
             SUM(CASE
                 WHEN DATEDIFF(#{statDate}, r.due_date) > 365
                 THEN COALESCE(r.outstanding_amount, 0) ELSE 0 END)
-        FROM fin_receivable r
+        FROM asset_db.fin_receivable r
         WHERE r.is_deleted = 0
           AND r.outstanding_amount > 0
           AND r.due_date IS NOT NULL
