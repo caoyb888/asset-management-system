@@ -52,7 +52,7 @@ export function refreshToken(refreshToken: string): Promise<LoginResult> {
 
 /** 获取当前用户信息（权限 + 角色） */
 export function getUserInfo(): Promise<UserInfo> {
-  return request.get<UserInfo, UserInfo>('/auth/info')
+  return request.get<UserInfo, UserInfo>('/auth/userInfo')
 }
 
 /** 获取当前用户动态路由 */
