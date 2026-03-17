@@ -203,10 +203,10 @@ async function loadStats() {
     getLedgerPage({ status: 0, contractEndFrom: today, contractEndTo: make(30), pageSize: 1 }),
     getLedgerPage({ status: 0, pageSize: 1 }),
   ])
-  if (r7.status === 'fulfilled') stats.expiring7 = r7.value.data?.total ?? 0
-  if (r15.status === 'fulfilled') stats.expiring15 = r15.value.data?.total ?? 0
-  if (r30.status === 'fulfilled') stats.expiring30 = r30.value.data?.total ?? 0
-  if (rAll.status === 'fulfilled') stats.total = rAll.value.data?.total ?? 0
+  if (r7.status === 'fulfilled') stats.expiring7 = r7.value?.total ?? 0
+  if (r15.status === 'fulfilled') stats.expiring15 = r15.value?.total ?? 0
+  if (r30.status === 'fulfilled') stats.expiring30 = r30.value?.total ?? 0
+  if (rAll.status === 'fulfilled') stats.total = rAll.value?.total ?? 0
 }
 
 function goDetail(id: number) {

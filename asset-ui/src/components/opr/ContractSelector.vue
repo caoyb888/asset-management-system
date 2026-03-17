@@ -83,7 +83,7 @@ function handleRemoteSearch(keyword: string) {
     loading.value = true
     try {
       const res = await searchLedgers(keyword.trim() || undefined, 10)
-      options.value = (res.data as any)?.data ?? res.data ?? []
+      options.value = res ?? []
     } catch {
       options.value = []
     } finally {

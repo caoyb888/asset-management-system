@@ -1,4 +1,5 @@
-import request from '@/api/request'
+import { http } from '@/api/request'
+import type { PageResult } from '@/api/base/project'
 
 /** 解约单查询参数 */
 export interface TerminationQueryDTO {
@@ -69,35 +70,35 @@ export interface ApprovalCallbackDTO {
 
 /** 分页查询解约列表 */
 export function getTerminationPage(params: TerminationQueryDTO) {
-  return request.get('/opr/terminations', { params })
+  return http.get<PageResult<TerminationDetailVO>>('/opr/terminations', { params })
 }
 
 /** 解约单详情（含清算明细） */
 export function getTerminationById(id: number) {
-  return request.get(`/opr/terminations/${id}`)
+  return http.get<TerminationDetailVO>(`/opr/terminations/${id}`)
 }
 
 /** 新增解约单 */
 export function createTermination(data: TerminationCreateDTO) {
-  return request.post('/opr/terminations', data)
+  return http.post<number>('/opr/terminations', data)
 }
 
 /** 编辑解约单 */
 export function updateTermination(id: number, data: TerminationCreateDTO) {
-  return request.put(`/opr/terminations/${id}`, data)
+  return http.put(`/opr/terminations/${id}`, data)
 }
 
 /** 触发清算计算 */
 export function calculateSettlement(id: number) {
-  return request.post(`/opr/terminations/${id}/calculate-settlement`)
+  return http.post<number>(`/opr/terminations/${id}/calculate-settlement`)
 }
 
 /** 提交审批 */
 export function submitTerminationApproval(id: number) {
-  return request.post(`/opr/terminations/${id}/submit-approval`)
+  return http.post(`/opr/terminations/${id}/submit-approval`)
 }
 
 /** 审批回调 */
 export function terminationApprovalCallback(id: number, data: ApprovalCallbackDTO) {
-  return request.post(`/opr/terminations/${id}/approval-callback`, data)
+  return http.post(`/opr/terminations/${id}/approval-callback`, data)
 }

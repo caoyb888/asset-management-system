@@ -211,7 +211,7 @@ async function searchContract() {
   try {
     const res = await request.get('/inv/contracts', {
       params: { contractCode: step1.contractCode, pageSize: 10 }
-    })
+    }) as any
     contractList.value = res.records || []
     if (!contractList.value.length) ElMessage.info('未找到匹配合同')
   } catch (e: any) {
@@ -264,8 +264,8 @@ async function nextToStep3() {
 
     // 加载详情（含清算明细）
     const detailRes = await getTerminationById(id)
-    savedTermination.value = detailRes.data
-    settlements.value = detailRes.data?.settlements || []
+    savedTermination.value = detailRes
+    settlements.value = detailRes.settlements || []
 
     step.value = 2
   } catch (e: any) {

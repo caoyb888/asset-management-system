@@ -58,7 +58,7 @@ request.interceptors.response.use(
             // 动态 import 避免循环依赖
             const { refreshToken } = await import('@/api/auth')
             const result = await refreshToken(rt)
-            const newToken = result.accessToken
+            const newToken = result.token || result.accessToken || ''
             setToken(newToken)
             // 通知等待队列
             pendingQueue.forEach(cb => cb(newToken))
@@ -95,5 +95,26 @@ request.interceptors.response.use(
     return Promise.reject(error)
   },
 )
+
+/**
+ * 类型安全的请求包装器
+ * 响应拦截器已将 ApiResponse<T> 解包为 T，此处通过类型声明让 TS 感知该行为。
+ * opr / fin / inv 等业务 API 文件应使用 http 而非直接使用 request，
+ * blob 下载请求除外（继续使用 request，拦截器对 blob 直接透传）。
+ */
+export const http = {
+  get<T = unknown>(url: string, config?: object): Promise<T> {
+    return request.get(url, config) as unknown as Promise<T>
+  },
+  post<T = unknown>(url: string, data?: unknown, config?: object): Promise<T> {
+    return request.post(url, data, config) as unknown as Promise<T>
+  },
+  put<T = unknown>(url: string, data?: unknown, config?: object): Promise<T> {
+    return request.put(url, data, config) as unknown as Promise<T>
+  },
+  delete<T = unknown>(url: string, config?: object): Promise<T> {
+    return request.delete(url, config) as unknown as Promise<T>
+  },
+}
 
 export default request

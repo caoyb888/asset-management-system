@@ -1,4 +1,6 @@
 import request from '@/api/request'
+import { http } from '@/api/request'
+import type { PageResult } from '@/api/base/project'
 
 /** 客流查询参数 */
 export interface PassengerFlowQueryDTO {
@@ -51,44 +53,51 @@ export interface PassengerFlowStatisticsVO {
   trendPoints: DailyPoint[]
 }
 
+/** 导入结果 */
+export interface ImportResultVO {
+  successCount: number
+  failCount: number
+  errorList: string[]
+}
+
 /** 分页查询客流列表 */
 export function getFlowPage(params: PassengerFlowQueryDTO) {
-  return request.get('/opr/passenger-flows', { params })
+  return http.get<PageResult<OprPassengerFlow>>('/opr/passenger-flows', { params })
 }
 
 /** 新增客流 */
 export function createFlow(data: PassengerFlowCreateDTO) {
-  return request.post('/opr/passenger-flows', data)
+  return http.post('/opr/passenger-flows', data)
 }
 
 /** 编辑客流 */
 export function updateFlow(id: number, data: PassengerFlowCreateDTO) {
-  return request.put(`/opr/passenger-flows/${id}`, data)
+  return http.put(`/opr/passenger-flows/${id}`, data)
 }
 
 /** 删除客流 */
 export function deleteFlow(id: number) {
-  return request.delete(`/opr/passenger-flows/${id}`)
+  return http.delete(`/opr/passenger-flows/${id}`)
 }
 
 /** 导入 Excel */
-export function importFlowExcel(file: File) {
+export function importFlowExcel(file: File): Promise<ImportResultVO> {
   const form = new FormData()
   form.append('file', file)
-  return request.post('/opr/passenger-flows/import', form, {
+  return http.post<ImportResultVO>('/opr/passenger-flows/import', form, {
     headers: { 'Content-Type': 'multipart/form-data' }
   })
 }
 
-/** 导出 Excel */
-export function exportFlowExcel(params: PassengerFlowQueryDTO) {
+/** 导出 Excel（blob，拦截器透传，不使用 http 包装器） */
+export function exportFlowExcel(params: PassengerFlowQueryDTO): Promise<Blob> {
   return request.get('/opr/passenger-flows/export', {
     params,
     responseType: 'blob'
-  })
+  }) as unknown as Promise<Blob>
 }
 
 /** 统计分析（日/周环比+趋势） */
 export function getFlowStatistics(params: { projectId?: number; buildingId?: number; floorId?: number }) {
-  return request.get('/opr/passenger-flows/statistics', { params })
+  return http.get<PassengerFlowStatisticsVO>('/opr/passenger-flows/statistics', { params })
 }

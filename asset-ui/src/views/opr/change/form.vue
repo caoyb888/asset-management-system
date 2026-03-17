@@ -365,7 +365,7 @@ async function searchContracts(keyword: string) {
   if (!keyword) return
   contractLoading.value = true
   try {
-    const res = await request.get('/inv/contracts', { params: { keyword, pageSize: 20 } })
+    const res = await request.get('/inv/contracts', { params: { keyword, pageSize: 20 } }) as any
     contractOptions.value = res.records || []
   } catch {
     contractOptions.value = []

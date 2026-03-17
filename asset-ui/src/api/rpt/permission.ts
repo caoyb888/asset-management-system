@@ -1,4 +1,4 @@
-import request from '@/api/request'
+import { http } from '@/api/request'
 
 export interface UserPermissionVO {
   userId: number
@@ -14,5 +14,5 @@ export interface UserPermissionVO {
  * 用于初始化时控制菜单可见性和数据展示方式
  */
 export function getUserPermissions() {
-  return request.get<UserPermissionVO>('/rpt/common/user-permissions')
+  return http.get<UserPermissionVO>('/rpt/common/user-permissions')
 }

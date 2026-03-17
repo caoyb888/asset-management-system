@@ -1,4 +1,6 @@
 import request from '@/api/request'
+import { http } from '@/api/request'
+import type { PageResult } from '@/api/base/project'
 
 // ── 类型定义 ────────────────────────────────────────────────────
 
@@ -95,42 +97,42 @@ export interface ImportResultVO {
 export const revenueReportApi = {
   /** 分页列表 */
   page: (params: RevenueReportQueryDTO) =>
-    request.get<any>('/opr/revenue-reports', { params }),
+    http.get<PageResult<OprRevenueReport>>('/opr/revenue-reports', { params }),
 
   /** 新增单日营收 */
   create: (data: RevenueReportCreateDTO) =>
-    request.post<OprRevenueReport>('/opr/revenue-reports', data),
+    http.post<OprRevenueReport>('/opr/revenue-reports', data),
 
   /** 修改（仅待确认） */
   update: (id: number, data: Partial<RevenueReportCreateDTO>) =>
-    request.put('/opr/revenue-reports/' + id, data),
+    http.put('/opr/revenue-reports/' + id, data),
 
   /** 批量导入 Excel */
   importExcel: (file: File) => {
     const form = new FormData()
     form.append('file', file)
-    return request.post<ImportResultVO>('/opr/revenue-reports/import', form, {
+    return http.post<ImportResultVO>('/opr/revenue-reports/import', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
 
-  /** 导出 Excel（blob） */
-  exportExcel: (params: RevenueReportQueryDTO) =>
-    request.get('/opr/revenue-reports/export', { params, responseType: 'blob' }),
+  /** 导出 Excel（blob，拦截器透传，不使用 http 包装器） */
+  exportExcel: (params: RevenueReportQueryDTO): Promise<Blob> =>
+    request.get('/opr/revenue-reports/export', { params, responseType: 'blob' }) as unknown as Promise<Blob>,
 
-  /** 下载导入模板 */
-  downloadTemplate: () =>
-    request.get('/opr/revenue-reports/template', { responseType: 'blob' }),
+  /** 下载导入模板（blob） */
+  downloadTemplate: (): Promise<Blob> =>
+    request.get('/opr/revenue-reports/template', { responseType: 'blob' }) as unknown as Promise<Blob>,
 
   /** 查询指定合同月份每日明细（日历着色用） */
   dailyDetail: (contractId: number, reportMonth: string) =>
-    request.get<Record<string, number>>('/opr/revenue-reports/daily-detail', {
+    http.get<Record<string, number>>('/opr/revenue-reports/daily-detail', {
       params: { contractId, reportMonth },
     }),
 
   /** 月度汇总统计 */
   statistics: (params: { reportMonth: string; projectId?: number; contractId?: number }) =>
-    request.get<RevenueStatisticsVO>('/opr/revenue-reports/statistics', { params }),
+    http.get<RevenueStatisticsVO>('/opr/revenue-reports/statistics', { params }),
 }
 
 // ── 浮动租金 API ─────────────────────────────────────────────────
@@ -138,17 +140,17 @@ export const revenueReportApi = {
 export const floatingRentApi = {
   /** 触发浮动租金计算 */
   generate: (data: { contractId: number; calcMonth: string }) =>
-    request.post<number>('/opr/revenue-reports/generate-floating-rent', data),
+    http.post<number>('/opr/revenue-reports/generate-floating-rent', data),
 
   /** 分页列表 */
   page: (params: { contractId?: number; calcMonth?: string; pageNum?: number; pageSize?: number }) =>
-    request.get<any>('/opr/floating-rents', { params }),
+    http.get<PageResult<OprFloatingRent>>('/opr/floating-rents', { params }),
 
   /** 详情（含阶梯） */
   detail: (id: number) =>
-    request.get<FloatingRentDetailVO>('/opr/floating-rents/' + id),
+    http.get<FloatingRentDetailVO>('/opr/floating-rents/' + id),
 
   /** 手动生成应收 */
   generateReceivable: (id: number) =>
-    request.post<number>('/opr/floating-rents/' + id + '/generate-receivable'),
+    http.post<number>('/opr/floating-rents/' + id + '/generate-receivable'),
 }

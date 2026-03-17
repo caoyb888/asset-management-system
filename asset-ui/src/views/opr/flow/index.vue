@@ -295,7 +295,7 @@ const importResult = reactive({ successCount: 0, failCount: 0, errorList: [] as 
 
 async function loadProjects() {
   try {
-    const res = await request.get('/base/projects', { params: { pageSize: 999 } })
+    const res = await request.get('/base/projects', { params: { pageSize: 999 } }) as any
     projectList.value = res.records || []
     projectList.value.forEach((p: any) => { projectMap.value[p.id] = p.projectName })
   } catch (e) {}
@@ -303,7 +303,7 @@ async function loadProjects() {
 
 async function loadBuildings(projectId: number) {
   try {
-    const res = await request.get('/base/buildings', { params: { projectId, pageSize: 999 } })
+    const res = await request.get('/base/buildings', { params: { projectId, pageSize: 999 } }) as any
     buildingList.value = res.records || []
     buildingList.value.forEach((b: any) => { buildingMap.value[b.id] = b.buildingName })
   } catch (e) { buildingList.value = [] }
@@ -311,7 +311,7 @@ async function loadBuildings(projectId: number) {
 
 async function loadFloors(buildingId: number) {
   try {
-    const res = await request.get('/base/floors', { params: { buildingId, pageSize: 999 } })
+    const res = await request.get('/base/floors', { params: { buildingId, pageSize: 999 } }) as any
     floorList.value = res.records || []
     floorList.value.forEach((f: any) => { floorMap.value[f.id] = f.floorName })
   } catch (e) { floorList.value = [] }
@@ -319,7 +319,7 @@ async function loadFloors(buildingId: number) {
 
 async function loadFormBuildings(projectId: number) {
   try {
-    const res = await request.get('/base/buildings', { params: { projectId, pageSize: 999 } })
+    const res = await request.get('/base/buildings', { params: { projectId, pageSize: 999 } }) as any
     formBuildingList.value = res.records || []
     formBuildingList.value.forEach((b: any) => { buildingMap.value[b.id] = b.buildingName })
   } catch (e) { formBuildingList.value = [] }
@@ -327,7 +327,7 @@ async function loadFormBuildings(projectId: number) {
 
 async function loadFormFloors(buildingId: number) {
   try {
-    const res = await request.get('/base/floors', { params: { buildingId, pageSize: 999 } })
+    const res = await request.get('/base/floors', { params: { buildingId, pageSize: 999 } }) as any
     formFloorList.value = res.records || []
     formFloorList.value.forEach((f: any) => { floorMap.value[f.id] = f.floorName })
   } catch (e) { formFloorList.value = [] }
