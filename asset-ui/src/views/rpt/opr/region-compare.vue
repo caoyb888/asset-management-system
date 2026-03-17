@@ -80,11 +80,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import * as echarts from 'echarts'
 import { getRegionCompare } from '@/api/rpt/operation'
 import { getProjectList } from '@/api/base/project'
 import type { OprRegionCompareVO } from '@/api/rpt/operation'
+import { useThemeColors } from '@/composables/useThemeColors'
+
+const { chartPalette, theme: currentTheme } = useThemeColors()
 
 const loading = ref(false)
 const tableData = ref<OprRegionCompareVO[]>([])
@@ -186,7 +189,7 @@ function updateBarChart() {
   const names = data.map(r => projectNameMap.value[r.projectId!] || `项目${r.projectId}`)
 
   const metricMap: Record<string, { getter: (r: OprRegionCompareVO) => number | null; name: string; unit: string; color: string }> = {
-    revenue: { getter: r => r.revenueAmount, name: '营收（万元）', unit: '万元', color: '#409eff' },
+    revenue: { getter: r => r.revenueAmount, name: '营收（万元）', unit: '万元', color: chartPalette.value[0] },
     passenger: { getter: r => r.passengerFlow, name: '客流量（人次）', unit: '人次', color: '#e6a23c' },
     avgRevenue: { getter: r => r.avgRevenuePerSqm, name: '坪效（元/㎡）', unit: '元/㎡', color: '#67c23a' },
     expiring: { getter: r => r.expiringContracts, name: '到期合同数', unit: '份', color: '#f56c6c' },
@@ -229,6 +232,8 @@ function fmtMoney(v?: number | null) {
 function fmtNum(v?: number | null) {
   return v != null ? Number(v).toLocaleString('zh-CN') : '-'
 }
+
+watch(currentTheme, () => { updateRadarChart(); updateBarChart() })
 </script>
 
 <style scoped lang="scss">

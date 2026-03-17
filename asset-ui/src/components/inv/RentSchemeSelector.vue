@@ -42,7 +42,7 @@
 
     <!-- 已选中信息 -->
     <div v-if="selectedScheme" class="selected-info">
-      <el-icon color="#409eff"><InfoFilled /></el-icon>
+      <el-icon color="var(--el-color-primary)"><InfoFilled /></el-icon>
       已选：<strong>{{ selectedScheme.schemeName }}</strong>
       &nbsp;·&nbsp;{{ CHARGE_TYPE_MAP[selectedScheme.chargeType] }}
       &nbsp;·&nbsp;{{ PAYMENT_CYCLE_MAP[selectedScheme.paymentCycle] }}
@@ -135,12 +135,12 @@ defineExpose({ reload: loadSchemes })
 }
 
 .scheme-card:hover:not(.is-disabled) {
-  border-color: #409eff;
+  border-color: var(--el-color-primary);
   box-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
 }
 
 .scheme-card.is-selected {
-  border-color: #409eff;
+  border-color: var(--el-color-primary);
   background: #ecf5ff;
 }
 
@@ -155,7 +155,7 @@ defineExpose({ reload: loadSchemes })
   right: 0;
   width: 24px;
   height: 24px;
-  background: #409eff;
+  background: var(--el-color-primary);
   border-bottom-left-radius: 8px;
   display: flex;
   align-items: center;
@@ -198,7 +198,7 @@ defineExpose({ reload: loadSchemes })
   align-items: center;
   gap: 4px;
   font-size: 13px;
-  color: #409eff;
+  color: var(--el-color-primary);
 }
 
 .loading-wrap { padding: 16px; }

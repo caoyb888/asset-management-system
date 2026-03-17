@@ -77,12 +77,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import * as echarts from 'echarts'
 import { Clock, Top, Bottom, Minus } from '@element-plus/icons-vue'
 import { getInvDashboard } from '@/api/rpt/investment'
 import { getProjectList } from '@/api/base/project'
 import type { InvDashboardVO } from '@/api/rpt/investment'
+import { useThemeColors } from '@/composables/useThemeColors'
+
+const { chartPalette, primaryColor, theme: currentTheme } = useThemeColors()
 
 const loading = ref(false)
 const dashboard = ref<InvDashboardVO>({
@@ -116,7 +119,7 @@ const kpiCards = computed(() => [
   {
     label: '租赁合同数',
     value: dashboard.value.contractCount ?? '-',
-    color: '#409eff',
+    color: primaryColor.value,
     yoy: dashboard.value.contractCountYoY,
     yoyClass: yoyClass(dashboard.value.contractCountYoY, false),
     yoyIcon: yoyIcon(dashboard.value.contractCountYoY),
@@ -134,7 +137,7 @@ const kpiCards = computed(() => [
   {
     label: '平均租金（元/㎡/月）',
     value: fmtMoney(dashboard.value.avgRentPrice),
-    color: '#2e75b6',
+    color: primaryColor.value,
     yoy: dashboard.value.avgRentPriceYoY,
     yoyClass: yoyClass(dashboard.value.avgRentPriceYoY, false),
     yoyIcon: yoyIcon(dashboard.value.avgRentPriceYoY),
@@ -229,7 +232,7 @@ function updateFunnelChart() {
         gap: 6,
         label: { show: true, position: 'inside', formatter: '{b}\n{c}' },
         data: funnel.map(f => ({ name: f.stageName, value: f.count ?? 0 })),
-        color: ['#409eff', '#67c23a', '#e6a23c'],
+        color: chartPalette.value.slice(0, 3),
       },
     ],
   })
@@ -256,7 +259,7 @@ function updateTrendChart() {
         name: '新增合同',
         type: 'bar',
         data: cData.map(d => d.newContract),
-        itemStyle: { color: '#409eff' },
+        itemStyle: { color: chartPalette.value[0] },
       },
     ],
   })
@@ -285,7 +288,7 @@ function updateCompareChart() {
         name: '合同数',
         type: 'bar',
         data: list.map(p => p.contractCount),
-        itemStyle: { color: '#409eff' },
+        itemStyle: { color: chartPalette.value[0] },
       },
       {
         name: '转化率%',
@@ -326,6 +329,8 @@ function yoyIcon(v?: number | null) {
   if (v == null || Number(v) === 0) return Minus
   return Number(v) > 0 ? Top : Bottom
 }
+
+watch(currentTheme, () => { initOrUpdateCharts() })
 </script>
 
 <style scoped lang="scss">

@@ -315,7 +315,7 @@ onMounted(loadTypeList)
   display: flex; align-items: center; gap: 6px;
   padding: 10px 12px; cursor: pointer; border-radius: 6px;
   color: #606266; font-size: 14px; transition: all 0.2s;
-  &:hover { background: #f0f7ff; color: #409eff; }
-  &.active { background: #ecf5ff; color: #409eff; font-weight: 600; }
+  &:hover { background: #f0f7ff; color: var(--el-color-primary); }
+  &.active { background: #ecf5ff; color: var(--el-color-primary); font-weight: 600; }
 }
 </style>

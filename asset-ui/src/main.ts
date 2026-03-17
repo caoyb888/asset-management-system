@@ -10,6 +10,12 @@ import router from './router'
 import { setupDirectives } from './directives'
 import './styles/index.scss'
 
+// 在 Vue 挂载前立即恢复主题，避免闪烁
+const savedTheme = localStorage.getItem('asset_theme')
+if (savedTheme) {
+  document.documentElement.dataset.theme = savedTheme
+}
+
 const app = createApp(App)
 
 app.use(createPinia())

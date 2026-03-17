@@ -106,11 +106,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import * as echarts from 'echarts'
 import { getContractChanges, getRentChanges } from '@/api/rpt/operation'
 import { getProjectList } from '@/api/base/project'
 import type { OprContractChangeVO, OprRentChangeVO } from '@/api/rpt/operation'
+import { useThemeColors } from '@/composables/useThemeColors'
+
+const { chartPalette, theme: currentTheme } = useThemeColors()
 
 const loading = ref(false)
 const changesData = ref<OprContractChangeVO[]>([])
@@ -208,7 +211,7 @@ function updateChangesTrend() {
         name: '变更次数',
         type: 'bar',
         data: times.map(t => timeMap[t].count),
-        itemStyle: { color: '#409eff' },
+        itemStyle: { color: chartPalette.value[0] },
       },
       {
         name: '租金影响（万元）',
@@ -303,6 +306,8 @@ function impactClass(v?: number | null) {
   if (v == null) return ''
   return Number(v) > 0 ? 'text-up' : Number(v) < 0 ? 'text-down' : ''
 }
+
+watch(currentTheme, () => { updateChangesTrend(); updateRentImpact(); updateRentChangeTrend() })
 </script>
 
 <style scoped lang="scss">

@@ -1,0 +1,158 @@
+// ============================================================================
+// 多配色体系 — CSS 自定义属性定义
+// 通过 html[data-theme] 切换主题，默认（无 data-theme）为经典蓝
+// ============================================================================
+
+// ─── 默认主题：经典蓝 ────────────────────────────────────────────────────────
+:root {
+  // 品牌色
+  --app-color-primary: #2e75b6;
+  --app-color-primary-light: #4a90d9;
+  --app-color-primary-dark: #1a5c99;
+  --app-color-primary-rgb: 46, 117, 182;
+
+  // 侧边栏
+  --app-sidebar-bg: #001529;
+  --app-sidebar-text: rgba(255, 255, 255, 0.85);
+  --app-sidebar-active-bg: #2e75b6;
+  --app-sidebar-active-text: #ffffff;
+
+  // 头部
+  --app-header-bg: #ffffff;
+  --app-header-border: #e8e8e8;
+  --app-header-text: #303133;
+
+  // 内容区
+  --app-content-bg: #f0f2f5;
+  --app-card-bg: #ffffff;
+  --app-card-border: rgba(0, 0, 0, 0.06);
+
+  // 文字
+  --app-text-primary: #303133;
+  --app-text-regular: #606266;
+  --app-text-secondary: #909399;
+  --app-text-placeholder: #c0c4cc;
+
+  // 边框 & 分割线
+  --app-border-color: #dcdfe6;
+  --app-divider-color: #f1f5f9;
+
+  // 面板
+  --app-panel-bg: #ffffff;
+  --app-panel-hover-bg: #f8fafc;
+
+  // Element Plus 覆盖
+  --el-color-primary: #2e75b6;
+  --el-color-primary-light-3: #4a90d9;
+  --el-color-primary-light-5: #97c3e8;
+  --el-color-primary-light-7: #bdd8f0;
+  --el-color-primary-light-8: #d3e6f5;
+  --el-color-primary-light-9: #e9f2fa;
+  --el-color-primary-dark-2: #1a5c99;
+  --el-bg-color: #ffffff;
+  --el-bg-color-overlay: #ffffff;
+  --el-text-color-primary: #303133;
+  --el-text-color-regular: #606266;
+  --el-border-color: #dcdfe6;
+  --el-fill-color-blank: #ffffff;
+}
+
+// ─── 主题 B：政务青 ──────────────────────────────────────────────────────────
+:root[data-theme="teal"] {
+  --app-color-primary: #0d9488;
+  --app-color-primary-light: #14b8a6;
+  --app-color-primary-dark: #0f766e;
+  --app-color-primary-rgb: 13, 148, 136;
+
+  --app-sidebar-bg: #042f2e;
+  --app-sidebar-active-bg: #0d9488;
+  --app-content-bg: #f0f5f4;
+
+  --el-color-primary: #0d9488;
+  --el-color-primary-light-3: #14b8a6;
+  --el-color-primary-light-5: #5eead4;
+  --el-color-primary-light-7: #99f6e4;
+  --el-color-primary-light-8: #ccfbf1;
+  --el-color-primary-light-9: #e6fef9;
+  --el-color-primary-dark-2: #0f766e;
+}
+
+// ─── 主题 C：商务紫 ──────────────────────────────────────────────────────────
+:root[data-theme="indigo"] {
+  --app-color-primary: #6366f1;
+  --app-color-primary-light: #818cf8;
+  --app-color-primary-dark: #4f46e5;
+  --app-color-primary-rgb: 99, 102, 241;
+
+  --app-sidebar-bg: #1e1b4b;
+  --app-sidebar-active-bg: #6366f1;
+  --app-content-bg: #f1f0f5;
+
+  --el-color-primary: #6366f1;
+  --el-color-primary-light-3: #818cf8;
+  --el-color-primary-light-5: #a5b4fc;
+  --el-color-primary-light-7: #c7d2fe;
+  --el-color-primary-light-8: #e0e7ff;
+  --el-color-primary-light-9: #eef2ff;
+  --el-color-primary-dark-2: #4f46e5;
+}
+
+// ─── 主题 D：暗夜蓝 ──────────────────────────────────────────────────────────
+:root[data-theme="dark"] {
+  --app-color-primary: #3b82f6;
+  --app-color-primary-light: #60a5fa;
+  --app-color-primary-dark: #2563eb;
+  --app-color-primary-rgb: 59, 130, 246;
+
+  --app-sidebar-bg: #111827;
+  --app-sidebar-active-bg: #3b82f6;
+  --app-content-bg: #1f2937;
+
+  --app-header-bg: #111827;
+  --app-header-border: #374151;
+  --app-header-text: #f1f5f9;
+
+  --app-card-bg: #1f2937;
+  --app-card-border: #374151;
+
+  --app-text-primary: #f1f5f9;
+  --app-text-regular: #cbd5e1;
+  --app-text-secondary: #94a3b8;
+  --app-text-placeholder: #64748b;
+
+  --app-border-color: #374151;
+  --app-divider-color: #374151;
+
+  --app-panel-bg: #1f2937;
+  --app-panel-hover-bg: #374151;
+
+  // Element Plus 暗色覆盖
+  --el-color-primary: #3b82f6;
+  --el-color-primary-light-3: #60a5fa;
+  --el-color-primary-light-5: #93c5fd;
+  --el-color-primary-light-7: #1e3a5f;
+  --el-color-primary-light-8: #172554;
+  --el-color-primary-light-9: #0f172a;
+  --el-color-primary-dark-2: #2563eb;
+  --el-bg-color: #1f2937;
+  --el-bg-color-overlay: #374151;
+  --el-bg-color-page: #111827;
+  --el-text-color-primary: #f1f5f9;
+  --el-text-color-regular: #cbd5e1;
+  --el-text-color-secondary: #94a3b8;
+  --el-text-color-placeholder: #64748b;
+  --el-border-color: #374151;
+  --el-border-color-light: #4b5563;
+  --el-border-color-lighter: #374151;
+  --el-fill-color: #374151;
+  --el-fill-color-light: #1f2937;
+  --el-fill-color-lighter: #111827;
+  --el-fill-color-blank: #1f2937;
+  --el-mask-color: rgba(0, 0, 0, 0.6);
+
+  // 语义色微调（暗色下提高对比度）
+  --el-color-success: #4ade80;
+  --el-color-warning: #fbbf24;
+  --el-color-danger: #f87171;
+  --el-color-info: #94a3b8;
+}

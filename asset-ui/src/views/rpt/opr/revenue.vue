@@ -93,11 +93,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import * as echarts from 'echarts'
 import { getRevenueSummary } from '@/api/rpt/operation'
 import { getProjectList } from '@/api/base/project'
 import type { OprRevenueSummaryVO } from '@/api/rpt/operation'
+import { useThemeColors } from '@/composables/useThemeColors'
+
+const { chartPalette, theme: currentTheme } = useThemeColors()
 
 const loading = ref(false)
 const tableData = ref<OprRevenueSummaryVO[]>([])
@@ -199,7 +202,7 @@ function updateTrendChart() {
         type: chartType.value,
         smooth: true,
         data: curData,
-        itemStyle: { color: '#409eff' },
+        itemStyle: { color: chartPalette.value[0] },
         areaStyle: chartType.value === 'line' ? { color: 'rgba(64,158,255,0.1)' } : undefined,
       },
       ...(hasPrev
@@ -261,6 +264,8 @@ function growthClass(v?: number | null) {
   if (v == null) return ''
   return Number(v) > 0 ? 'text-up' : Number(v) < 0 ? 'text-down' : ''
 }
+
+watch(currentTheme, () => { updateTrendChart(); updatePieChart() })
 </script>
 
 <style scoped lang="scss">

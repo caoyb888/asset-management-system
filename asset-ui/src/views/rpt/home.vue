@@ -197,6 +197,9 @@ import {
 } from '@element-plus/icons-vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import { listFavorites, addFavorite, removeFavorite, updateFavoriteSort, type FavoriteVO } from '@/api/rpt/favorite'
+import { useThemeColors } from '@/composables/useThemeColors'
+
+const { primaryColor } = useThemeColors()
 
 const router = useRouter()
 
@@ -211,12 +214,12 @@ interface ReportItem {
   icon: any
 }
 
-const reportCategories = [
+const reportCategories = computed(() => [
   {
     id: 1,
     name: '资产类报表',
     desc: '空置率 · 出租率 · 商铺租赁 · 品牌分布',
-    color: '#2E75B6',
+    color: primaryColor.value,
     lightColor: '#EBF3FB',
     icon: DataAnalysis,
     dashboardCode: 'AST_DASHBOARD',
@@ -277,10 +280,10 @@ const reportCategories = [
       { reportCode: 'FIN_COLLECTION', name: '收缴率趋势', desc: '月度收缴率与项目对比', routePath: '/rpt/fin/collection', category: 4, icon: Histogram },
     ] as ReportItem[],
   },
-]
+])
 
 // 所有报表扁平列表（用于搜索）
-const allReports: ReportItem[] = reportCategories.flatMap(c => c.reports)
+const allReports = computed<ReportItem[]>(() => reportCategories.value.flatMap(c => c.reports))
 
 // ─────────────────────────── 搜索 ───────────────────────────
 
@@ -288,7 +291,7 @@ const searchKeyword = ref('')
 const searchResults = computed(() => {
   const kw = searchKeyword.value.trim().toLowerCase()
   if (!kw) return []
-  return allReports.filter(r =>
+  return allReports.value.filter(r =>
     r.name.toLowerCase().includes(kw) || r.desc.toLowerCase().includes(kw)
   )
 })
@@ -321,7 +324,7 @@ async function toggleFavorite(item: ReportItem) {
 }
 
 async function toggleFavoriteByRecent(item: RecentItem) {
-  const report = allReports.find(r => r.reportCode === item.reportCode)
+  const report = allReports.value.find(r => r.reportCode === item.reportCode)
   if (!report) return
   if (isFavorited(item.reportCode)) {
     const fav = favorites.value.find(f => f.reportCode === item.reportCode)
@@ -434,7 +437,7 @@ function navigateTo(item: Pick<ReportItem, 'routePath' | 'name' | 'reportCode' |
 // ─────────────────────────── 辅助 ───────────────────────────
 
 function categoryColor(cat: number) {
-  return ['', '#2E75B6', '#17A589', '#E67E22', '#8E44AD'][cat] ?? '#909399'
+  return ['', primaryColor.value, '#17A589', '#E67E22', '#8E44AD'][cat] ?? '#909399'
 }
 
 function categoryLabel(cat: number) {
@@ -606,7 +609,7 @@ onMounted(() => {
   color: #303133;
   margin-bottom: 12px;
   padding-left: 10px;
-  border-left: 3px solid #2E75B6;
+  border-left: 3px solid var(--app-color-primary);
 }
 
 .section-tip {
@@ -642,7 +645,7 @@ onMounted(() => {
     cursor: pointer;
 
     &:hover {
-      border-color: #409eff;
+      border-color: var(--el-color-primary);
       box-shadow: 0 2px 8px rgba(64, 158, 255, 0.15);
 
       .star-btn {

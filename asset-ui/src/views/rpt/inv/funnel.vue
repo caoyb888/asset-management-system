@@ -94,11 +94,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import * as echarts from 'echarts'
 import { getFunnel, getIntentionStats } from '@/api/rpt/investment'
 import { getProjectList } from '@/api/base/project'
 import type { FunnelVO, IntentionStatsVO } from '@/api/rpt/investment'
+import { useThemeColors } from '@/composables/useThemeColors'
+
+const { chartPalette, theme: currentTheme } = useThemeColors()
 
 const loading = ref(false)
 const loadingTrend = ref(false)
@@ -205,7 +208,7 @@ function updateFunnelChart() {
         label: { show: true, position: 'inside', fontSize: 13, formatter: '{b}\n{c}' },
         itemStyle: { borderWidth: 0 },
         data: funnelData.value.map(f => ({ name: f.stageName, value: f.count ?? 0 })),
-        color: ['#409eff', '#67c23a', '#e6a23c'],
+        color: chartPalette.value.slice(0, 3),
       },
     ],
   })
@@ -231,7 +234,7 @@ function updateTrendChart() {
         name: '意向总数',
         type: 'bar',
         data: data.map(d => d.intentionCount),
-        itemStyle: { color: '#409eff' },
+        itemStyle: { color: chartPalette.value[0] },
       },
       {
         name: '新增意向',
@@ -266,6 +269,8 @@ function growthClass(v?: number | null) {
   if (v == null) return ''
   return Number(v) > 0 ? 'text-up' : Number(v) < 0 ? 'text-down' : ''
 }
+
+watch(currentTheme, () => { updateFunnelChart(); updateTrendChart() })
 </script>
 
 <style scoped lang="scss">
@@ -285,7 +290,7 @@ function growthClass(v?: number | null) {
     .stage-name { font-size: 12px; color: #909399; }
     .stage-count { font-size: 22px; font-weight: 700; color: #303133; margin: 4px 0; }
     .stage-rate, .stage-total { font-size: 12px; color: #606266; }
-    b { color: #409eff; }
+    b { color: var(--el-color-primary); }
   }
 }
 .text-up { color: #67c23a; }

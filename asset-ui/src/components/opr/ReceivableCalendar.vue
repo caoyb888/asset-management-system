@@ -205,7 +205,7 @@ function statusLabel(status: number): string {
   background: #ecf5ff;
 }
 .cell--pending .cell-amount {
-  color: #409eff;
+  color: var(--el-color-primary);
 }
 
 .cell--received {
@@ -248,7 +248,7 @@ function statusLabel(status: number): string {
 
 .legend-item--pending {
   background: #ecf5ff;
-  color: #409eff;
+  color: var(--el-color-primary);
 }
 .legend-item--received {
   background: #f0f9eb;

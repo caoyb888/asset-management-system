@@ -1,3 +1,4 @@
+@use './themes';
 @use './variables' as *;
 
 *,
@@ -16,12 +17,13 @@ body,
     'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   font-size: 14px;
   color: $text-primary;
+  background-color: var(--app-content-bg);
   -webkit-font-smoothing: antialiased;
 }
 
 // NProgress 进度条颜色
 #nprogress .bar {
-  background: $primary-color !important;
+  background: var(--app-color-primary) !important;
 }
 
 // 滚动条样式
@@ -37,6 +39,50 @@ body,
 
 ::-webkit-scrollbar-track {
   background: transparent;
+}
+
+// 暗色模式滚动条
+:root[data-theme="dark"] {
+  ::-webkit-scrollbar-thumb {
+    background: #4b5563;
+  }
+
+  // el-card 暗色适配
+  .el-card {
+    --el-card-bg-color: var(--app-card-bg);
+    --el-card-border-color: var(--app-card-border);
+  }
+
+  .el-dialog {
+    --el-dialog-bg-color: var(--app-card-bg);
+    --el-dialog-border-radius: 8px;
+  }
+
+  .el-table {
+    --el-table-bg-color: var(--app-card-bg);
+    --el-table-tr-bg-color: var(--app-card-bg);
+    --el-table-header-bg-color: #111827;
+    --el-table-row-hover-bg-color: #374151;
+    --el-table-border-color: #374151;
+    --el-table-text-color: #cbd5e1;
+    --el-table-header-text-color: #f1f5f9;
+  }
+
+  .el-input {
+    --el-input-bg-color: #374151;
+    --el-input-text-color: #f1f5f9;
+    --el-input-border-color: #4b5563;
+    --el-input-placeholder-color: #64748b;
+  }
+
+  .el-select-dropdown {
+    --el-bg-color-overlay: #374151;
+  }
+
+  .el-pagination {
+    --el-pagination-bg-color: transparent;
+    --el-pagination-button-bg-color: #374151;
+  }
 }
 
 // 通用工具类

@@ -260,7 +260,7 @@ function rowClass({ row }: { row: any }) {
 
   :deep(.crumb-link .el-breadcrumb__inner) {
     cursor: pointer;
-    color: #409eff;
+    color: var(--el-color-primary);
     font-weight: 500;
     &:hover { text-decoration: underline; }
   }

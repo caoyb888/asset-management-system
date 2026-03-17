@@ -210,7 +210,7 @@ function backTo(index: number) {
 
   :deep(.crumb-link .el-breadcrumb__inner) {
     cursor: pointer;
-    color: #409eff;
+    color: var(--el-color-primary);
     &:hover { text-decoration: underline; }
   }
 }

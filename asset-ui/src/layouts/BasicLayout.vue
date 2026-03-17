@@ -10,9 +10,7 @@
         :default-active="activeMenu"
         :collapse="appStore.sidebarCollapsed"
         :collapse-transition="false"
-        background-color="#001529"
-        text-color="rgba(255,255,255,0.85)"
-        active-text-color="#ffffff"
+        class="sidebar-menu"
         router
       >
         <el-menu-item index="/dashboard">
@@ -323,6 +321,19 @@
         </div>
 
         <div class="header-right">
+          <!-- 主题切换器 -->
+          <div class="theme-switcher">
+            <div
+              v-for="t in themeOptions"
+              :key="t.value"
+              class="theme-dot"
+              :class="{ active: appStore.theme === t.value }"
+              :style="{ background: t.color }"
+              :title="t.label"
+              @click="appStore.setTheme(t.value)"
+            />
+          </div>
+
           <el-dropdown @command="handleCommand">
             <div class="user-info">
               <el-avatar :size="32" :src="userStore.userInfo?.avatar">
@@ -364,10 +375,21 @@ const router = useRouter()
 const userStore = useUserStore()
 const appStore = useAppStore()
 
+/** 主题选项 */
+const themeOptions = [
+  { value: '', label: '经典蓝', color: '#2e75b6' },
+  { value: 'teal', label: '政务青', color: '#0d9488' },
+  { value: 'indigo', label: '商务紫', color: '#6366f1' },
+  { value: 'dark', label: '暗夜蓝', color: '#3b82f6' },
+]
+
 /** 是否有财务报表查看权限（控制菜单可见性） */
 const hasFinPerm = ref(true)  // 默认 true 避免菜单闪烁
 
 onMounted(async () => {
+  // 确保 store 中的主题同步到 DOM
+  appStore.setTheme(appStore.theme)
+
   try {
     const data = await getUserPermissions()
     hasFinPerm.value = data.hasFinViewPerm
@@ -426,11 +448,31 @@ async function handleCommand(command: string) {
     }
   }
 
-  .el-menu {
+  // 通过 CSS 变量控制侧边栏菜单颜色（替代内联 props）
+  .sidebar-menu {
+    --el-menu-bg-color: var(--app-sidebar-bg);
+    --el-menu-text-color: var(--app-sidebar-text);
+    --el-menu-active-color: var(--app-sidebar-active-text);
+    --el-menu-hover-bg-color: rgba(255, 255, 255, 0.08);
+    --el-menu-item-height: 48px;
     border-right: none;
     flex: 1;
     overflow-x: hidden;
     overflow-y: auto;
+
+    :deep(.el-sub-menu__title) {
+      color: var(--app-sidebar-text);
+    }
+
+    :deep(.el-menu-item.is-active) {
+      background-color: var(--app-sidebar-active-bg);
+      color: var(--app-sidebar-active-text);
+    }
+
+    // 子菜单弹出层背景
+    :deep(.el-menu--popup) {
+      --el-menu-bg-color: var(--app-sidebar-bg);
+    }
 
     // 细化滚动条样式，与深色侧边栏融合
     &::-webkit-scrollbar {
@@ -449,7 +491,7 @@ async function handleCommand(command: string) {
 .layout-header {
   height: $header-height;
   background: $header-bg;
-  border-bottom: 1px solid $header-border;
+  border-bottom: 1px solid var(--app-header-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -466,21 +508,63 @@ async function handleCommand(command: string) {
       color: $text-regular;
 
       &:hover {
-        color: $primary-color;
+        color: var(--app-color-primary);
       }
     }
   }
 
   .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
     .user-info {
       display: flex;
       align-items: center;
       gap: 8px;
       cursor: pointer;
-      color: $text-primary;
+      color: var(--app-header-text);
 
       .user-name {
         font-size: 14px;
+      }
+    }
+  }
+}
+
+// 主题切换器
+.theme-switcher {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .theme-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+    position: relative;
+
+    &:hover {
+      transform: scale(1.15);
+    }
+
+    &.active {
+      border-color: var(--app-color-primary);
+      box-shadow: 0 0 0 2px rgba(var(--app-color-primary-rgb), 0.3);
+
+      &::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #fff;
       }
     }
   }

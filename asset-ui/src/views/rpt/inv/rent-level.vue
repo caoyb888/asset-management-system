@@ -88,11 +88,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import * as echarts from 'echarts'
 import { getRentLevel } from '@/api/rpt/investment'
 import { getProjectList } from '@/api/base/project'
 import type { RentLevelVO } from '@/api/rpt/investment'
+import { useThemeColors } from '@/composables/useThemeColors'
+
+const { chartPalette, theme: currentTheme } = useThemeColors()
 
 const loading = ref(false)
 const tableData = ref<RentLevelVO[]>([])
@@ -187,7 +190,7 @@ function updateBarChart() {
         name: '当期均价',
         type: 'bar',
         data: curPrices,
-        itemStyle: { color: '#409eff' },
+        itemStyle: { color: chartPalette.value[0] },
         label: { show: true, position: 'top', formatter: (p: any) => p.value?.toFixed(0) },
       },
       {
@@ -246,6 +249,8 @@ function yoyClass(v?: number | null) {
   if (v == null) return ''
   return Number(v) > 0 ? 'text-up' : Number(v) < 0 ? 'text-down' : ''
 }
+
+watch(currentTheme, () => { updateBarChart(); updateAreaChart() })
 </script>
 
 <style scoped lang="scss">
@@ -269,7 +274,7 @@ function yoyClass(v?: number | null) {
     width: 10px;
     height: 10px;
     border-radius: 2px;
-    &.dot-cur { background: #409eff; }
+    &.dot-cur { background: var(--el-color-primary); }
     &.dot-prev { background: #c0c4cc; }
   }
 }

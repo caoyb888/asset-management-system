@@ -117,9 +117,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch, toRef } from 'vue'
 import * as echarts from 'echarts'
 import { Clock, Top, Bottom, Minus } from '@element-plus/icons-vue'
+import { useThemeColors } from '@/composables/useThemeColors'
+
+const { chartPalette, textColor, splitLineColor, theme: currentTheme } = useThemeColors()
 import { getDashboard } from '@/api/rpt/asset'
 import { getProjectList } from '@/api/base/project'
 import type { AssetDashboardVO } from '@/api/rpt/asset'
@@ -132,7 +135,7 @@ const filterForm = reactive({ projectId: null as number | null })
 // 统计卡片
 const statCards = computed(() => [
   { label: '商铺总数', value: dashboard.value.totalShops ?? '-', unit: '间', color: '#303133' },
-  { label: '已租商铺', value: dashboard.value.rentedShops ?? '-', unit: '间', color: '#409eff' },
+  { label: '已租商铺', value: dashboard.value.rentedShops ?? '-', unit: '间', color: 'var(--app-color-primary)' },
   { label: '空置商铺', value: dashboard.value.vacantShops ?? '-', unit: '间', color: '#f56c6c' },
   { label: '装修中', value: dashboard.value.decoratingShops ?? '-', unit: '间', color: '#e6a23c' },
   { label: '已开业', value: dashboard.value.openedShops ?? '-', unit: '间', color: '#67c23a' },
@@ -151,6 +154,12 @@ const trendChartRef = ref<HTMLDivElement>()
 const compareChartRef = ref<HTMLDivElement>()
 let trendChart: echarts.ECharts | null = null
 let compareChart: echarts.ECharts | null = null
+
+// 主题切换时重绘图表
+watch(currentTheme, () => {
+  updateTrendChart()
+  updateCompareChart()
+})
 
 onMounted(async () => {
   await loadProjects()
@@ -211,36 +220,37 @@ function updateTrendChart() {
   const openingData = dashboard.value.openingTrend ?? []
   const dates = vacancyData.map(d => d.timeDim)
 
+  const palette = chartPalette.value
   trendChart.setOption({
     tooltip: { trigger: 'axis', valueFormatter: (v: number) => `${v?.toFixed(2)}%` },
-    legend: { data: ['空置率', '出租率', '开业率'], top: 0 },
+    legend: { data: ['空置率', '出租率', '开业率'], top: 0, textStyle: { color: textColor.value } },
     grid: { left: 40, right: 20, top: 40, bottom: 30 },
-    xAxis: { type: 'category', data: dates, axisLabel: { rotate: 30 } },
-    yAxis: { type: 'value', axisLabel: { formatter: '{value}%' } },
+    xAxis: { type: 'category', data: dates, axisLabel: { rotate: 30, color: textColor.value } },
+    yAxis: { type: 'value', axisLabel: { formatter: '{value}%', color: textColor.value }, splitLine: { lineStyle: { color: splitLineColor.value } } },
     series: [
       {
         name: '空置率',
         type: 'line',
         smooth: true,
         data: vacancyData.map(d => d.value),
-        itemStyle: { color: '#f56c6c' },
-        areaStyle: { color: 'rgba(245,108,108,0.1)' },
+        itemStyle: { color: palette[3] },
+        areaStyle: { color: palette[3] + '1A' },
       },
       {
         name: '出租率',
         type: 'line',
         smooth: true,
         data: rentalData.map(d => d.value),
-        itemStyle: { color: '#409eff' },
-        areaStyle: { color: 'rgba(64,158,255,0.1)' },
+        itemStyle: { color: palette[0] },
+        areaStyle: { color: palette[0] + '1A' },
       },
       {
         name: '开业率',
         type: 'line',
         smooth: true,
         data: openingData.map(d => d.value),
-        itemStyle: { color: '#67c23a' },
-        areaStyle: { color: 'rgba(103,194,58,0.1)' },
+        itemStyle: { color: palette[1] },
+        areaStyle: { color: palette[1] + '1A' },
       },
     ],
   })
@@ -254,30 +264,31 @@ function updateCompareChart() {
   const comparisons = dashboard.value.projectComparison ?? []
   const names = comparisons.map(c => projectNameMap.value[c.projectId] || `项目${c.projectId}`)
 
+  const palette = chartPalette.value
   compareChart.setOption({
     tooltip: { trigger: 'axis', valueFormatter: (v: number) => `${v?.toFixed(2)}%` },
-    legend: { data: ['空置率', '出租率', '开业率'], top: 0 },
+    legend: { data: ['空置率', '出租率', '开业率'], top: 0, textStyle: { color: textColor.value } },
     grid: { left: 50, right: 10, top: 40, bottom: 60 },
-    xAxis: { type: 'category', data: names, axisLabel: { rotate: 30, width: 60, overflow: 'truncate' } },
-    yAxis: { type: 'value', axisLabel: { formatter: '{value}%' } },
+    xAxis: { type: 'category', data: names, axisLabel: { rotate: 30, width: 60, overflow: 'truncate', color: textColor.value } },
+    yAxis: { type: 'value', axisLabel: { formatter: '{value}%', color: textColor.value }, splitLine: { lineStyle: { color: splitLineColor.value } } },
     series: [
       {
         name: '空置率',
         type: 'bar',
         data: comparisons.map(c => c.vacancyRate),
-        itemStyle: { color: '#f56c6c' },
+        itemStyle: { color: palette[3] },
       },
       {
         name: '出租率',
         type: 'bar',
         data: comparisons.map(c => c.rentalRate),
-        itemStyle: { color: '#409eff' },
+        itemStyle: { color: palette[0] },
       },
       {
         name: '开业率',
         type: 'bar',
         data: comparisons.map(c => c.openingRate),
-        itemStyle: { color: '#67c23a' },
+        itemStyle: { color: palette[1] },
       },
     ],
   })
@@ -365,8 +376,8 @@ function trendIcon(v?: number | null, reverseGood = false) {
     .kpi-value { color: #f56c6c; }
   }
   &.kpi-rental {
-    border-color: #409eff;
-    .kpi-value { color: #409eff; }
+    border-color: var(--el-color-primary);
+    .kpi-value { color: var(--el-color-primary); }
   }
   &.kpi-opening {
     border-color: #67c23a;

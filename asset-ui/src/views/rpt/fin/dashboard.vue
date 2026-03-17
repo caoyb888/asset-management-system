@@ -17,7 +17,7 @@
           label="应收总额（万元）"
           :value="dashboard.totalReceivable"
           :wan="true"
-          color="#409eff"
+          :color="primaryColor"
           :yoy="dashboard.receivableYoY"
           :loading="loading"
         />
@@ -111,6 +111,9 @@ import { ReportFilterBar, MetricCard, ChartContainer, DrillTable } from '@/compo
 import type { FilterState, DrillColumn, DrillEvent } from '@/components/rpt'
 import { getFinDashboard } from '@/api/rpt/finance'
 import type { FinDashboardVO, FinAgingAnalysisVO } from '@/api/rpt/finance'
+import { useThemeColors } from '@/composables/useThemeColors'
+
+const { chartPalette, primaryColor } = useThemeColors()
 
 const router = useRouter()
 const loading = ref(false)
@@ -142,7 +145,7 @@ const trendOption = computed(() => {
         name: '应收（万元）',
         type: 'line', smooth: true,
         data: data.map(d => toWan(d.receivableAmount)),
-        itemStyle: { color: '#409eff' },
+        itemStyle: { color: chartPalette.value[0] },
       },
       {
         name: '已收（万元）',
@@ -192,7 +195,7 @@ const agingOption = computed(() => {
   const s = dashboard.value.agingSummary
   if (!s) return {}
   const buckets = [
-    { name: '30天内', value: Number(s.within30 ?? 0), color: '#409eff' },
+    { name: '30天内', value: Number(s.within30 ?? 0), color: chartPalette.value[0] },
     { name: '31-60天', value: Number(s.days3160 ?? 0), color: '#67c23a' },
     { name: '61-90天', value: Number(s.days6190 ?? 0), color: '#e6a23c' },
     { name: '91-180天', value: Number(s.days91180 ?? 0), color: '#f56c6c' },

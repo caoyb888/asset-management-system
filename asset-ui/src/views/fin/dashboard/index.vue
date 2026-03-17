@@ -83,7 +83,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { Document, Wallet, Warning, CircleCheck } from '@element-plus/icons-vue'
 import * as echarts from 'echarts/core'
 import {
@@ -106,6 +106,9 @@ import {
   type ReceiptTrendVO,
   type OverdueTopVO,
 } from '@/api/fin/dashboard'
+import { useThemeColors } from '@/composables/useThemeColors'
+
+const { primaryColor, chartPalette, textColor, splitLineColor, theme: currentTheme } = useThemeColors()
 
 echarts.use([
   LineChart, PieChart, BarChart,
@@ -180,17 +183,19 @@ async function loadOverdueTop() {
 function renderTrendChart(data: ReceiptTrendVO[]) {
   if (!trendChartRef.value) return
   if (!trendChart) trendChart = echarts.init(trendChartRef.value)
+  const color = primaryColor.value
   trendChart.setOption({
     tooltip: { trigger: 'axis', valueFormatter: (v: number) => '¥' + v.toLocaleString('zh-CN') },
     grid: { left: 60, right: 20, top: 20, bottom: 40 },
     xAxis: {
       type: 'category',
       data: data.map(d => d.month),
-      axisLabel: { rotate: 30, fontSize: 11 },
+      axisLabel: { rotate: 30, fontSize: 11, color: textColor.value },
     },
     yAxis: {
       type: 'value',
-      axisLabel: { formatter: (v: number) => (v >= 10000 ? (v / 10000).toFixed(1) + '万' : String(v)) },
+      axisLabel: { formatter: (v: number) => (v >= 10000 ? (v / 10000).toFixed(1) + '万' : String(v)), color: textColor.value },
+      splitLine: { lineStyle: { color: splitLineColor.value } },
     },
     series: [{
       type: 'line',
@@ -198,9 +203,9 @@ function renderTrendChart(data: ReceiptTrendVO[]) {
       smooth: true,
       symbol: 'circle',
       symbolSize: 6,
-      lineStyle: { color: '#2e75b6', width: 2 },
-      itemStyle: { color: '#2e75b6' },
-      areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(46,117,182,0.3)' }, { offset: 1, color: 'rgba(46,117,182,0)' }] } },
+      lineStyle: { color, width: 2 },
+      itemStyle: { color },
+      areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: color + '4D' }, { offset: 1, color: color + '00' }] } },
     }],
   })
 }
@@ -210,8 +215,9 @@ function renderFeeChart(data: { name: string; value: number }[]) {
   if (!feeChartRef.value) return
   if (!feeChart) feeChart = echarts.init(feeChartRef.value)
   feeChart.setOption({
+    color: chartPalette.value,
     tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },
-    legend: { orient: 'vertical', right: 10, top: 'middle', textStyle: { fontSize: 11 } },
+    legend: { orient: 'vertical', right: 10, top: 'middle', textStyle: { fontSize: 11, color: textColor.value } },
     series: [{
       type: 'pie',
       radius: ['40%', '70%'],
@@ -234,17 +240,18 @@ function renderOverdueChart(data: OverdueTopVO[]) {
     grid: { left: 120, right: 40, top: 20, bottom: 30 },
     xAxis: {
       type: 'value',
-      axisLabel: { formatter: (v: number) => (v >= 10000 ? (v / 10000).toFixed(1) + '万' : String(v)) },
+      axisLabel: { formatter: (v: number) => (v >= 10000 ? (v / 10000).toFixed(1) + '万' : String(v)), color: textColor.value },
+      splitLine: { lineStyle: { color: splitLineColor.value } },
     },
     yAxis: {
       type: 'category',
       data: sorted.map(d => d.merchantName || `商家${d.merchantId}`),
-      axisLabel: { fontSize: 11, width: 100, overflow: 'truncate' },
+      axisLabel: { fontSize: 11, width: 100, overflow: 'truncate', color: textColor.value },
     },
     series: [{
       type: 'bar',
       data: sorted.map(d => d.overdueAmount),
-      itemStyle: { color: '#f56c6c' },
+      itemStyle: { color: chartPalette.value[3] },
       barMaxWidth: 24,
       label: {
         show: true,
@@ -260,15 +267,14 @@ function renderOverdueChart(data: OverdueTopVO[]) {
 function renderWriteOffChart(data: { name: string; value: number }[]) {
   if (!writeOffChartRef.value) return
   if (!writeOffChart) writeOffChart = echarts.init(writeOffChartRef.value)
-  const colors = ['#2e75b6', '#67c23a', '#e6a23c', '#f56c6c']
   writeOffChart.setOption({
+    color: chartPalette.value,
     tooltip: { trigger: 'item', formatter: '{b}: {c}笔 ({d}%)' },
-    legend: { orient: 'vertical', right: 10, top: 'middle', textStyle: { fontSize: 11 } },
+    legend: { orient: 'vertical', right: 10, top: 'middle', textStyle: { fontSize: 11, color: textColor.value } },
     series: [{
       type: 'pie',
       radius: ['40%', '70%'],
       center: ['40%', '50%'],
-      color: colors,
       data: data.length ? data : [{ name: '暂无数据', value: 1 }],
       label: { show: false },
       emphasis: { label: { show: true, fontSize: 12, fontWeight: 'bold' } },
@@ -283,6 +289,17 @@ function handleResize() {
   overdueChart?.resize()
   writeOffChart?.resize()
 }
+
+// ─── 主题切换时重绘图表 ───────────────────────────────────────────────────────
+watch(currentTheme, () => {
+  if (summary.value) {
+    renderFeeChart(summary.value.feeTypeDistribution ?? [])
+    renderWriteOffChart(summary.value.writeOffTypeDistribution ?? [])
+  }
+  // 重新加载趋势和欠费（会调用 render）
+  loadTrend()
+  loadOverdueTop()
+})
 
 // ─── 生命周期 ─────────────────────────────────────────────────────────────────
 onMounted(async () => {
@@ -323,7 +340,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   flex-shrink: 0;
 }
-.stat-icon.blue   { background: rgba(46, 117, 182, 0.12); color: #2e75b6; }
+.stat-icon.blue   { background: rgba(var(--app-color-primary-rgb), 0.12); color: var(--app-color-primary); }
 .stat-icon.green  { background: rgba(103, 194, 58, 0.12);  color: #67c23a; }
 .stat-icon.red    { background: rgba(245, 108, 108, 0.12); color: #f56c6c; }
 .stat-icon.orange { background: rgba(230, 162, 60, 0.12);  color: #e6a23c; }
@@ -334,13 +351,13 @@ onBeforeUnmount(() => {
 }
 .stat-label {
   font-size: 13px;
-  color: #909399;
+  color: var(--app-text-secondary);
   margin-bottom: 6px;
 }
 .stat-value {
   font-size: 22px;
   font-weight: 700;
-  color: #303133;
+  color: var(--app-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -353,7 +370,7 @@ onBeforeUnmount(() => {
 .chart-title {
   font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  color: var(--app-text-primary);
 }
 .chart-box {
   height: 300px;

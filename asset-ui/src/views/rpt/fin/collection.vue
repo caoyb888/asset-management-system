@@ -90,11 +90,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import * as echarts from 'echarts'
 import { getCollectionRate } from '@/api/rpt/finance'
 import { getProjectList } from '@/api/base/project'
 import type { FinCollectionRateVO } from '@/api/rpt/finance'
+import { useThemeColors } from '@/composables/useThemeColors'
+
+const { chartPalette, theme: currentTheme } = useThemeColors()
 
 const loading = ref(false)
 const tableData = ref<FinCollectionRateVO[]>([])
@@ -200,7 +203,7 @@ function updateTrendChart() {
         type: 'line',
         smooth: true,
         data: rateData,
-        itemStyle: { color: '#409eff' },
+        itemStyle: { color: chartPalette.value[0] },
         areaStyle: { color: 'rgba(64,158,255,0.1)' },
         markLine: {
           data: [{ type: 'average', name: '均值' }],
@@ -282,6 +285,8 @@ function deltaClass(v?: number | null, reverseGood = false) {
   const good = reverseGood ? !up : up
   return good ? 'text-up' : Number(v) < 0 ? 'text-down' : ''
 }
+
+watch(currentTheme, () => { updateTrendChart(); updateCompareChart() })
 </script>
 
 <style scoped lang="scss">

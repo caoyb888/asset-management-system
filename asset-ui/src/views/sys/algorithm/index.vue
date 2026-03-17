@@ -409,7 +409,7 @@ onMounted(loadList)
   color: #303133;
   margin-bottom: 12px;
   padding-left: 8px;
-  border-left: 3px solid #409eff;
+  border-left: 3px solid var(--el-color-primary);
 }
 
 .no-variables {

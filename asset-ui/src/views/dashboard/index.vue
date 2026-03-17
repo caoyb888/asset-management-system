@@ -1,7 +1,7 @@
 <template>
   <div class="dashboard">
     <!-- 顶部欢迎横幅 -->
-    <div class="welcome-banner">
+    <div class="welcome-banner" :style="{ background: gradient }">
       <div class="welcome-left">
         <div class="welcome-avatar">{{ nickname.charAt(0) }}</div>
         <div>
@@ -158,6 +158,7 @@ import {
 } from '@element-plus/icons-vue'
 import { useAppStore } from '@/store/modules/app'
 import { useUserStore } from '@/store/modules/user'
+import { useThemeColors } from '@/composables/useThemeColors'
 import { getNoticePage } from '@/api/base/notice'
 import { getProjectPage } from '@/api/base/project'
 import { getShopPage } from '@/api/base/shop'
@@ -166,6 +167,7 @@ import { getDashboardSummary } from '@/api/fin/dashboard'
 const appStore = useAppStore()
 const userStore = useUserStore()
 const router = useRouter()
+const { gradient, isDark } = useThemeColors()
 appStore.setPageTitle('工作台')
 
 const nickname = computed(() => userStore.nickname || '用户')
@@ -323,7 +325,6 @@ const overview = [
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 50%, #2563eb 100%);
   border-radius: 14px;
   padding: 24px 32px;
   position: relative;
@@ -433,10 +434,10 @@ const overview = [
 }
 
 .stat-card {
-  background: #fff;
+  background: var(--app-card-bg);
   border-radius: 14px;
   padding: 20px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--app-card-border);
   transition: transform 0.2s, box-shadow 0.2s;
   cursor: default;
 
@@ -471,14 +472,14 @@ const overview = [
 
 .stat-label {
   font-size: 13px;
-  color: #909399;
+  color: var(--app-text-secondary);
   margin-bottom: 6px;
 }
 
 .stat-value {
   font-size: 28px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--app-text-primary);
   line-height: 1;
 }
 
@@ -487,7 +488,7 @@ const overview = [
   align-items: center;
   justify-content: space-between;
   padding-top: 12px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--app-divider-color);
 }
 
 .stat-trend {
@@ -502,15 +503,15 @@ const overview = [
 
 .stat-tag {
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--app-text-secondary);
 }
 
 /* 通用 Panel */
 .panel {
-  background: #fff;
+  background: var(--app-panel-bg);
   border-radius: 14px;
   padding: 20px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--app-card-border);
 }
 
 .panel-header {
@@ -523,16 +524,16 @@ const overview = [
 .panel-title {
   font-size: 15px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--app-text-primary);
 }
 
 .panel-sub {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--app-text-secondary);
 
   &.link {
     cursor: pointer;
-    color: #3b82f6;
+    color: var(--app-color-primary);
 
     &:hover { text-decoration: underline; }
   }
@@ -541,7 +542,7 @@ const overview = [
 .panel-empty {
   text-align: center;
   padding: 30px 0;
-  color: #94a3b8;
+  color: var(--app-text-secondary);
 
   .empty-icon {
     font-size: 36px;
@@ -568,10 +569,10 @@ const overview = [
   align-items: center;
   padding: 16px 12px;
   border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--app-card-border);
   cursor: pointer;
   transition: all 0.2s;
-  background: #fafafa;
+  background: var(--app-panel-hover-bg);
 
   &:hover {
     border-color: var(--mod-color);
@@ -610,13 +611,13 @@ const overview = [
 .module-name {
   font-size: 13px;
   font-weight: 600;
-  color: #334155;
+  color: var(--app-text-primary);
   margin-bottom: 3px;
 }
 
 .module-desc {
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--app-text-secondary);
   text-align: center;
   line-height: 1.4;
 }
@@ -638,7 +639,7 @@ const overview = [
   transition: background 0.15s;
 
   &:hover {
-    background: #f8fafc;
+    background: var(--app-panel-hover-bg);
   }
 }
 
@@ -661,7 +662,7 @@ const overview = [
 
 .todo-title {
   font-size: 13px;
-  color: #334155;
+  color: var(--app-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -669,13 +670,13 @@ const overview = [
 
 .todo-time {
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--app-text-secondary);
   margin-top: 2px;
 }
 
 .todo-arrow {
   font-size: 12px;
-  color: #cbd5e1;
+  color: var(--app-text-placeholder);
 }
 
 /* 公告列表 */
@@ -690,7 +691,7 @@ const overview = [
   align-items: center;
   gap: 10px;
   padding: 10px 0;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--app-divider-color);
 
   &:last-child {
     border-bottom: none;
@@ -704,7 +705,7 @@ const overview = [
 .notice-title {
   flex: 1;
   font-size: 13px;
-  color: #334155;
+  color: var(--app-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -712,7 +713,7 @@ const overview = [
 
 .notice-date {
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--app-text-secondary);
   flex-shrink: 0;
 }
 
@@ -732,7 +733,7 @@ const overview = [
 .overview-label {
   width: 90px;
   font-size: 13px;
-  color: #64748b;
+  color: var(--app-text-regular);
   flex-shrink: 0;
 }
 
@@ -746,7 +747,7 @@ const overview = [
 .overview-bar {
   flex: 1;
   height: 6px;
-  background: #f1f5f9;
+  background: var(--app-divider-color);
   border-radius: 99px;
   overflow: hidden;
 }
@@ -762,7 +763,7 @@ const overview = [
   text-align: right;
   font-size: 13px;
   font-weight: 600;
-  color: #334155;
+  color: var(--app-text-primary);
 }
 
 .badge-item {

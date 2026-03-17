@@ -122,7 +122,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import * as echarts from 'echarts'
 import { Clock } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
@@ -130,6 +130,9 @@ import { getAgingAnalysis } from '@/api/rpt/finance'
 import { getProjectList } from '@/api/base/project'
 import type { FinAgingAnalysisVO } from '@/api/rpt/finance'
 import { DrillDownPanel } from '@/components/rpt'
+import { useThemeColors } from '@/composables/useThemeColors'
+
+const { chartPalette, theme: currentTheme } = useThemeColors()
 
 const router = useRouter()
 const drillPanelRef = ref<InstanceType<typeof DrillDownPanel>>()
@@ -209,7 +212,7 @@ function updateAgingChart() {
     .slice(0, 20)
   const merchants = displayData.map(r => `商家${r.merchantId}`)
   const buckets = [
-    { name: '30天内', key: 'within30' as keyof FinAgingAnalysisVO, color: '#409eff' },
+    { name: '30天内', key: 'within30' as keyof FinAgingAnalysisVO, color: chartPalette.value[0] },
     { name: '31-60天', key: 'days3160' as keyof FinAgingAnalysisVO, color: '#67c23a' },
     { name: '61-90天', key: 'days6190' as keyof FinAgingAnalysisVO, color: '#e6a23c' },
     { name: '91-180天', key: 'days91180' as keyof FinAgingAnalysisVO, color: '#f56c6c' },
@@ -251,6 +254,8 @@ function fmtMoney(v?: number | null) {
   if (v == null || Number(v) === 0) return '-'
   return Number(v).toLocaleString('zh-CN', { minimumFractionDigits: 2 })
 }
+
+watch(currentTheme, () => { updateAgingChart() })
 </script>
 
 <style scoped lang="scss">

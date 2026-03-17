@@ -17,7 +17,7 @@
           label="本月营收（万元）"
           :value="dashboard.totalRevenue"
           :wan="true"
-          color="#409eff"
+          :color="primaryColor"
           :yoy="dashboard.revenueYoY"
           :sub="`浮动租金：${fmtWan(dashboard.floatingRentAmount)}万元`"
           :loading="loading"
@@ -91,6 +91,9 @@ import { ReportFilterBar, MetricCard, ChartContainer } from '@/components/rpt'
 import type { FilterState } from '@/components/rpt'
 import { getOprDashboard } from '@/api/rpt/operation'
 import type { OprDashboardVO } from '@/api/rpt/operation'
+import { useThemeColors } from '@/composables/useThemeColors'
+
+const { chartPalette, primaryColor } = useThemeColors()
 
 const loading = ref(false)
 const dashboard = ref<OprDashboardVO>({
@@ -117,7 +120,7 @@ const revenueOption = computed(() => {
       {
         name: '营收（万元）', type: 'line', smooth: true,
         data: data.map(d => d.revenueAmount != null ? +(Number(d.revenueAmount) / 10000).toFixed(2) : null),
-        itemStyle: { color: '#409eff' },
+        itemStyle: { color: chartPalette.value[0] },
         areaStyle: { color: 'rgba(64,158,255,0.1)' },
       },
       {

@@ -100,6 +100,9 @@ import * as echarts from 'echarts'
 import { getPerformance } from '@/api/rpt/investment'
 import { getProjectList } from '@/api/base/project'
 import type { PerformanceVO } from '@/api/rpt/investment'
+import { useThemeColors } from '@/composables/useThemeColors'
+
+const { chartPalette, theme: currentTheme } = useThemeColors()
 
 const loading = ref(false)
 const tableData = ref<PerformanceVO[]>([])
@@ -200,10 +203,10 @@ function updateChart() {
   if (chartMetric.value === 'count') {
     series.push(
       { name: '意向数', type: 'bar', data: intentionSeries, itemStyle: { color: '#e6a23c' } },
-      { name: '合同数', type: 'bar', data: contractSeries, itemStyle: { color: '#409eff' } },
+      { name: '合同数', type: 'bar', data: contractSeries, itemStyle: { color: chartPalette.value[0] } },
     )
   } else {
-    series.push({ name: legendData[0], type: 'bar', data: contractSeries, itemStyle: { color: '#409eff' } })
+    series.push({ name: legendData[0], type: 'bar', data: contractSeries, itemStyle: { color: chartPalette.value[0] } })
   }
 
   barChart.setOption({
@@ -234,7 +237,7 @@ function updateRateChart() {
         type: 'bar',
         data: data.map(p => p.conversionRate),
         itemStyle: {
-          color: (p: any) => (p.data >= 50 ? '#67c23a' : '#409eff'),
+          color: (p: any) => (p.data >= 50 ? '#67c23a' : chartPalette.value[0]),
         },
         label: { show: true, position: 'top', formatter: (p: any) => `${Number(p.value).toFixed(1)}%` },
       },
@@ -255,6 +258,8 @@ function fmtWan(v?: number | null) {
 function fmtMoney2(v?: number | null) {
   return v != null ? Number(v).toFixed(2) : '-'
 }
+
+watch(currentTheme, () => { updateChart(); updateRateChart() })
 </script>
 
 <style scoped lang="scss">
