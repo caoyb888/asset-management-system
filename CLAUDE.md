@@ -122,8 +122,8 @@
 | 代理规则 | 目标服务 | 端口 |
 |----------|----------|------|
 | /file/* | asset-file | 8012 |
-| /api/auth/* | asset-base | 8001 |
-| /api/sys/* | asset-base | 8001 |
+| /api/auth/* | asset-system | 8006 |
+| /api/sys/* | asset-system | 8006 |
 | /api/fin/* | asset-finance | 8004 |
 | /api/opr/* | asset-operation | 8003 |
 | /api/inv/* | asset-investment | 8002 |

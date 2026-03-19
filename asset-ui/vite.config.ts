@@ -25,15 +25,15 @@ export default defineConfig({
         target: 'http://localhost:8012',
         changeOrigin: true,
       },
-      // /api/auth/* → asset-base (8001) - 认证接口
+      // /api/auth/* → asset-system (8006) - 认证接口（完整实现：refresh/user-routes/info）
       '/api/auth': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8006',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
-      // /api/sys/* → asset-base (8001) - 系统管理接口
+      // /api/sys/* → asset-system (8006) - 系统管理接口
       '/api/sys': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8006',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },

@@ -58,9 +58,9 @@ INSERT IGNORE INTO sys_role (id, role_name, role_code, data_scope, sort_order, s
 -- =============================================================================
 -- 4. 角色自定义数据权限（sys_role_data）— 角色91004可见天河+番禺
 -- =============================================================================
-INSERT IGNORE INTO sys_role_data (id, role_id, dept_id, is_deleted, created_at, updated_at) VALUES
-(91001, 91004, 91003, 0, NOW(), NOW()),
-(91002, 91004, 91004, 0, NOW(), NOW());
+INSERT IGNORE INTO sys_role_data (id, role_id, dept_id) VALUES
+(91001, 91004, 91003),
+(91002, 91004, 91004);
 
 -- =============================================================================
 -- 5. 用户（sys_user）— 8个测试用户
@@ -190,10 +190,10 @@ INSERT IGNORE INTO sys_rent_algo_step (id, algo_id, step_start, step_end, rate, 
 -- =============================================================================
 -- 16. 系统配置（sys_config）
 -- =============================================================================
-INSERT IGNORE INTO sys_config (id, config_name, config_key, config_value, config_type, remark, is_deleted, created_at, updated_at) VALUES
-(91001, '登录失败最大次数', 'test.login.maxRetry',        '5',    1, '测试用-系统内置配置', 0, NOW(), NOW()),
-(91002, '密码最小长度',     'test.password.minLength',    '8',    1, '测试用-系统内置配置', 0, NOW(), NOW()),
-(91003, '通知开关',         'test.notice.enabled',        'true', 2, '测试用-自定义配置',   0, NOW(), NOW());
+INSERT IGNORE INTO sys_config (id, config_name, config_key, config_value, config_group, description, is_built_in, created_at, updated_at) VALUES
+(91001, '登录失败最大次数', 'test.login.maxRetry',        '5',    'security', '测试用-系统内置配置', 1, NOW(), NOW()),
+(91002, '密码最小长度',     'test.password.minLength',    '8',    'security', '测试用-系统内置配置', 1, NOW(), NOW()),
+(91003, '通知开关',         'test.notice.enabled',        'true', 'basic',    '测试用-自定义配置',   0, NOW(), NOW());
 
 -- =============================================================================
 SET FOREIGN_KEY_CHECKS = 1;

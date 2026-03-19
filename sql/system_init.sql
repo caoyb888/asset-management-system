@@ -529,6 +529,15 @@ CREATE TABLE IF NOT EXISTS sys_config (
     INDEX idx_config_group (config_group)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统参数配置';
 
+-- 旧库迁移：若 sys_config 为旧 schema（含 config_type/remark，缺少新字段），补列并迁移数据
+-- 新建环境执行此脚本时这些语句幂等无害（IF NOT EXISTS / IGNORE）
+ALTER TABLE sys_config
+    ADD COLUMN IF NOT EXISTS config_group VARCHAR(50)  NOT NULL DEFAULT 'basic' COMMENT '配置分组',
+    ADD COLUMN IF NOT EXISTS description  VARCHAR(200)          COMMENT '说明',
+    ADD COLUMN IF NOT EXISTS is_built_in  TINYINT      NOT NULL DEFAULT 0 COMMENT '是否内置: 1是 0否';
+UPDATE sys_config SET is_built_in = IF(config_type = 1, 1, 0)
+    WHERE is_built_in = 0 AND config_type IS NOT NULL;
+
 -- 预置基础配置（basic 分组）
 INSERT IGNORE INTO sys_config (config_key, config_name, config_value, config_group, description, is_built_in) VALUES
 ('system.name',          '系统名称',           '产城资产管理系统',    'basic',    '前端页面标题及登录页展示名称', 1),

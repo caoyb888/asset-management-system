@@ -25,7 +25,7 @@ public interface SysDeptMapper extends BaseMapper<SysDept> {
      * 查询某节点的所有后代（通过 ancestors 路径前缀匹配）
      * 匹配规则：ancestors 字段包含 #{id} 或以 #{id} 开头
      */
-    @Select("SELECT * FROM sys_dept WHERE is_deleted=0 AND (ancestors LIKE CONCAT('%,', #{id}, ',%') OR ancestors LIKE CONCAT('%,', #{id}) OR ancestors LIKE CONCAT(#{id}, ',%') OR ancestors = CAST(#{id} AS CHAR))")
+    @Select("SELECT * FROM sys_dept WHERE is_deleted=0 AND (ancestors LIKE CONCAT('%,', #{id}, ',%') OR ancestors LIKE CONCAT('%,', #{id}) OR ancestors LIKE CONCAT(#{id}, ',%') OR ancestors LIKE #{id})")
     List<SysDept> selectDescendants(@Param("id") Long id);
 
     /**
