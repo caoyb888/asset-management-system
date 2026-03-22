@@ -126,6 +126,7 @@
         <el-table-column prop="signedFormat" label="签约业态" width="120" show-overflow-tooltip />
         <el-table-column prop="ownerName" label="业主名称" width="110" show-overflow-tooltip />
         <el-table-column prop="createdAt" label="创建时间" width="160" align="center" />
+        <ExtFieldColumns module-code="shop" />
         <el-table-column label="操作" width="220" align="center" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
@@ -371,6 +372,8 @@
             </el-form-item>
           </el-col>
         </el-row>
+        <el-divider content-position="left">扩展信息</el-divider>
+        <ExtFieldRenderer module-code="shop" v-model="form.extFields" />
       </el-form>
 
       <template #footer>
@@ -524,6 +527,7 @@ import { getProjectPage, type ProjectVO } from '@/api/base/project'
 import { getBuildingPage, type BuildingVO } from '@/api/base/building'
 import { getFloorPage, type FloorVO } from '@/api/base/floor'
 import { useAppStore } from '@/store/modules/app'
+import { useExtFields } from '@/composables/useExtFields'
 
 useAppStore().setPageTitle('商铺管理')
 
@@ -649,6 +653,9 @@ onMounted(() => {
   fetchList()
 })
 
+// ─────────── 扩展字段 ───────────
+const { getDefaults: getExtDefaults } = useExtFields('shop')
+
 // ─────────── 新增/编辑 Dialog ───────────
 const dialogVisible = ref(false)
 const isEdit = ref(false)
@@ -675,6 +682,7 @@ const defaultForm = (): ShopSaveDTO => ({
   ownerName: '',
   ownerContact: '',
   ownerPhone: '',
+  extFields: {} as Record<string, any>,
 })
 
 const form = reactive<ShopSaveDTO>(defaultForm())
@@ -693,6 +701,7 @@ function handleAdd() {
   formBuildingOptions.value = []
   formFloorOptions.value = []
   Object.assign(form, defaultForm())
+  form.extFields = getExtDefaults()
   dialogVisible.value = true
 }
 
@@ -719,6 +728,7 @@ async function handleEdit(row: ShopVO) {
     ownerName: row.ownerName,
     ownerContact: row.ownerContact,
     ownerPhone: row.ownerPhone,
+    extFields: (row as any).extFields ?? {},
   })
   // 加载级联选项
   if (row.projectId) {

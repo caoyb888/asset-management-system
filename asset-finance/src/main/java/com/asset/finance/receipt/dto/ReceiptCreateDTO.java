@@ -9,6 +9,7 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 新增收款单请求体
@@ -65,4 +66,7 @@ public class ReceiptCreateDTO {
     @Valid
     @Size(max = 20, message = "拆分明细最多20条")
     private List<ReceiptDetailItemDTO> details;
+    /** 用户自定义扩展字段 */
+    private Map<String, Object> extFields;
+
 }

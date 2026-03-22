@@ -215,6 +215,7 @@ public class FinReceiptServiceImpl extends ServiceImpl<FinReceiptMapper, FinRece
         receipt.setAccountingEntity(dto.getAccountingEntity());
         receipt.setReceiptDate(dto.getReceiptDate());
         receipt.setReceiver(dto.getReceiver());
+        receipt.setExtFields(dto.getExtFields());
     }
 
     /** 从合同带出项目ID和商家ID */

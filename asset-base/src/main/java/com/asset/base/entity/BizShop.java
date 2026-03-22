@@ -8,13 +8,16 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.baomidou.mybatisplus.annotation.TableField;
+import java.util.Map;
 
 /**
  * 商铺实体 - 对应 biz_shop 表
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@TableName("biz_shop")
+@TableName(value = "biz_shop", autoResultMap = true)
 public class BizShop extends BaseEntity {
 
     /** 主键ID */
@@ -80,4 +83,8 @@ public class BizShop extends BaseEntity {
 
     /** 业主电话 */
     private String ownerPhone;
+    /** 用户自定义扩展字段（JSON） */
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private Map<String, Object> extFields;
+
 }

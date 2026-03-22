@@ -8,11 +8,14 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.baomidou.mybatisplus.annotation.TableField;
+import java.util.Map;
 
 /** 合同台账主表 - 对应 opr_contract_ledger */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@TableName("opr_contract_ledger")
+@TableName(value = "opr_contract_ledger", autoResultMap = true)
 public class OprContractLedger extends BaseEntity {
     @TableId(type = IdType.AUTO)
     private Long id;
@@ -44,4 +47,8 @@ public class OprContractLedger extends BaseEntity {
     private Integer status;
     /** 应收推送时间 */
     private LocalDateTime pushTime;
+    /** 用户自定义扩展字段（JSON） */
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private Map<String, Object> extFields;
+
 }

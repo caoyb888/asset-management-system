@@ -9,11 +9,13 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import java.util.Map;
 
 /** 租赁合同主表实体 - 对应 inv_lease_contract 表 */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@TableName("inv_lease_contract")
+@TableName(value = "inv_lease_contract", autoResultMap = true)
 public class InvLeaseContract extends BaseEntity {
     @TableId(type = IdType.AUTO)
     private Long id;
@@ -53,4 +55,8 @@ public class InvLeaseContract extends BaseEntity {
     private Integer version;
     private Integer isCurrent;
     private String lockToken;
+    /** 用户自定义扩展字段（JSON） */
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private Map<String, Object> extFields;
+
 }

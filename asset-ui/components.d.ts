@@ -81,6 +81,8 @@ declare module 'vue' {
     ElTreeSelect: typeof import('element-plus/es')['ElTreeSelect']
     ElUpload: typeof import('element-plus/es')['ElUpload']
     ExportButton: typeof import('./src/components/rpt/ExportButton.vue')['default']
+    ExtFieldColumns: typeof import('./src/components/ExtFieldColumns.vue')['default']
+    ExtFieldRenderer: typeof import('./src/components/ExtFieldRenderer.vue')['default']
     FeeItemSelector: typeof import('./src/components/inv/FeeItemSelector.vue')['default']
     MetricCard: typeof import('./src/components/rpt/MetricCard.vue')['default']
     ReceivableCalendar: typeof import('./src/components/opr/ReceivableCalendar.vue')['default']

@@ -72,6 +72,7 @@
         <el-table-column prop="openingDate" label="开业时间" width="110" align="center" />
         <el-table-column prop="managerName" label="负责人" width="90" align="center" />
         <el-table-column prop="createdAt" label="创建时间" width="160" align="center" />
+        <ExtFieldColumns module-code="project" />
         <el-table-column label="操作" width="200" align="center" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="handleDetail(row)">详情</el-button>
@@ -183,6 +184,8 @@
             </el-form-item>
           </el-col>
         </el-row>
+        <el-divider content-position="left">扩展信息</el-divider>
+        <ExtFieldRenderer module-code="project" v-model="form.extFields" />
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -398,6 +401,7 @@ import { uploadFile } from '@/api/file'
 import { getCompanyList, type CompanyOption } from '@/api/base/company'
 import { getUserList, type UserOption } from '@/api/base/user'
 import { useAppStore } from '@/store/modules/app'
+import { useExtFields } from '@/composables/useExtFields'
 
 useAppStore().setPageTitle('项目管理')
 
@@ -451,6 +455,9 @@ async function loadOptions() {
 
 onMounted(() => { fetchList(); loadOptions() })
 
+// ─────────── 扩展字段 ───────────
+const { getDefaults: getExtDefaults } = useExtFields('project')
+
 // ─────────── 新增/编辑 Dialog ───────────
 const dialogVisible = ref(false)
 const isEdit = ref(false)
@@ -461,6 +468,7 @@ const defaultForm = (): ProjectSaveDTO => ({
   id: undefined, projectCode: '', projectName: '', companyId: null,
   province: '', city: '', address: '', propertyType: null, businessType: null,
   buildingArea: null, operatingArea: null, operationStatus: 0, openingDate: '', managerId: null,
+  extFields: {} as Record<string, any>,
 })
 
 const form = reactive<ProjectSaveDTO>(defaultForm())
@@ -474,7 +482,7 @@ const formRules: FormRules = {
 
 function handleAdd() {
   isEdit.value = false; dialogTitle.value = '新增项目'
-  Object.assign(form, defaultForm()); dialogVisible.value = true
+  Object.assign(form, defaultForm()); form.extFields = getExtDefaults(); dialogVisible.value = true
 }
 
 function handleEdit(row: ProjectVO) {
@@ -485,6 +493,7 @@ function handleEdit(row: ProjectVO) {
     propertyType: row.propertyType, businessType: row.businessType,
     buildingArea: row.buildingArea, operatingArea: row.operatingArea,
     operationStatus: row.operationStatus, openingDate: row.openingDate, managerId: row.managerId,
+    extFields: (row as any).extFields ?? {},
   })
   dialogVisible.value = true
 }

@@ -110,6 +110,7 @@
             </el-tag>
           </template>
         </el-table-column>
+        <ExtFieldColumns module-code="ledger" />
         <el-table-column label="操作" width="160" align="center" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link size="small" @click.stop="goDetail(row.id)">详情</el-button>

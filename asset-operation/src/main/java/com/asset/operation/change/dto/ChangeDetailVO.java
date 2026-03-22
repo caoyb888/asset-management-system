@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.util.List;
+import java.util.Map;
 
 /** 合同变更详情 VO（含变更类型列表、字段明细） */
 @Data
@@ -37,4 +38,7 @@ public class ChangeDetailVO extends OprContractChange {
 
     @Schema(description = "项目名称")
     private String projectName;
+    /** 用户自定义扩展字段 */
+    private Map<String, Object> extFields;
+
 }

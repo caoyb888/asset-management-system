@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 合同台账详情 VO（含应收计划列表）
@@ -54,4 +55,7 @@ public class LedgerDetailVO extends OprContractLedger {
 
     @Schema(description = "台账状态名称")
     private String statusName;
+    /** 用户自定义扩展字段 */
+    private Map<String, Object> extFields;
+
 }

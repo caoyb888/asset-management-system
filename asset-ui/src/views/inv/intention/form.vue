@@ -81,6 +81,8 @@
               <el-option v-for="b in brandOptions" :key="b.id" :label="b.brandNameCn" :value="b.id" />
             </el-select>
           </el-form-item>
+          <el-divider content-position="left">扩展信息</el-divider>
+          <ExtFieldRenderer module-code="intention" v-model="basicForm.extFields" />
         </el-form>
       </div>
 
@@ -508,6 +510,7 @@ import {
   type IntentionSaveDTO, type IntentionFeeVO, type CostResultVO, type IntentionBillingVO,
 } from '@/api/inv/intention'
 import { getRentSchemeDetail } from '@/api/inv/config'
+import { useExtFields } from '@/composables/useExtFields'
 
 // ─── Pinia 向导状态缓存 ──────────────────────────────────────────────────────
 const intentionStore = useIntentionStore()
@@ -605,12 +608,14 @@ function chargeTypeLabel(t?: number | null) {
 
 // ─── Step 1: 基础信息 ────────────────────────────────────────────────────────
 const basicFormRef = ref<FormInstance>()
+const { getDefaults: getExtDefaults } = useExtFields('intention')
 const basicForm = ref({
   intentionName: '',
   projectId: null as number | null,
   signingEntity: '',
   merchantId: null as number | null,
   brandId: null as number | null,
+  extFields: {} as Record<string, any>,
 })
 
 const projectOptions = ref<ProjectVO[]>([])
@@ -874,6 +879,7 @@ function buildDTO(): IntentionSaveDTO {
     merchantId: basicForm.value.merchantId ?? undefined,
     brandId: basicForm.value.brandId ?? undefined,
     signingEntity: basicForm.value.signingEntity || undefined,
+    extFields: basicForm.value.extFields,
     rentSchemeId: selectedSchemeId.value ?? undefined,
     contractStart: businessForm.value.contractStart || undefined,
     contractEnd: businessForm.value.contractEnd || undefined,
@@ -1019,6 +1025,7 @@ async function loadEditData(id: number) {
     basicForm.value.signingEntity = detail.signingEntity || ''
     basicForm.value.merchantId = detail.merchantId ?? null
     basicForm.value.brandId = detail.brandId ?? null
+    basicForm.value.extFields = (detail as any).extFields ?? {}
 
     // ── Step 2: 商务信息（日期 / 周期） ──
     businessForm.value.contractStart  = detail.contractStart  ? String(detail.contractStart)  : ''

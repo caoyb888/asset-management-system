@@ -8,13 +8,16 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.baomidou.mybatisplus.annotation.TableField;
+import java.util.Map;
 
 /**
  * 品牌实体 - 对应 biz_brand 表
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@TableName("biz_brand")
+@TableName(value = "biz_brand", autoResultMap = true)
 public class BizBrand extends BaseEntity {
 
     /** 主键ID */
@@ -89,4 +92,8 @@ public class BizBrand extends BaseEntity {
 
     /** 品牌简介 */
     private String brandIntro;
+    /** 用户自定义扩展字段（JSON） */
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private Map<String, Object> extFields;
+
 }

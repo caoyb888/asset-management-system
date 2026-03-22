@@ -701,6 +701,7 @@ public class InvLeaseContractServiceImpl extends ServiceImpl<InvLeaseContractMap
         target.setPaymentCycle(dto.getPaymentCycle());
         target.setBillingMode(dto.getBillingMode());
         target.setContractText(dto.getContractText());
+        target.setExtFields(dto.getExtFields());
     }
 
     /**

@@ -11,6 +11,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 /** 合同变更主表 - 对应 opr_contract_change */
 @Data
@@ -42,4 +43,8 @@ public class OprContractChange extends BaseEntity {
     /** 变更类型编码列表（非数据库字段，分页列表展示用） */
     @TableField(exist = false)
     private List<String> changeTypeCodes;
+    /** 用户自定义扩展字段（JSON） */
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private Map<String, Object> extFields;
+
 }

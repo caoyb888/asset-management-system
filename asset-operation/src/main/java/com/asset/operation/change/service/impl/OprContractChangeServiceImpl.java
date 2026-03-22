@@ -136,6 +136,7 @@ public class OprContractChangeServiceImpl extends ServiceImpl<OprContractChangeM
         change.setStatus(0);  // 草稿
         change.setEffectiveDate(dto.getEffectiveDate());
         change.setReason(dto.getReason());
+        change.setExtFields(dto.getExtFields());
         save(change);
 
         // 5. 保存变更类型关联记录
@@ -164,6 +165,7 @@ public class OprContractChangeServiceImpl extends ServiceImpl<OprContractChangeM
         // 更新主表
         change.setEffectiveDate(dto.getEffectiveDate());
         change.setReason(dto.getReason());
+        change.setExtFields(dto.getExtFields());
         change.setStatus(0);  // 驳回后重新编辑变为草稿
         updateById(change);
 

@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.util.Map;
 
 /**
  * 意向协议新增/编辑请求体
@@ -64,4 +65,7 @@ public class IntentionSaveDTO {
 
     /** 协议文本内容 */
     private String agreementText;
+    /** 用户自定义扩展字段 */
+    private Map<String, Object> extFields;
+
 }

@@ -5,6 +5,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 /**
  * 商铺列表/详情 VO
@@ -55,4 +56,7 @@ public class ShopVO {
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updatedAt;
+    /** 用户自定义扩展字段 */
+    private Map<String, Object> extFields;
+
 }

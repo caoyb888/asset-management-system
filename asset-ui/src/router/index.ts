@@ -460,6 +460,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '系统配置', icon: 'Setting' },
       },
       {
+        path: 'sys/ext-fields',
+        name: 'SysExtField',
+        component: () => import('@/views/sys/ext-field/index.vue'),
+        meta: { title: '扩展字段', icon: 'Setting' },
+      },
+      {
         path: 'sys/logs',
         name: 'SysLog',
         component: () => import('@/views/sys/log/index.vue'),

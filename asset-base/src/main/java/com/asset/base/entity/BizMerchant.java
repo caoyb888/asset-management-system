@@ -6,13 +6,16 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.baomidou.mybatisplus.annotation.TableField;
+import java.util.Map;
 
 /**
  * 商家实体 - 对应 biz_merchant 表
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@TableName("biz_merchant")
+@TableName(value = "biz_merchant", autoResultMap = true)
 public class BizMerchant extends BaseEntity {
 
     /** 主键ID */
@@ -66,4 +69,8 @@ public class BizMerchant extends BaseEntity {
      * 0-待审核 1-通过 2-驳回
      */
     private Integer auditStatus;
+    /** 用户自定义扩展字段（JSON） */
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private Map<String, Object> extFields;
+
 }

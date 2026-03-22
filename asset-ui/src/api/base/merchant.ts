@@ -91,6 +91,7 @@ export interface MerchantSaveDTO {
     phone?: string
     isDefault?: number
   }>
+  extFields?: Record<string, any>
 }
 
 /** 分页查询商家列表 */

@@ -154,6 +154,8 @@
                 :disabled="isReadonly"
               />
             </el-form-item>
+            <el-divider content-position="left">扩展信息</el-divider>
+            <ExtFieldRenderer module-code="contract" v-model="form.extFields" />
           </el-form>
 
           <!-- 操作栏 -->
@@ -482,6 +484,7 @@ import {
   type ContractFeeVO, type ContractShopVO, type ContractBillingVO,
   type ContractFeeStageVO, type ContractVersionVO,
 } from '@/api/inv/contract'
+import { useExtFields } from '@/composables/useExtFields'
 
 // ─── Route & mode ───────────────────────────────────────────────────────────
 const route = useRoute()
@@ -508,6 +511,7 @@ const approvalDialogVisible = ref(false)
 
 // ─── 基本信息表单 ─────────────────────────────────────────────────────────────
 const basicFormRef = ref<FormInstance>()
+const { getDefaults: getExtDefaults } = useExtFields('contract')
 const form = ref({
   contractName: '',
   contractType: undefined as number | undefined,
@@ -525,6 +529,7 @@ const form = ref({
   paymentCycle: null as number | null,
   billingMode: null as number | null,
   contractText: '',
+  extFields: {} as Record<string, any>,
 })
 
 // ─── 下拉选项 ─────────────────────────────────────────────────────────────────
@@ -664,6 +669,7 @@ async function handleSave() {
       paymentCycle: form.value.paymentCycle ?? undefined,
       billingMode: form.value.billingMode ?? undefined,
       contractText: form.value.contractText || undefined,
+      extFields: form.value.extFields,
     }
     if (!contractId.value) {
       contractId.value = await createContract(dto)
@@ -856,6 +862,7 @@ async function loadEditData(id: number) {
     form.value.paymentCycle = detail.paymentCycle ?? null
     form.value.billingMode = detail.billingMode ?? null
     form.value.contractText = detail.contractText ?? ''
+    form.value.extFields = (detail as any).extFields ?? {}
     totalAmount.value = detail.totalAmount ?? null
 
     shops.value = shopList

@@ -45,6 +45,10 @@ public enum SysErrorCode {
     CONFIG_NOT_FOUND(6091, "系统参数不存在"),
     CONFIG_KEY_EXISTS(6092, "配置键已存在"),
     CONFIG_BUILT_IN(6093, "内置参数不允许删除"),
+    // 扩展字段相关
+    EXT_FIELD_NOT_FOUND(6101, "扩展字段定义不存在"),
+    EXT_FIELD_KEY_EXISTS(6102, "字段标识在该模块下已存在"),
+    EXT_FIELD_LIMIT_EXCEEDED(6103, "单模块扩展字段数量不能超过20个"),
     // 通用
     SYS_5001(6099, "系统操作失败");
 

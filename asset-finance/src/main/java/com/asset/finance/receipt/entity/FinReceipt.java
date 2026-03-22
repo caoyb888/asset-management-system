@@ -7,10 +7,13 @@ import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.baomidou.mybatisplus.annotation.TableField;
+import java.util.Map;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-@TableName("fin_receipt")
+@TableName(value = "fin_receipt", autoResultMap = true)
 public class FinReceipt extends BaseEntity {
 
     @TableId(type = IdType.AUTO)
@@ -76,4 +79,8 @@ public class FinReceipt extends BaseEntity {
     /** 乐观锁版本号 */
     @Version
     private Integer version;
+    /** 用户自定义扩展字段（JSON） */
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private Map<String, Object> extFields;
+
 }

@@ -95,6 +95,8 @@
           <el-form-item label="变更原因">
             <el-input v-model="step1Form.reason" type="textarea" :rows="3" style="width:500px" placeholder="请说明变更原因" />
           </el-form-item>
+          <el-divider content-position="left">扩展信息</el-divider>
+          <ExtFieldRenderer module-code="change" v-model="step1Form.extFields" />
         </el-form>
       </div>
 
@@ -293,6 +295,7 @@ import {
   type ChangeImpactVO,
 } from '@/api/opr/change'
 import request from '@/api/request'
+import { useExtFields } from '@/composables/useExtFields'
 
 const router = useRouter()
 const route = useRoute()
@@ -316,10 +319,12 @@ const step0Ref = ref()
 const step0Rules = { contractId: [{ required: true, message: '请选择合同', trigger: 'change' }] }
 
 // Step 1
+useExtFields('change') // 触发字段定义加载（仅列表渲染用）
 const step1Form = reactive({
   changeTypeCodes: [] as string[],
   effectiveDate: '',
   reason: '',
+  extFields: {} as Record<string, any>,
 })
 const step1Ref = ref()
 const step1Rules = {
@@ -401,6 +406,7 @@ async function saveDraft() {
       changeTypeCodes: step1Form.changeTypeCodes,
       effectiveDate: step1Form.effectiveDate,
       reason: step1Form.reason,
+      extFields: step1Form.extFields,
       changeFields: { ...changeFields },
     }
     if (savedChangeId.value) {
@@ -445,6 +451,7 @@ async function loadEditData() {
     step1Form.changeTypeCodes = d.changeTypeCodes || []
     step1Form.effectiveDate = d.effectiveDate || ''
     step1Form.reason = d.reason || ''
+    step1Form.extFields = (d as any).extFields ?? {}
     savedChangeId.value = editId
     for (const det of d.details || []) {
       if (det.newValue != null) changeFields[det.fieldName] = det.newValue

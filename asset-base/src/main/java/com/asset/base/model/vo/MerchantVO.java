@@ -5,6 +5,7 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 商家列表/详情 VO
@@ -56,4 +57,7 @@ public class MerchantVO {
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updatedAt;
+    /** 用户自定义扩展字段 */
+    private Map<String, Object> extFields;
+
 }

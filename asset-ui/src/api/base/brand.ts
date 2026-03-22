@@ -71,6 +71,7 @@ export interface BrandSaveDTO {
   avgRent?: number
   minCustomerPrice?: number
   brandIntro?: string
+  extFields?: Record<string, any>
   contacts?: Array<{
     id?: number
     contactName?: string

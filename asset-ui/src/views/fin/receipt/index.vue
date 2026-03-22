@@ -84,6 +84,7 @@
               <el-tag v-if="row.isUnnamed === 1" type="warning" size="small" style="margin-left:4px">未名</el-tag>
             </template>
           </el-table-column>
+          <ExtFieldColumns module-code="receipt" />
           <el-table-column label="操作" width="200" fixed="right" align="center">
             <template #default="{ row }">
               <el-button link type="primary" size="small" @click="handleView(row)">查看</el-button>

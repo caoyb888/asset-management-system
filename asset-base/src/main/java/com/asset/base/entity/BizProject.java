@@ -9,6 +9,8 @@ import lombok.EqualsAndHashCode;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import com.baomidou.mybatisplus.annotation.TableField;
+import java.util.Map;
 
 /**
  * 项目实体 - 对应 biz_project 表
@@ -84,4 +86,8 @@ public class BizProject extends BaseEntity {
         private String name;
         private Integer sort;
     }
+    /** 用户自定义扩展字段（JSON） */
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private Map<String, Object> extFields;
+
 }

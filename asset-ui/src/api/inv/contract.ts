@@ -60,6 +60,7 @@ export interface ContractSaveDTO {
   paymentCycle?: number
   billingMode?: number
   contractText?: string
+  extFields?: Record<string, any>
 }
 
 // ───────────────── 子资源类型 ─────────────────

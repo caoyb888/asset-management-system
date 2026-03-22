@@ -10,13 +10,15 @@ import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import java.util.Map;
 
 /**
  * 意向协议主表实体 - 对应 inv_intention 表
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@TableName("inv_intention")
+@TableName(value = "inv_intention", autoResultMap = true)
 public class InvIntention extends BaseEntity {
 
     @TableId(type = IdType.AUTO)
@@ -105,4 +107,8 @@ public class InvIntention extends BaseEntity {
 
     /** 是否当前版本: 1是/0否 */
     private Integer isCurrent;
+    /** 用户自定义扩展字段（JSON） */
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private Map<String, Object> extFields;
+
 }

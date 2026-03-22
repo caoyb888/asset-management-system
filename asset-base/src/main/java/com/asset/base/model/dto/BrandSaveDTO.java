@@ -5,6 +5,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 品牌新增/编辑 DTO
@@ -72,4 +73,7 @@ public class BrandSaveDTO {
 
     /** 联系人列表 */
     private List<BrandContactDTO> contacts;
+    /** 用户自定义扩展字段 */
+    private Map<String, Object> extFields;
+
 }

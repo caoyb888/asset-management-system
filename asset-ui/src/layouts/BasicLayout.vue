@@ -294,6 +294,10 @@
             <el-icon><Setting /></el-icon>
             <template #title>系统配置</template>
           </el-menu-item>
+          <el-menu-item index="/sys/ext-fields">
+            <el-icon><Filter /></el-icon>
+            <template #title>扩展字段</template>
+          </el-menu-item>
           <el-menu-item index="/sys/logs">
             <el-icon><Document /></el-icon>
             <template #title>操作日志</template>

@@ -56,6 +56,7 @@ export interface IntentionSaveDTO {
   decorationEnd?: string
   openingDate?: string
   agreementText?: string
+  extFields?: Record<string, any>
 }
 
 // ───────────────── 子资源类型 ─────────────────

@@ -3,6 +3,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Map;
 @Data @Schema(description = "应收明细VO（含冗余展示字段）")
 public class ReceivableDetailVO {
     private Long id;
@@ -23,4 +24,7 @@ public class ReceivableDetailVO {
     private Integer isPrinted;
     /** 是否已开票：0否/1是 */
     private Integer isInvoiced;
+    /** 用户自定义扩展字段 */
+    private Map<String, Object> extFields;
+
 }

@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.Map;
 
 /**
  * 商铺新增/编辑 DTO
@@ -77,4 +78,7 @@ public class ShopSaveDTO {
 
     /** 业主电话 */
     private String ownerPhone;
+    /** 用户自定义扩展字段 */
+    private Map<String, Object> extFields;
+
 }

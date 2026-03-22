@@ -65,6 +65,7 @@
         <el-table-column prop="createdAt" label="创建时间" width="160" align="center">
           <template #default="{ row }">{{ formatDt(row.createdAt) }}</template>
         </el-table-column>
+        <ExtFieldColumns module-code="change" />
         <el-table-column label="操作" width="200" align="center" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link size="small" @click="goDetail(row.id)">详情</el-button>

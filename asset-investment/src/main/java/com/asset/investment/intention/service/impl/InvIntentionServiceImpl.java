@@ -232,6 +232,7 @@ public class InvIntentionServiceImpl extends ServiceImpl<InvIntentionMapper, Inv
         target.setPaymentCycle(dto.getPaymentCycle());
         target.setBillingMode(dto.getBillingMode());
         target.setAgreementText(dto.getAgreementText());
+        target.setExtFields(dto.getExtFields());
     }
 
     /**

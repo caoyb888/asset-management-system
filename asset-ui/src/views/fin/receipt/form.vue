@@ -164,6 +164,10 @@
           </tr>
         </template>
       </el-table>
+
+      <!-- 扩展信息 -->
+      <el-divider content-position="left">扩展信息</el-divider>
+      <ExtFieldRenderer module-code="receipt" v-model="form.extFields" />
     </el-form>
 
     <template #footer>
@@ -194,6 +198,9 @@ import {
   type ReceiptCreateDTO,
   type ReceiptDetailItem,
 } from '@/api/fin/receipt'
+import { useExtFields } from '@/composables/useExtFields'
+
+const { getDefaults: getExtDefaults } = useExtFields('receipt')
 
 // ─── Props & Emits ────────────────────────────────────────────────────────
 const props = defineProps<{
@@ -235,6 +242,7 @@ const initForm = (): ReceiptCreateDTO & { details: ReceiptDetailItem[] } => ({
   receiptDate: '',
   receiver: '',
   details: [],
+  extFields: {} as Record<string, any>,
 })
 
 const form = ref(initForm())
@@ -264,6 +272,7 @@ watch(() => [props.visible, props.rowId], async ([vis, id]) => {
       receiptDate: data.receiptDate,
       receiver: data.receiver,
       details: data.details || [],
+      extFields: (data as any).extFields ?? {},
     }
   } else {
     form.value = initForm()

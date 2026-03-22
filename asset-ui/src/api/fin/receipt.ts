@@ -70,6 +70,7 @@ export interface ReceiptCreateDTO {
   receiptDate: string
   receiver?: string
   details?: ReceiptDetailItem[]
+  extFields?: Record<string, any>
 }
 
 // ─── API 函数 ──────────────────────────────────────────────────────────────

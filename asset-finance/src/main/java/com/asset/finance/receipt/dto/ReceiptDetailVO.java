@@ -6,6 +6,7 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 收款单详情 VO（含明细列表和冗余展示字段）
@@ -42,4 +43,7 @@ public class ReceiptDetailVO {
 
     /** 费项拆分明细列表 */
     private List<FinReceiptDetail> details;
+    /** 用户自定义扩展字段 */
+    private Map<String, Object> extFields;
+
 }

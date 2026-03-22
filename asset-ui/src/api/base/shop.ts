@@ -64,6 +64,7 @@ export interface ShopSaveDTO {
   ownerName?: string
   ownerContact?: string
   ownerPhone?: string
+  extFields?: Record<string, any>
 }
 
 // ─────────────────────────── API ───────────────────────────

@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 项目列表/详情 VO
@@ -53,4 +54,7 @@ public class ProjectVO {
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updatedAt;
+    /** 用户自定义扩展字段 */
+    private Map<String, Object> extFields;
+
 }

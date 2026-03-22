@@ -64,6 +64,7 @@
         <el-table-column prop="groupName" label="集团名称" width="140" show-overflow-tooltip />
         <el-table-column prop="phone" label="联系电话" width="120" />
         <el-table-column prop="createdAt" label="创建时间" width="160" align="center" />
+        <ExtFieldColumns module-code="brand" />
         <el-table-column label="操作" width="200" align="center" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="openContactsDialog(row)">联系人</el-button>
@@ -200,6 +201,8 @@
             </el-form-item>
           </el-col>
         </el-row>
+        <el-divider content-position="left">扩展信息</el-divider>
+        <ExtFieldRenderer module-code="brand" v-model="form.extFields" />
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -311,6 +314,7 @@ import {
   type BrandVO, type BrandContactVO,
 } from '@/api/base/brand'
 import { useAppStore } from '@/store/modules/app'
+import { useExtFields } from '@/composables/useExtFields'
 
 useAppStore().setPageTitle('品牌管理')
 
@@ -347,6 +351,7 @@ function levelTagType(level: number) {
 }
 
 // ─────────── 新增/编辑 ───────────
+const { getDefaults: getExtDefaults } = useExtFields('brand')
 const dialogVisible = ref(false)
 const dialogTitle = ref('新增品牌')
 const isEdit = ref(false)
@@ -367,6 +372,7 @@ function defaultForm() {
     avgRent: undefined as number | undefined,
     minCustomerPrice: undefined as number | undefined,
     brandIntro: '',
+    extFields: {} as Record<string, any>,
   }
 }
 
@@ -377,13 +383,14 @@ const formRules: FormRules = {
 
 function handleAdd() {
   isEdit.value = false; dialogTitle.value = '新增品牌'
-  Object.assign(form, defaultForm()); dialogVisible.value = true
+  Object.assign(form, defaultForm()); form.extFields = getExtDefaults(); dialogVisible.value = true
 }
 
 async function handleEdit(row: BrandVO) {
   isEdit.value = true; dialogTitle.value = '编辑品牌'
   const data = await getBrandDetail(row.id)
   Object.assign(form, defaultForm(), data)
+  form.extFields = (data as any).extFields ?? {}
   dialogVisible.value = true
 }
 

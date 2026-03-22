@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 商家新增/编辑 DTO
@@ -58,4 +59,7 @@ public class MerchantSaveDTO {
 
     /** 开票信息列表 */
     private List<MerchantInvoiceDTO> invoices;
+    /** 用户自定义扩展字段 */
+    private Map<String, Object> extFields;
+
 }

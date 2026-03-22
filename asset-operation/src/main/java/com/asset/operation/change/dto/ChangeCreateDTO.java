@@ -43,4 +43,7 @@ public class ChangeCreateDTO {
 
     @Schema(description = "动态变更字段（按变更类型携带不同 key-value）")
     private Map<String, Object> changeFields;
+    /** 用户自定义扩展字段 */
+    private Map<String, Object> extFields;
+
 }

@@ -76,6 +76,7 @@ export interface ChangeCreateDTO {
   effectiveDate: string
   reason?: string
   changeFields?: Record<string, unknown>
+  extFields?: Record<string, any>
 }
 
 /** 审批回调 */

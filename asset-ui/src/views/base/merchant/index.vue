@@ -69,6 +69,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="createdAt" label="创建时间" width="160" align="center" />
+        <ExtFieldColumns module-code="merchant" />
         <el-table-column label="操作" width="250" align="center" fixed="right">
           <template #default="{ row }">
             <template v-if="row.auditStatus === 0">
@@ -180,6 +181,8 @@
             </el-form-item>
           </el-col>
         </el-row>
+        <el-divider content-position="left">扩展信息</el-divider>
+        <ExtFieldRenderer module-code="merchant" v-model="form.extFields" />
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -458,6 +461,7 @@ import {
 } from '@/api/base/merchant'
 import { getProjectList } from '@/api/base/project'
 import { useAppStore } from '@/store/modules/app'
+import { useExtFields } from '@/composables/useExtFields'
 
 useAppStore().setPageTitle('商家管理')
 
@@ -506,6 +510,9 @@ function creditTagType(type: number) {
   return (type === 1 ? 'success' : type === 2 ? 'warning' : type === 3 ? 'danger' : 'info') as any
 }
 
+// ─────────── 扩展字段 ───────────
+const { getDefaults: getExtDefaults } = useExtFields('merchant')
+
 // ─────────── 新增/编辑 ───────────
 const dialogVisible = ref(false)
 const dialogTitle = ref('新增商家')
@@ -523,6 +530,7 @@ function defaultForm() {
     formatType: '', naturalPerson: '', idCard: '', address: '', phone: '',
     merchantLevel: undefined as number | undefined,
     auditStatus: 0 as number | undefined,
+    extFields: {} as Record<string, any>,
   }
 }
 
@@ -534,13 +542,13 @@ const formRules: FormRules = {
 
 function handleAdd() {
   isEdit.value = false; dialogTitle.value = '新增商家'
-  Object.assign(form, defaultForm()); dialogVisible.value = true
+  Object.assign(form, defaultForm()); form.extFields = getExtDefaults(); dialogVisible.value = true
 }
 
 async function handleEdit(row: MerchantVO) {
   isEdit.value = true; dialogTitle.value = '编辑商家'
   const data = await getMerchantDetail(row.id)
-  Object.assign(form, defaultForm(), { ...data, idCard: '' })
+  Object.assign(form, defaultForm(), { ...data, idCard: '', extFields: (data as any).extFields ?? {} })
   dialogVisible.value = true
 }
 

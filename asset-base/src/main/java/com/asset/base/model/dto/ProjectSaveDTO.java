@@ -9,6 +9,7 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 项目新增/编辑 DTO（新增和编辑共用，id为空时为新增）
@@ -65,4 +66,7 @@ public class ProjectSaveDTO {
 
     /** 项目图片列表 */
     private List<BizProject.ImageUrl> imageUrls;
+    /** 用户自定义扩展字段 */
+    private Map<String, Object> extFields;
+
 }

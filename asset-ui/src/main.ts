@@ -9,6 +9,8 @@ import App from './App.vue'
 import router from './router'
 import { setupDirectives } from './directives'
 import './styles/index.scss'
+import ExtFieldRenderer from './components/ExtFieldRenderer.vue'
+import ExtFieldColumns from './components/ExtFieldColumns.vue'
 
 // 在 Vue 挂载前立即恢复主题，避免闪烁
 const savedTheme = localStorage.getItem('asset_theme')
@@ -23,5 +25,8 @@ app.use(router)
 app.use(ElementPlus, { locale: zhCn })
 
 setupDirectives(app)
+
+app.component('ExtFieldRenderer', ExtFieldRenderer)
+app.component('ExtFieldColumns', ExtFieldColumns)
 
 app.mount('#app')

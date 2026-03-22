@@ -155,6 +155,7 @@
               <span v-else class="text-muted">-</span>
             </template>
           </el-table-column>
+          <ExtFieldColumns module-code="receivable" />
           <el-table-column label="操作" width="150" fixed="right" align="center">
             <template #default="{ row }">
               <el-button v-if="row.status === 0 || row.status === 1" type="warning" link size="small" @click="openReductionDialog(row)">减免</el-button>

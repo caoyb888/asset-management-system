@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.util.Map;
 
 /**
  * 招商合同新增/编辑请求体
@@ -66,4 +67,7 @@ public class ContractSaveDTO {
 
     /** 合同文本 */
     private String contractText;
+    /** 用户自定义扩展字段 */
+    private Map<String, Object> extFields;
+
 }

@@ -59,6 +59,7 @@ export interface ProjectSaveDTO {
   openingDate?: string
   managerId?: number | null
   imageUrls?: ImageUrl[]
+  extFields?: Record<string, any>
 }
 
 export interface PageResult<T> {
