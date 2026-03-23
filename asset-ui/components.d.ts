@@ -9,6 +9,7 @@ declare module 'vue' {
   export interface GlobalComponents {
     ApprovalDialog: typeof import('./src/components/inv/ApprovalDialog.vue')['default']
     ApprovalTimeline: typeof import('./src/components/inv/ApprovalTimeline.vue')['default']
+    BpmnViewer: typeof import('./src/components/workflow/BpmnViewer.vue')['default']
     ChartContainer: typeof import('./src/components/rpt/ChartContainer.vue')['default']
     ContractSelector: typeof import('./src/components/opr/ContractSelector.vue')['default']
     DrillDownPanel: typeof import('./src/components/rpt/DrillDownPanel.vue')['default']
