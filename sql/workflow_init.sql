@@ -25,9 +25,9 @@ CREATE TABLE IF NOT EXISTS wf_process_definition (
     approver_config     JSON                             COMMENT '策略参数（角色 ID、用户 ID 列表等）',
     is_enabled          TINYINT         NOT NULL DEFAULT 1 COMMENT '是否启用: 0禁用 1启用',
     version             INT             NOT NULL DEFAULT 1 COMMENT '版本号',
-    created_by          VARCHAR(64)                      COMMENT '创建人',
+    created_by          BIGINT UNSIGNED                  COMMENT '创建人ID',
     created_at          DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_by          VARCHAR(64)                      COMMENT '更新人',
+    updated_by          BIGINT UNSIGNED                  COMMENT '更新人ID',
     updated_at          DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     is_deleted          TINYINT         NOT NULL DEFAULT 0 COMMENT '逻辑删除: 0正常 1删除',
     UNIQUE KEY uk_key (process_key),
@@ -57,9 +57,9 @@ CREATE TABLE IF NOT EXISTS wf_process_instance (
     started_at            DATETIME        NOT NULL         COMMENT '流程发起时间',
     finished_at           DATETIME                         COMMENT '流程完成时间',
     duration_ms           BIGINT                           COMMENT '总耗时（毫秒）',
-    created_by            VARCHAR(64)                      COMMENT '创建人',
+    created_by            BIGINT UNSIGNED                  COMMENT '创建人ID',
     created_at            DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_by            VARCHAR(64)                      COMMENT '更新人',
+    updated_by            BIGINT UNSIGNED                  COMMENT '更新人ID',
     updated_at            DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     is_deleted            TINYINT         NOT NULL DEFAULT 0 COMMENT '逻辑删除: 0正常 1删除',
     UNIQUE KEY uk_biz (business_type, business_id),
@@ -96,13 +96,13 @@ CREATE TABLE IF NOT EXISTS wf_approval_record (
 -- ============================================================
 INSERT INTO wf_process_definition (process_key, process_name, business_type, approver_strategy, approver_config, is_enabled, version, created_by, created_at)
 VALUES
-    ('INV_INTENTION',       '意向协议审批',   'INV_INTENTION',       'DEPT_LEADER', '{"levels": ["deptLeader", "vp(>=10万)", "gm(>=50万)"]}', 1, 1, 'system', NOW()),
-    ('INV_OPENING',         '开业审批',       'INV_OPENING',         'DEPT_LEADER', '{"levels": ["deptLeader", "vp(>=10万)", "gm(>=50万)"]}', 1, 1, 'system', NOW()),
-    ('INV_RENT_DECOMP',     '租金分解审批',   'INV_RENT_DECOMP',     'DEPT_LEADER', '{"levels": ["deptLeader", "vp(>=10万)", "gm(>=50万)"]}', 1, 1, 'system', NOW()),
-    ('OPR_CONTRACT_CHANGE', '合同变更审批',   'OPR_CONTRACT_CHANGE', 'DEPT_LEADER', '{"levels": ["deptLeader", "vp(>=10万)", "gm(>=50万)"]}', 1, 1, 'system', NOW()),
-    ('OPR_TERMINATION',     '合同解约审批',   'OPR_TERMINATION',     'DEPT_LEADER', '{"levels": ["deptLeader", "vp(>=10万)", "gm(>=50万)"]}', 1, 1, 'system', NOW()),
-    ('FIN_WRITE_OFF',       '核销审批',       'FIN_WRITE_OFF',       'DEPT_LEADER', '{"levels": ["deptLeader", "vp(>=10万)", "gm(>=50万)"]}', 1, 1, 'system', NOW()),
-    ('FIN_DEDUCTION',       '减免审批',       'FIN_DEDUCTION',       'DEPT_LEADER', '{"levels": ["deptLeader", "vp(>=10万)", "gm(>=50万)"]}', 1, 1, 'system', NOW()),
-    ('FIN_ADJUSTMENT',      '调整审批',       'FIN_ADJUSTMENT',      'DEPT_LEADER', '{"levels": ["deptLeader", "vp(>=10万)", "gm(>=50万)"]}', 1, 1, 'system', NOW());
+    ('INV_INTENTION',       '意向协议审批',   'INV_INTENTION',       'DEPT_LEADER', '{"levels": ["deptLeader", "vp(>=10万)", "gm(>=50万)"]}', 1, 1, NULL, NOW()),
+    ('INV_OPENING',         '开业审批',       'INV_OPENING',         'DEPT_LEADER', '{"levels": ["deptLeader", "vp(>=10万)", "gm(>=50万)"]}', 1, 1, NULL, NOW()),
+    ('INV_RENT_DECOMP',     '租金分解审批',   'INV_RENT_DECOMP',     'DEPT_LEADER', '{"levels": ["deptLeader", "vp(>=10万)", "gm(>=50万)"]}', 1, 1, NULL, NOW()),
+    ('OPR_CONTRACT_CHANGE', '合同变更审批',   'OPR_CONTRACT_CHANGE', 'DEPT_LEADER', '{"levels": ["deptLeader", "vp(>=10万)", "gm(>=50万)"]}', 1, 1, NULL, NOW()),
+    ('OPR_TERMINATION',     '合同解约审批',   'OPR_TERMINATION',     'DEPT_LEADER', '{"levels": ["deptLeader", "vp(>=10万)", "gm(>=50万)"]}', 1, 1, NULL, NOW()),
+    ('FIN_WRITE_OFF',       '核销审批',       'FIN_WRITE_OFF',       'DEPT_LEADER', '{"levels": ["deptLeader", "vp(>=10万)", "gm(>=50万)"]}', 1, 1, NULL, NOW()),
+    ('FIN_DEDUCTION',       '减免审批',       'FIN_DEDUCTION',       'DEPT_LEADER', '{"levels": ["deptLeader", "vp(>=10万)", "gm(>=50万)"]}', 1, 1, NULL, NOW()),
+    ('FIN_ADJUSTMENT',      '调整审批',       'FIN_ADJUSTMENT',      'DEPT_LEADER', '{"levels": ["deptLeader", "vp(>=10万)", "gm(>=50万)"]}', 1, 1, NULL, NOW());
 
 SET FOREIGN_KEY_CHECKS = 1;
