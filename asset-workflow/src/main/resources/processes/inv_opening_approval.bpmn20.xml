@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:flowable="http://flowable.org/bpmn"
+             targetNamespace="http://asset.com/workflow">
+
+  <process id="INV_OPENING" name="开业审批" isExecutable="true">
+
+    <!-- 开始事件 -->
+    <startEvent id="start" name="发起开业审批"/>
+
+    <!-- 部门领导审批 -->
+    <userTask id="deptLeaderApproval" name="部门领导审批"
+              flowable:assignee="${deptLeaderId}"/>
+
+    <!-- 第一级网关：判断金额是否 >= 100000 -->
+    <exclusiveGateway id="gw1" name="金额判断(10万)"/>
+
+    <!-- 副总裁审批 -->
+    <userTask id="vpApproval" name="副总裁审批"
+              flowable:candidateGroups="ROLE_VP"/>
+
+    <!-- 第二级网关：判断金额是否 >= 500000 -->
+    <exclusiveGateway id="gw2" name="金额判断(50万)"/>
+
+    <!-- 总经理审批 -->
+    <userTask id="gmApproval" name="总经理审批"
+              flowable:candidateGroups="ROLE_GM"/>
+
+    <!-- 结束事件 -->
+    <endEvent id="end" name="审批完成"/>
+
+    <!-- 流程连线 -->
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="deptLeaderApproval"/>
+    <sequenceFlow id="flow2" sourceRef="deptLeaderApproval" targetRef="gw1"/>
+
+    <!-- 金额 < 100000：直接结束 -->
+    <sequenceFlow id="flow3" sourceRef="gw1" targetRef="end" name="金额小于10万">
+      <conditionExpression xsi:type="tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${amount &lt; 100000}</conditionExpression>
+    </sequenceFlow>
+
+    <!-- 金额 >= 100000：副总裁审批 -->
+    <sequenceFlow id="flow4" sourceRef="gw1" targetRef="vpApproval" name="金额>=10万">
+      <conditionExpression xsi:type="tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${amount >= 100000}</conditionExpression>
+    </sequenceFlow>
+
+    <sequenceFlow id="flow5" sourceRef="vpApproval" targetRef="gw2"/>
+
+    <!-- 金额 < 500000：结束 -->
+    <sequenceFlow id="flow6" sourceRef="gw2" targetRef="end" name="金额小于50万">
+      <conditionExpression xsi:type="tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${amount &lt; 500000}</conditionExpression>
+    </sequenceFlow>
+
+    <!-- 金额 >= 500000：总经理审批 -->
+    <sequenceFlow id="flow7" sourceRef="gw2" targetRef="gmApproval" name="金额>=50万">
+      <conditionExpression xsi:type="tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${amount >= 500000}</conditionExpression>
+    </sequenceFlow>
+
+    <sequenceFlow id="flow8" sourceRef="gmApproval" targetRef="end"/>
+
+  </process>
+</definitions>

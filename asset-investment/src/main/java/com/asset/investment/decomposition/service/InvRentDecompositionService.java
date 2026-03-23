@@ -9,5 +9,5 @@ public interface InvRentDecompositionService extends IService<InvRentDecompositi
     void submitApproval(Long id);
 
     /** 审批回调：审批中(1) → 通过(2)/驳回(3) */
-    void handleApprovalCallback(Long id, boolean approved);
+    void handleApprovalCallback(Long id, int result, String comment);
 }

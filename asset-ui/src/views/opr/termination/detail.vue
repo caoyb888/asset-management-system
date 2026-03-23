@@ -140,7 +140,7 @@ import {
   terminationApprovalCallback,
   type TerminationDetailVO
 } from '@/api/opr/termination'
-import ApprovalTimeline, { type ApprovalRecord } from '@/components/inv/ApprovalTimeline.vue'
+import ApprovalTimeline, { type ApprovalRecord } from '@/components/workflow/ApprovalTimeline.vue'
 
 const route = useRoute()
 const router = useRouter()

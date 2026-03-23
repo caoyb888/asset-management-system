@@ -25,11 +25,11 @@ public interface OprContractChangeService extends IService<OprContractChange> {
     /** 预览变更影响（受影响应收笔数/金额差异），结果暂存至 impact_summary */
     ChangeImpactVO previewImpact(Long changeId);
 
-    /** 提交 OA 审批 */
+    /** 提交审批 */
     void submitApproval(Long changeId);
 
     /** 审批回调（通过后触发应收重算，驳回则状态回退） */
-    void onApprovalCallback(Long changeId, ApprovalCallbackDTO dto);
+    void handleApprovalCallback(Long changeId, int result, String comment);
 
     /** 查询合同变更历史时间线（按合同ID倒序） */
     List<ChangeDetailVO> listHistory(Long contractId);

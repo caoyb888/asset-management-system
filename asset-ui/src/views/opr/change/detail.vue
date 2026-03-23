@@ -122,7 +122,7 @@ import {
   approvalCallback,
   type ChangeDetailVO,
 } from '@/api/opr/change'
-import ApprovalTimeline, { type ApprovalRecord } from '@/components/inv/ApprovalTimeline.vue'
+import ApprovalTimeline, { type ApprovalRecord } from '@/components/workflow/ApprovalTimeline.vue'
 
 const router = useRouter()
 const route = useRoute()

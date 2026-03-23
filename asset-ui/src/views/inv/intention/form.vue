@@ -486,8 +486,8 @@ import type { FormInstance } from 'element-plus'
 
 import RentSchemeSelector from '@/components/inv/RentSchemeSelector.vue'
 import FeeItemSelector from '@/components/inv/FeeItemSelector.vue'
-import ApprovalDialog from '@/components/inv/ApprovalDialog.vue'
-import ApprovalTimeline from '@/components/inv/ApprovalTimeline.vue'
+import ApprovalDialog from '@/components/workflow/ApprovalDialog.vue'
+import ApprovalTimeline from '@/components/workflow/ApprovalTimeline.vue'
 
 import type { RentSchemeVO } from '@/api/inv/config'
 import type { FeeItemVO } from '@/api/inv/config'

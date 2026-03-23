@@ -1,6 +1,6 @@
 package com.asset.finance;
 
-import com.asset.finance.common.adapter.OaApprovalAdapter;
+import com.asset.api.workflow.ApprovalService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,14 +56,14 @@ public abstract class FinanceControllerTestBase {
     protected ObjectMapper objectMapper;
 
     @MockBean
-    protected OaApprovalAdapter oaApprovalAdapter;
+    protected ApprovalService approvalService;
 
     /**
-     * OA 适配器默认行为：提交审批返回固定 approvalId
+     * 审批服务默认行为：提交审批返回固定 approvalId
      */
     @BeforeEach
-    void setupOaMock() {
-        when(oaApprovalAdapter.submitApproval(anyString(), anyLong(), anyString()))
-                .thenAnswer(inv -> "MOCK-APPROVAL-" + inv.getArgument(1));
+    void setupApprovalMock() {
+        when(approvalService.submit(any()))
+                .thenAnswer(inv -> "MOCK-APPROVAL-" + System.currentTimeMillis());
     }
 }

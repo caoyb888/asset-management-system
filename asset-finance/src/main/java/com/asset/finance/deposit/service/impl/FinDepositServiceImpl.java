@@ -1,7 +1,8 @@
 package com.asset.finance.deposit.service.impl;
 
+import com.asset.api.workflow.ApprovalService;
+import com.asset.api.workflow.dto.ApprovalSubmitDTO;
 import com.asset.common.exception.BizException;
-import com.asset.finance.common.adapter.OaApprovalAdapter;
 import com.asset.finance.common.exception.FinBizException;
 import com.asset.finance.common.exception.FinErrorCode;
 import com.asset.finance.deposit.dto.*;
@@ -47,7 +48,7 @@ public class FinDepositServiceImpl extends ServiceImpl<FinDepositAccountMapper, 
 
     private final FinDepositTransactionMapper transactionMapper;
     private final FinReceivableMapper receivableMapper;
-    private final OaApprovalAdapter oaApprovalAdapter;
+    private final ApprovalService approvalService;
     private final JdbcTemplate jdbcTemplate;
 
     // 交易类型常量
@@ -249,14 +250,18 @@ public class FinDepositServiceImpl extends ServiceImpl<FinDepositAccountMapper, 
         }
     }
 
-    // ─── 私有辅助：提交 OA 审批 ───────────────────────────────────────────────
+    // ─── 私有辅助：提交审批 ───────────────────────────────────────────────
     private void submitApproval(FinDepositTransaction tx, String bizType, String title) {
         try {
-            String approvalId = oaApprovalAdapter.submitApproval(bizType, tx.getId(), title);
+            ApprovalSubmitDTO submitDTO = new ApprovalSubmitDTO();
+            submitDTO.setBusinessType(bizType);
+            submitDTO.setBusinessId(tx.getId());
+            submitDTO.setTitle(title);
+            String approvalId = approvalService.submit(submitDTO);
             tx.setApprovalId(approvalId);
             transactionMapper.updateById(tx);
         } catch (Exception e) {
-            log.warn("[保证金] OA提交失败，流水 id={} 将手动推进", tx.getId(), e);
+            log.warn("[保证金] 审批提交失败，流水 id={} 将手动推进", tx.getId(), e);
         }
     }
 

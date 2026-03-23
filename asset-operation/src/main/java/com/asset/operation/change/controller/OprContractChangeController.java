@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 合同变更 Controller
@@ -71,12 +72,13 @@ public class OprContractChangeController {
         return R.ok(null);
     }
 
-    /** 审批回调（OA 系统主动回调，通过后触发应收重算） */
+    /** 审批回调（通过后触发应收重算） */
     @Operation(summary = "审批回调（通过→应收重算，驳回→状态回退）")
     @PostMapping("/{id}/approval-callback")
     public R<Void> approvalCallback(@PathVariable @Parameter(description = "变更单ID") Long id,
-                                    @RequestBody ApprovalCallbackDTO dto) {
-        changeService.onApprovalCallback(id, dto);
+                                    @RequestParam int result,
+                                    @RequestParam(required = false) String comment) {
+        changeService.handleApprovalCallback(id, result, comment);
         return R.ok(null);
     }
 

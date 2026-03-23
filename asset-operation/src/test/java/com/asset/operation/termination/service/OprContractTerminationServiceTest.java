@@ -1,7 +1,7 @@
 package com.asset.operation.termination.service;
 
+import com.asset.api.workflow.ApprovalService;
 import com.asset.common.exception.BizException;
-import com.asset.operation.change.dto.ApprovalCallbackDTO;
 import com.asset.operation.engine.TerminationSettlementEngine;
 import com.asset.operation.termination.dto.TerminationCreateDTO;
 import com.asset.operation.termination.entity.OprContractTermination;
@@ -56,6 +56,9 @@ class OprContractTerminationServiceTest {
 
     @Mock
     private JdbcTemplate jdbcTemplate;
+
+    @Mock
+    private ApprovalService approvalService;
 
     @InjectMocks
     private OprContractTerminationServiceImpl service;
@@ -248,10 +251,7 @@ class OprContractTerminationServiceTest {
         OprContractTermination t = buildTermination(1L, 1); // 审批中
         when(terminationMapper.selectById(1L)).thenReturn(t);
 
-        ApprovalCallbackDTO dto = new ApprovalCallbackDTO();
-        dto.setStatus(2); // 通过
-
-        service.onApprovalCallback(1L, dto);
+        service.handleApprovalCallback(1L, 2, null);
 
         // 验证引擎执行
         verify(settlementEngine).execute(1L);
@@ -268,10 +268,7 @@ class OprContractTerminationServiceTest {
         when(terminationMapper.selectById(1L)).thenReturn(t);
         when(terminationMapper.update(isNull(), any(LambdaUpdateWrapper.class))).thenReturn(1);
 
-        ApprovalCallbackDTO dto = new ApprovalCallbackDTO();
-        dto.setStatus(3); // 驳回
-
-        service.onApprovalCallback(1L, dto);
+        service.handleApprovalCallback(1L, 3, null);
 
         // 验证状态更新为驳回
         verify(terminationMapper).update(isNull(), any(LambdaUpdateWrapper.class));

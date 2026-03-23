@@ -132,9 +132,9 @@ public class InvRentDecompositionController {
     @Operation(summary = "审批回调（审批中1 → 通过2/驳回3）")
     @PostMapping("/{id}/approval-callback")
     public R<Void> approvalCallback(@PathVariable Long id,
-                                    @RequestBody Map<String, Object> body) {
-        boolean approved = Boolean.TRUE.equals(body.get("approved"));
-        decompositionService.handleApprovalCallback(id, approved);
+                                    @RequestParam int result,
+                                    @RequestParam(required = false) String comment) {
+        decompositionService.handleApprovalCallback(id, result, comment);
         return R.ok(null);
     }
 

@@ -1,5 +1,7 @@
 package com.asset.operation.change.service.impl;
 
+import com.asset.api.workflow.ApprovalService;
+import com.asset.api.workflow.dto.ApprovalSubmitDTO;
 import com.asset.common.exception.BizException;
 import com.asset.operation.change.dto.*;
 import com.asset.operation.change.entity.OprContractChange;
@@ -46,6 +48,7 @@ public class OprContractChangeServiceImpl extends ServiceImpl<OprContractChangeM
     private final ReceivableRecalculateEngine recalculateEngine;
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
+    private final ApprovalService approvalService;
 
     // =========================================================================
     // 查询
@@ -221,15 +224,19 @@ public class OprContractChangeServiceImpl extends ServiceImpl<OprContractChangeM
             throw new BizException("仅草稿或驳回状态可提交审批");
         }
 
-        // 模拟生成审批实例ID（对接真实 OA 时替换此处）
-        String mockApprovalId = "APPROVAL-" + changeId + "-" + System.currentTimeMillis();
+        ApprovalSubmitDTO submitDTO = new ApprovalSubmitDTO();
+        submitDTO.setBusinessType("OPR_CONTRACT_CHANGE");
+        submitDTO.setBusinessId(changeId);
+        submitDTO.setTitle("合同变更审批-" + change.getChangeCode());
+        submitDTO.setProjectId(change.getProjectId());
+        String approvalId = approvalService.submit(submitDTO);
 
         update(new LambdaUpdateWrapper<OprContractChange>()
                 .eq(OprContractChange::getId, changeId)
-                .set(OprContractChange::getStatus, 1)           // 审批中
-                .set(OprContractChange::getApprovalId, mockApprovalId));
+                .set(OprContractChange::getStatus, 1)
+                .set(OprContractChange::getApprovalId, approvalId));
 
-        log.info("[合同变更] 变更单已提交审批，changeId={}，approvalId={}", changeId, mockApprovalId);
+        log.info("[合同变更] 变更单已提交审批，changeId={}，approvalId={}", changeId, approvalId);
     }
 
     // =========================================================================
@@ -238,8 +245,8 @@ public class OprContractChangeServiceImpl extends ServiceImpl<OprContractChangeM
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void onApprovalCallback(Long changeId, ApprovalCallbackDTO dto) {
-        if (dto.getStatus() == null || (dto.getStatus() != 2 && dto.getStatus() != 3)) {
+    public void handleApprovalCallback(Long changeId, int result, String comment) {
+        if (result != 2 && result != 3) {
             throw new BizException("审批状态无效，必须为 2（通过）或 3（驳回）");
         }
 
@@ -252,12 +259,11 @@ public class OprContractChangeServiceImpl extends ServiceImpl<OprContractChangeM
         // 更新状态
         update(new LambdaUpdateWrapper<OprContractChange>()
                 .eq(OprContractChange::getId, changeId)
-                .set(OprContractChange::getStatus, dto.getStatus()));
+                .set(OprContractChange::getStatus, result));
 
-        if (dto.getStatus() == 2) {
+        if (result == 2) {
             // 审批通过：触发应收重算
             log.info("[合同变更] 审批通过，触发应收重算，changeId={}", changeId);
-            // 重新加载以获取最新数据
             change.setStatus(2);
             recalculateEngine.execute(change);
         } else {

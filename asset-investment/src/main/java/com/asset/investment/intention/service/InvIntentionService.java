@@ -1,6 +1,5 @@
 package com.asset.investment.intention.service;
 
-import com.asset.investment.intention.dto.ApprovalCallbackDTO;
 import com.asset.investment.intention.dto.IntentionFeeItemDTO;
 import com.asset.investment.intention.dto.IntentionFeeStageItemDTO;
 import com.asset.investment.intention.dto.IntentionQueryDTO;
@@ -66,7 +65,7 @@ public interface InvIntentionService extends IService<InvIntention> {
      * 审批中(1) → 审批通过(2) 或 驳回(3)
      * 通过时联动更新关联商铺状态为"意向中"
      */
-    void handleApprovalCallback(Long id, ApprovalCallbackDTO dto);
+    void handleApprovalCallback(Long id, int result, String comment);
 
     // ================================================================
     // 任务 4.2 — 商铺关联、费项配置、分铺计租

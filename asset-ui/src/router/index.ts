@@ -399,6 +399,37 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/rpt/fin/collection.vue'),
         meta: { title: '收缴率趋势', icon: 'Histogram' },
       },
+      // ── 流程管理 ──
+      {
+        path: 'workflow/todo',
+        name: 'WfTodo',
+        component: () => import('@/views/workflow/todo/index.vue'),
+        meta: { title: '我的待办', icon: 'Bell' },
+      },
+      {
+        path: 'workflow/done',
+        name: 'WfDone',
+        component: () => import('@/views/workflow/done/index.vue'),
+        meta: { title: '我的已办', icon: 'Finished' },
+      },
+      {
+        path: 'workflow/initiated',
+        name: 'WfInitiated',
+        component: () => import('@/views/workflow/initiated/index.vue'),
+        meta: { title: '我发起的', icon: 'Promotion' },
+      },
+      {
+        path: 'workflow/definitions',
+        name: 'WfDefinition',
+        component: () => import('@/views/workflow/definition/index.vue'),
+        meta: { title: '流程定义', icon: 'SetUp' },
+      },
+      {
+        path: 'workflow/statistics',
+        name: 'WfStatistics',
+        component: () => import('@/views/workflow/statistics/index.vue'),
+        meta: { title: '审批效率', icon: 'DataAnalysis' },
+      },
       // ── 系统管理 ──
       {
         path: 'sys/users',

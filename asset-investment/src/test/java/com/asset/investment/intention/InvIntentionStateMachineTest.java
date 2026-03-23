@@ -2,9 +2,9 @@ package com.asset.investment.intention;
 
 import com.asset.common.exception.BizException;
 import com.asset.investment.common.enums.IntentionStatus;
+import com.asset.api.workflow.ApprovalService;
 import com.asset.investment.engine.BillingGenerator;
 import com.asset.investment.engine.RentCalculateStrategyRouter;
-import com.asset.investment.intention.dto.ApprovalCallbackDTO;
 import com.asset.investment.intention.dto.IntentionSaveDTO;
 import com.asset.investment.intention.entity.InvIntention;
 import com.asset.investment.intention.mapper.InvIntentionMapper;
@@ -48,6 +48,7 @@ class InvIntentionStateMachineTest {
     @Mock private InvIntentionBillingService intentionBillingService;
     @Mock private BillingGenerator billingGenerator;
     @Mock private RentCalculateStrategyRouter strategyRouter;
+    @Mock private ApprovalService approvalService;
 
     private InvIntentionServiceImpl intentionService;
 
@@ -61,7 +62,7 @@ class InvIntentionStateMachineTest {
     void setUp() throws Exception {
         intentionService = new InvIntentionServiceImpl(
                 intentionShopService, intentionFeeService, intentionFeeStageService,
-                intentionBillingService, billingGenerator, strategyRouter);
+                intentionBillingService, billingGenerator, strategyRouter, approvalService);
 
         var baseMapperField = CrudRepository.class.getDeclaredField("baseMapper");
         baseMapperField.setAccessible(true);
@@ -150,11 +151,8 @@ class InvIntentionStateMachineTest {
         // 已通过的单据不可再回调
         when(intentionMapper.selectById(30L)).thenReturn(buildIntention(30L, 2));
 
-        ApprovalCallbackDTO dto = new ApprovalCallbackDTO();
-        dto.setApproved(true);
-
         BizException ex = assertThrows(BizException.class,
-                () -> intentionService.handleApprovalCallback(30L, dto));
+                () -> intentionService.handleApprovalCallback(30L, 2, null));
         assertTrue(ex.getMessage().contains("不在审批中"),
                 "非审批中状态应拒绝审批回调");
     }
@@ -167,11 +165,7 @@ class InvIntentionStateMachineTest {
         // updateShopStatusToIntention 内部调用 intentionShopService.list()
         lenient().when(intentionShopService.list(any(Wrapper.class))).thenReturn(java.util.List.of());
 
-        ApprovalCallbackDTO dto = new ApprovalCallbackDTO();
-        dto.setApproved(true);
-        dto.setApprovalId("REAL-APPROVAL-001");
-
-        assertDoesNotThrow(() -> intentionService.handleApprovalCallback(31L, dto));
+        assertDoesNotThrow(() -> intentionService.handleApprovalCallback(31L, 2, null));
         verify(intentionMapper, times(1)).update(any(), any(Wrapper.class));
     }
 
@@ -181,10 +175,7 @@ class InvIntentionStateMachineTest {
         when(intentionMapper.selectById(32L)).thenReturn(buildIntention(32L, 1));
         when(intentionMapper.update(any(), any(Wrapper.class))).thenReturn(1);
 
-        ApprovalCallbackDTO dto = new ApprovalCallbackDTO();
-        dto.setApproved(false);
-
-        assertDoesNotThrow(() -> intentionService.handleApprovalCallback(32L, dto));
+        assertDoesNotThrow(() -> intentionService.handleApprovalCallback(32L, 3, null));
         // 驳回不触发 updateShopStatusToIntention
         verify(intentionShopService, never()).list(any(Wrapper.class));
     }

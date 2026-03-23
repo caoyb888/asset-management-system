@@ -248,6 +248,36 @@
             <template #title>定时推送管理</template>
           </el-menu-item>
         </el-sub-menu>
+        <!-- 流程管理 -->
+        <el-sub-menu index="workflow">
+          <template #title>
+            <el-icon><Connection /></el-icon>
+            <span>流程管理</span>
+          </template>
+          <el-menu-item index="/workflow/todo">
+            <el-icon><Bell /></el-icon>
+            <template #title>
+              我的待办
+              <el-badge v-if="todoCount > 0" :value="todoCount" class="todo-badge" />
+            </template>
+          </el-menu-item>
+          <el-menu-item index="/workflow/done">
+            <el-icon><Finished /></el-icon>
+            <template #title>我的已办</template>
+          </el-menu-item>
+          <el-menu-item index="/workflow/initiated">
+            <el-icon><Promotion /></el-icon>
+            <template #title>我发起的</template>
+          </el-menu-item>
+          <el-menu-item index="/workflow/definitions">
+            <el-icon><SetUp /></el-icon>
+            <template #title>流程定义</template>
+          </el-menu-item>
+          <el-menu-item index="/workflow/statistics">
+            <el-icon><DataAnalysis /></el-icon>
+            <template #title>审批效率</template>
+          </el-menu-item>
+        </el-sub-menu>
         <!-- 系统管理 -->
         <el-sub-menu index="sys">
           <template #title>
@@ -369,15 +399,20 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop, Star, User, Bell, Document, Briefcase, Setting, Coin, EditPen, Tickets, Checked, DataLine, PieChart, Operation, Memo, Switch, TrendCharts, UserFilled, CircleClose, Money, List, CreditCard, Postcard, Wallet, CollectionTag, Warning, CircleCheck, DataAnalysis, Key, Files, Menu, FolderOpened, Filter, MapLocation, Histogram, HomeFilled, Timer } from '@element-plus/icons-vue'
+import { Monitor, Fold, Expand, ArrowDown, Grid, OfficeBuilding, House, Management, Shop, Star, User, Bell, Document, Briefcase, Setting, Coin, EditPen, Tickets, Checked, DataLine, PieChart, Operation, Memo, Switch, TrendCharts, UserFilled, CircleClose, Money, List, CreditCard, Postcard, Wallet, CollectionTag, Warning, CircleCheck, DataAnalysis, Key, Files, Menu, FolderOpened, Filter, MapLocation, Histogram, HomeFilled, Timer, Connection, Finished, Promotion, SetUp } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/modules/user'
 import { useAppStore } from '@/store/modules/app'
+import { useWorkflowStore } from '@/store/modules/workflow/useWorkflowStore'
 import { getUserPermissions } from '@/api/rpt/permission'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const appStore = useAppStore()
+const workflowStore = useWorkflowStore()
+
+/** 待办数量 */
+const todoCount = computed(() => workflowStore.todoCount)
 
 /** 主题选项 */
 const themeOptions = [
@@ -393,6 +428,9 @@ const hasFinPerm = ref(true)  // 默认 true 避免菜单闪烁
 onMounted(async () => {
   // 确保 store 中的主题同步到 DOM
   appStore.setTheme(appStore.theme)
+
+  // 启动待办数量轮询
+  workflowStore.startPolling()
 
   try {
     const data = await getUserPermissions()
@@ -578,6 +616,17 @@ async function handleCommand(command: string) {
   background: $content-bg;
   overflow-y: auto;
   padding: 16px;
+}
+
+.todo-badge {
+  margin-left: 6px;
+
+  :deep(.el-badge__content) {
+    font-size: 10px;
+    height: 16px;
+    line-height: 16px;
+    padding: 0 4px;
+  }
 }
 
 </style>

@@ -2,8 +2,13 @@ package com.asset.investment.decomposition.service;
 
 import com.asset.common.exception.BizException;
 import com.asset.investment.decomposition.entity.InvRentDecomposition;
+import com.asset.api.workflow.ApprovalService;
 import com.asset.investment.decomposition.mapper.InvRentDecompositionMapper;
 import com.asset.investment.decomposition.service.impl.InvRentDecompositionServiceImpl;
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,8 +31,17 @@ import static org.mockito.Mockito.*;
 @DisplayName("租金分解 Service 单元测试")
 class InvRentDecompositionServiceTest {
 
+    @BeforeAll
+    static void initMybatisPlusCache() {
+        MapperBuilderAssistant assistant = new MapperBuilderAssistant(new MybatisConfiguration(), "");
+        TableInfoHelper.initTableInfo(assistant, InvRentDecomposition.class);
+    }
+
     @Mock
     InvRentDecompositionMapper decompositionMapper;
+
+    @Mock
+    ApprovalService approvalService;
 
     @Spy
     @InjectMocks
@@ -96,7 +110,7 @@ class InvRentDecompositionServiceTest {
         doReturn(approving).when(service).getById(1L);
         doReturn(true).when(service).update(any());
 
-        service.handleApprovalCallback(1L, true);
+        service.handleApprovalCallback(1L, 2, null);
 
         verify(service, times(1)).update(any());
     }
@@ -112,7 +126,7 @@ class InvRentDecompositionServiceTest {
         doReturn(approving).when(service).getById(1L);
         doReturn(true).when(service).update(any());
 
-        service.handleApprovalCallback(1L, false);
+        service.handleApprovalCallback(1L, 3, null);
 
         verify(service, times(1)).update(any());
     }

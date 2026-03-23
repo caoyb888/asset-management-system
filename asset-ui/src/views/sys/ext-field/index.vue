@@ -336,12 +336,12 @@ function fieldTypeLabel(type: string) {
   return fieldTypes.find(t => t.value === type)?.label ?? type
 }
 
-function fieldTypeTagType(type: string): '' | 'success' | 'warning' | 'info' | 'danger' {
-  const map: Record<string, '' | 'success' | 'warning' | 'info' | 'danger'> = {
-    text: '', textarea: 'info', number: 'warning',
-    date: 'success', select: '', radio: 'success', checkbox: 'danger',
+function fieldTypeTagType(type: string): 'primary' | 'success' | 'warning' | 'info' | 'danger' {
+  const map: Record<string, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
+    text: 'primary', textarea: 'info', number: 'warning',
+    date: 'success', select: 'primary', radio: 'success', checkbox: 'danger',
   }
-  return map[type] ?? ''
+  return map[type] ?? 'primary'
 }
 
 // ── 列表状态 ─────────────────────────────────────────────────────────────────

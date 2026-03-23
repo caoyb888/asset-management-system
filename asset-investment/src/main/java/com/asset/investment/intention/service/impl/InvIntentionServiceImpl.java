@@ -10,7 +10,8 @@ import com.asset.investment.engine.BillingPeriod;
 import com.asset.investment.engine.FixedRentStrategy;
 import com.asset.investment.engine.RentCalculateContext;
 import com.asset.investment.engine.RentCalculateStrategyRouter;
-import com.asset.investment.intention.dto.ApprovalCallbackDTO;
+import com.asset.api.workflow.ApprovalService;
+import com.asset.api.workflow.dto.ApprovalSubmitDTO;
 import com.asset.investment.intention.dto.IntentionFeeItemDTO;
 import com.asset.investment.intention.dto.IntentionFeeStageItemDTO;
 import com.asset.investment.intention.dto.IntentionQueryDTO;
@@ -64,6 +65,7 @@ public class InvIntentionServiceImpl extends ServiceImpl<InvIntentionMapper, Inv
     private final InvIntentionBillingService intentionBillingService;
     private final BillingGenerator billingGenerator;
     private final RentCalculateStrategyRouter strategyRouter;
+    private final ApprovalService approvalService;
 
     // ====================================================
     // 查询
@@ -150,8 +152,12 @@ public class InvIntentionServiceImpl extends ServiceImpl<InvIntentionMapper, Inv
                     IntentionStatus.of(status) != null
                             ? IntentionStatus.of(status).getDesc() : status));
         }
-        // TODO: 调用审批引擎（任务 8.1），获取真实 approvalId
-        String mockApprovalId = "MOCK-INV-" + id + "-" + System.currentTimeMillis();
+        ApprovalSubmitDTO submitDTO = new ApprovalSubmitDTO();
+        submitDTO.setBusinessType("INV_INTENTION");
+        submitDTO.setBusinessId(id);
+        submitDTO.setTitle("意向协议审批-" + existing.getIntentionCode());
+        submitDTO.setProjectId(existing.getProjectId());
+        String mockApprovalId = approvalService.submit(submitDTO);
 
         update(new LambdaUpdateWrapper<InvIntention>()
                 .eq(InvIntention::getId, id)
@@ -165,23 +171,20 @@ public class InvIntentionServiceImpl extends ServiceImpl<InvIntentionMapper, Inv
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void handleApprovalCallback(Long id, ApprovalCallbackDTO dto) {
+    public void handleApprovalCallback(Long id, int result, String comment) {
         InvIntention existing = getAndCheck(id);
         if (existing.getStatus() != IntentionStatus.APPROVING.getCode()) {
             throw new BizException("当前状态不在审批中，无法处理审批回调");
         }
 
-        int newStatus = Boolean.TRUE.equals(dto.getApproved())
+        // result: 2=通过, 3=驳回
+        int newStatus = (result == 2)
                 ? IntentionStatus.APPROVED.getCode()
                 : IntentionStatus.REJECTED.getCode();
 
-        LambdaUpdateWrapper<InvIntention> uw = new LambdaUpdateWrapper<InvIntention>()
+        update(new LambdaUpdateWrapper<InvIntention>()
                 .eq(InvIntention::getId, id)
-                .set(InvIntention::getStatus, newStatus);
-        if (dto.getApprovalId() != null) {
-            uw.set(InvIntention::getApprovalId, dto.getApprovalId());
-        }
-        update(uw);
+                .set(InvIntention::getStatus, newStatus));
 
         // 审批通过：将关联商铺状态置为"意向中"（shop_status = 1）
         if (newStatus == IntentionStatus.APPROVED.getCode()) {

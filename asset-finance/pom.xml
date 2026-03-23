@@ -7,6 +7,7 @@
     <description>财务管理服务 - 应收/收款/核销/保证金</description>
     <dependencies>
         <dependency><groupId>com.asset</groupId><artifactId>asset-common-security</artifactId></dependency>
+        <dependency><groupId>com.asset</groupId><artifactId>asset-api-workflow</artifactId></dependency>
         <dependency><groupId>com.asset</groupId><artifactId>asset-common-mybatis</artifactId></dependency>
         <dependency><groupId>com.asset</groupId><artifactId>asset-common-log</artifactId></dependency>
         <dependency><groupId>org.springdoc</groupId><artifactId>springdoc-openapi-starter-webmvc-ui</artifactId></dependency>

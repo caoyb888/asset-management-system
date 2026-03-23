@@ -1,6 +1,6 @@
 package com.asset.finance;
 
-import com.asset.finance.common.adapter.OaApprovalAdapter;
+import com.asset.api.workflow.ApprovalService;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -36,14 +36,14 @@ import static org.mockito.Mockito.when;
 public abstract class FinanceTestBase {
 
     @MockBean
-    protected OaApprovalAdapter oaApprovalAdapter;
+    protected ApprovalService approvalService;
 
     /**
-     * OA 适配器默认行为：提交审批返回固定 approvalId，查询状态返回 PENDING
+     * 审批服务默认行为：提交审批返回固定 approvalId
      */
     @BeforeEach
     void setupMocks() {
-        when(oaApprovalAdapter.submitApproval(anyString(), anyLong(), anyString()))
-                .thenAnswer(inv -> "MOCK-APPROVAL-" + inv.getArgument(1));
+        when(approvalService.submit(any()))
+                .thenAnswer(inv -> "MOCK-APPROVAL-" + System.currentTimeMillis());
     }
 }

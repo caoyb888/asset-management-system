@@ -7,6 +7,7 @@
     <description>营运管理服务 - 台账/日常营运</description>
     <dependencies>
         <dependency><groupId>com.asset</groupId><artifactId>asset-common-security</artifactId></dependency>
+        <dependency><groupId>com.asset</groupId><artifactId>asset-api-workflow</artifactId></dependency>
         <dependency><groupId>com.asset</groupId><artifactId>asset-common-mybatis</artifactId></dependency>
         <dependency><groupId>com.asset</groupId><artifactId>asset-common-log</artifactId></dependency>
         <dependency><groupId>org.springdoc</groupId><artifactId>springdoc-openapi-starter-webmvc-ui</artifactId></dependency>

@@ -1,8 +1,9 @@
 package com.asset.finance.receivable.service.impl;
 
 import com.alibaba.excel.EasyExcel;
+import com.asset.api.workflow.ApprovalService;
+import com.asset.api.workflow.dto.ApprovalSubmitDTO;
 import com.asset.common.exception.BizException;
-import com.asset.finance.common.adapter.OaApprovalAdapter;
 import com.asset.finance.common.exception.FinBizException;
 import com.asset.finance.common.exception.FinErrorCode;
 import com.asset.finance.common.util.FinCodeGenerator;
@@ -47,7 +48,7 @@ public class FinReceivableServiceImpl extends ServiceImpl<FinReceivableMapper, F
     private final FinReceivableDeductionMapper deductionMapper;
     private final FinReceivableAdjustmentMapper adjustmentMapper;
     private final FinCodeGenerator codeGenerator;
-    private final OaApprovalAdapter oaApprovalAdapter;
+    private final ApprovalService approvalService;
 
     // ─── 分页查询 ───────────────────────────────────────────
     @Override
@@ -273,14 +274,18 @@ public class FinReceivableServiceImpl extends ServiceImpl<FinReceivableMapper, F
         deduction.setStatus(0);
         deductionMapper.insert(deduction);
 
-        // 提交 OA 审批
+        // 提交审批
         try {
-            String approvalId = oaApprovalAdapter.submitApproval(
-                    "FIN_DEDUCTION", deduction.getId(), "减免审批-" + deduction.getDeductionCode());
+            ApprovalSubmitDTO submitDTO = new ApprovalSubmitDTO();
+            submitDTO.setBusinessType("FIN_DEDUCTION");
+            submitDTO.setBusinessId(deduction.getId());
+            submitDTO.setTitle("减免审批-" + deduction.getDeductionCode());
+            submitDTO.setProjectId(receivable.getProjectId());
+            String approvalId = approvalService.submit(submitDTO);
             deduction.setApprovalId(approvalId);
             deductionMapper.updateById(deduction);
         } catch (Exception e) {
-            log.warn("[减免] OA提交失败，减免单 {} 将手动推进", deduction.getDeductionCode(), e);
+            log.warn("[减免] 审批提交失败，减免单 {} 将手动推进", deduction.getDeductionCode(), e);
         }
 
         return deduction.getId();
@@ -343,12 +348,16 @@ public class FinReceivableServiceImpl extends ServiceImpl<FinReceivableMapper, F
         adjustmentMapper.insert(adjustment);
 
         try {
-            String approvalId = oaApprovalAdapter.submitApproval(
-                    "FIN_ADJUSTMENT", adjustment.getId(), "调整审批-" + adjustment.getAdjustmentCode());
+            ApprovalSubmitDTO submitDTO = new ApprovalSubmitDTO();
+            submitDTO.setBusinessType("FIN_ADJUSTMENT");
+            submitDTO.setBusinessId(adjustment.getId());
+            submitDTO.setTitle("调整审批-" + adjustment.getAdjustmentCode());
+            submitDTO.setProjectId(receivable.getProjectId());
+            String approvalId = approvalService.submit(submitDTO);
             adjustment.setApprovalId(approvalId);
             adjustmentMapper.updateById(adjustment);
         } catch (Exception e) {
-            log.warn("[调整] OA提交失败，调整单 {} 将手动推进", adjustment.getAdjustmentCode(), e);
+            log.warn("[调整] 审批提交失败，调整单 {} 将手动推进", adjustment.getAdjustmentCode(), e);
         }
 
         return adjustment.getId();

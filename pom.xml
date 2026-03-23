@@ -28,6 +28,7 @@
         <!-- Feign API 模块 -->
         <module>asset-api-base</module>
         <module>asset-api-system</module>
+        <module>asset-api-workflow</module>
         <!-- 业务微服务 -->
         <module>asset-base</module>
         <module>asset-investment</module>
@@ -171,6 +172,7 @@
             <dependency><groupId>com.asset</groupId><artifactId>asset-common-log</artifactId><version>${project.version}</version></dependency>
             <dependency><groupId>com.asset</groupId><artifactId>asset-api-base</artifactId><version>${project.version}</version></dependency>
             <dependency><groupId>com.asset</groupId><artifactId>asset-api-system</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>com.asset</groupId><artifactId>asset-api-workflow</artifactId><version>${project.version}</version></dependency>
         </dependencies>
     </dependencyManagement>
 

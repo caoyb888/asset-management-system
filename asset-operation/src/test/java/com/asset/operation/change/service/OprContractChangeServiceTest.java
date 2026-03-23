@@ -1,7 +1,7 @@
 package com.asset.operation.change.service;
 
+import com.asset.api.workflow.ApprovalService;
 import com.asset.common.exception.BizException;
-import com.asset.operation.change.dto.ApprovalCallbackDTO;
 import com.asset.operation.change.dto.ChangeCreateDTO;
 import com.asset.operation.change.dto.ChangeImpactVO;
 import com.asset.operation.change.entity.OprContractChange;
@@ -75,6 +75,9 @@ class OprContractChangeServiceTest {
 
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
+
+    @Mock
+    private ApprovalService approvalService;
 
     @InjectMocks
     private OprContractChangeServiceImpl service;
@@ -295,10 +298,7 @@ class OprContractChangeServiceTest {
         when(changeMapper.selectById(1L)).thenReturn(change);
         when(changeMapper.update(isNull(), any(LambdaUpdateWrapper.class))).thenReturn(1);
 
-        ApprovalCallbackDTO dto = new ApprovalCallbackDTO();
-        dto.setStatus(2); // 通过
-
-        service.onApprovalCallback(1L, dto);
+        service.handleApprovalCallback(1L, 2, null);
 
         // 验证状态更新为 2（通过）
         verify(changeMapper).update(isNull(), any(LambdaUpdateWrapper.class));
@@ -318,10 +318,7 @@ class OprContractChangeServiceTest {
         when(changeMapper.selectById(1L)).thenReturn(change);
         when(changeMapper.update(isNull(), any(LambdaUpdateWrapper.class))).thenReturn(1);
 
-        ApprovalCallbackDTO dto = new ApprovalCallbackDTO();
-        dto.setStatus(3); // 驳回
-
-        service.onApprovalCallback(1L, dto);
+        service.handleApprovalCallback(1L, 3, null);
 
         // 验证状态更新
         verify(changeMapper).update(isNull(), any(LambdaUpdateWrapper.class));

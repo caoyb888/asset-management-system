@@ -1,17 +1,21 @@
 package com.asset.investment.intention.service;
 
+import com.asset.api.workflow.ApprovalService;
 import com.asset.common.exception.BizException;
 import com.asset.investment.common.enums.IntentionStatus;
 import com.asset.investment.engine.BillingGenerator;
 import com.asset.investment.engine.RentCalculateStrategyRouter;
-import com.asset.investment.intention.dto.ApprovalCallbackDTO;
 import com.asset.investment.intention.dto.IntentionSaveDTO;
 import com.asset.investment.intention.dto.IntentionShopItemDTO;
 import com.asset.investment.intention.entity.InvIntention;
 import com.asset.investment.intention.entity.InvIntentionShop;
 import com.asset.investment.intention.mapper.InvIntentionMapper;
 import com.asset.investment.intention.service.impl.InvIntentionServiceImpl;
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,6 +41,12 @@ import static org.mockito.Mockito.*;
 @DisplayName("意向协议 Service 单元测试")
 class InvIntentionServiceTest {
 
+    @BeforeAll
+    static void initMybatisPlusCache() {
+        MapperBuilderAssistant assistant = new MapperBuilderAssistant(new MybatisConfiguration(), "");
+        TableInfoHelper.initTableInfo(assistant, InvIntention.class);
+    }
+
     @Mock
     InvIntentionMapper intentionMapper;
 
@@ -57,6 +67,9 @@ class InvIntentionServiceTest {
 
     @Mock
     RentCalculateStrategyRouter strategyRouter;
+
+    @Mock
+    ApprovalService approvalService;
 
     @Spy
     @InjectMocks
@@ -230,10 +243,7 @@ class InvIntentionServiceTest {
         // updateShopStatusToIntention 内部调用 intentionShopService.list
         when(intentionShopService.list(any(LambdaQueryWrapper.class))).thenReturn(List.of());
 
-        ApprovalCallbackDTO dto = new ApprovalCallbackDTO();
-        dto.setApproved(true);
-
-        service.handleApprovalCallback(2L, dto);
+        service.handleApprovalCallback(2L, 2, null);
 
         verify(service, times(1)).update(any());
     }
@@ -249,10 +259,7 @@ class InvIntentionServiceTest {
         doReturn(approving).when(service).getById(2L);
         doReturn(true).when(service).update(any());
 
-        ApprovalCallbackDTO dto = new ApprovalCallbackDTO();
-        dto.setApproved(false);
-
-        service.handleApprovalCallback(2L, dto);
+        service.handleApprovalCallback(2L, 3, null);
 
         verify(service, times(1)).update(any());
     }

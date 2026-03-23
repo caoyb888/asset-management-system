@@ -1,6 +1,5 @@
 package com.asset.operation.termination.service;
 
-import com.asset.operation.change.dto.ApprovalCallbackDTO;
 import com.asset.operation.termination.dto.TerminationCreateDTO;
 import com.asset.operation.termination.dto.TerminationDetailVO;
 import com.asset.operation.termination.dto.TerminationQueryDTO;
@@ -26,9 +25,9 @@ public interface OprContractTerminationService extends IService<OprContractTermi
     /** 触发清算引擎计算清算金额 */
     void calculateSettlement(Long id);
 
-    /** 提交OA审批 */
+    /** 提交审批 */
     void submitApproval(Long id);
 
     /** 审批回调（通过→执行解约/驳回→回退草稿） */
-    void onApprovalCallback(Long id, ApprovalCallbackDTO dto);
+    void handleApprovalCallback(Long id, int result, String comment);
 }

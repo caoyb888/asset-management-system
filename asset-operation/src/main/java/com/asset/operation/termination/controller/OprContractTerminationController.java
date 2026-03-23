@@ -1,7 +1,6 @@
 package com.asset.operation.termination.controller;
 
 import com.asset.common.model.R;
-import com.asset.operation.change.dto.ApprovalCallbackDTO;
 import com.asset.operation.termination.dto.TerminationCreateDTO;
 import com.asset.operation.termination.dto.TerminationDetailVO;
 import com.asset.operation.termination.dto.TerminationQueryDTO;
@@ -63,8 +62,10 @@ public class OprContractTerminationController {
 
     @Operation(summary = "审批回调（解约执行触发点）")
     @PostMapping("/{id}/approval-callback")
-    public R<?> approvalCallback(@PathVariable Long id, @RequestBody ApprovalCallbackDTO dto) {
-        terminationService.onApprovalCallback(id, dto);
+    public R<?> approvalCallback(@PathVariable Long id,
+                                 @RequestParam int result,
+                                 @RequestParam(required = false) String comment) {
+        terminationService.handleApprovalCallback(id, result, comment);
         return R.ok();
     }
 }

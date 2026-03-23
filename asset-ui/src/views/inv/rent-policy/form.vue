@@ -243,8 +243,8 @@ import {
   getPolicyIndicators, savePolicyIndicators,
   type RentPolicyVO, type PolicyIndicatorVO,
 } from '@/api/inv/rentPolicy'
-import ApprovalDialog from '@/components/inv/ApprovalDialog.vue'
-import ApprovalTimeline from '@/components/inv/ApprovalTimeline.vue'
+import ApprovalDialog from '@/components/workflow/ApprovalDialog.vue'
+import ApprovalTimeline from '@/components/workflow/ApprovalTimeline.vue'
 
 const route = useRoute()
 const router = useRouter()

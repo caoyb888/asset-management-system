@@ -26,6 +26,10 @@ mybatis-plus:
       logic-delete-value: 1
       logic-not-delete-value: 0
 
+# 审批引擎切换（mock=现有行为, flowable=走workflow服务）
+approval:
+  engine: mock
+
 logging:
   level:
     com.asset: debug

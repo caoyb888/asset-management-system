@@ -1,7 +1,8 @@
 package com.asset.operation.termination.service.impl;
 
+import com.asset.api.workflow.ApprovalService;
+import com.asset.api.workflow.dto.ApprovalSubmitDTO;
 import com.asset.common.exception.BizException;
-import com.asset.operation.change.dto.ApprovalCallbackDTO;
 import com.asset.operation.common.enums.TerminationType;
 import com.asset.operation.engine.TerminationSettlementEngine;
 import com.asset.operation.termination.dto.TerminationCreateDTO;
@@ -44,6 +45,7 @@ public class OprContractTerminationServiceImpl
     private final OprTerminationSettlementMapper settlementMapper;
     private final TerminationSettlementEngine settlementEngine;
     private final JdbcTemplate jdbcTemplate;
+    private final ApprovalService approvalService;
 
     // =========================================================================
     // 查询
@@ -213,19 +215,25 @@ public class OprContractTerminationServiceImpl
             throw new BizException("请先计算清算金额再提交审批");
         }
 
-        String mockApprovalId = "TERM-APPROVAL-" + id + "-" + System.currentTimeMillis();
+        ApprovalSubmitDTO submitDTO = new ApprovalSubmitDTO();
+        submitDTO.setBusinessType("OPR_TERMINATION");
+        submitDTO.setBusinessId(id);
+        submitDTO.setTitle("合同解约审批-" + t.getTerminationCode());
+        submitDTO.setProjectId(t.getProjectId());
+        String approvalId = approvalService.submit(submitDTO);
+
         update(new LambdaUpdateWrapper<OprContractTermination>()
                 .eq(OprContractTermination::getId, id)
                 .set(OprContractTermination::getStatus, 1)
-                .set(OprContractTermination::getApprovalId, mockApprovalId));
+                .set(OprContractTermination::getApprovalId, approvalId));
 
-        log.info("[合同解约] 已提交审批，id={}，approvalId={}", id, mockApprovalId);
+        log.info("[合同解约] 已提交审批，id={}，approvalId={}", id, approvalId);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void onApprovalCallback(Long id, ApprovalCallbackDTO dto) {
-        if (dto.getStatus() == null || (dto.getStatus() != 2 && dto.getStatus() != 3)) {
+    public void handleApprovalCallback(Long id, int result, String comment) {
+        if (result != 2 && result != 3) {
             throw new BizException("审批状态无效，必须为 2（通过）或 3（驳回）");
         }
 
@@ -233,12 +241,10 @@ public class OprContractTerminationServiceImpl
         if (t == null) throw new BizException("解约单不存在，id=" + id);
         if (t.getStatus() != 1) throw new BizException("当前状态不是审批中，无法回调");
 
-        if (dto.getStatus() == 2) {
-            // 审批通过：执行解约（引擎内部将状态改为已生效）
+        if (result == 2) {
             log.info("[合同解约] 审批通过，执行解约，id={}", id);
             settlementEngine.execute(id);
         } else {
-            // 驳回：回退为驳回状态
             update(new LambdaUpdateWrapper<OprContractTermination>()
                     .eq(OprContractTermination::getId, id)
                     .set(OprContractTermination::getStatus, 3));

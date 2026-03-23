@@ -1,6 +1,7 @@
 package com.asset.finance.receipt.service.impl;
 
-import com.asset.finance.common.adapter.OaApprovalAdapter;
+import com.asset.api.workflow.ApprovalService;
+import com.asset.api.workflow.dto.ApprovalSubmitDTO;
 import com.asset.finance.common.exception.FinBizException;
 import com.asset.finance.common.exception.FinErrorCode;
 import com.asset.finance.common.util.FinCodeGenerator;
@@ -61,7 +62,7 @@ public class FinWriteOffServiceImpl extends ServiceImpl<FinWriteOffMapper, FinWr
     private final FinPrepayAccountMapper prepayAccountMapper;
     private final FinPrepayTransactionMapper prepayTransactionMapper;
     private final FinCodeGenerator codeGenerator;
-    private final OaApprovalAdapter oaApprovalAdapter;
+    private final ApprovalService approvalService;
     private final JdbcTemplate jdbcTemplate;
 
     private static final String[] WRITE_OFF_TYPE_NAMES = {null, "收款核销", "保证金核销", "预收款核销", "负数核销"};
@@ -215,17 +216,18 @@ public class FinWriteOffServiceImpl extends ServiceImpl<FinWriteOffMapper, FinWr
             writeOffDetailMapper.insert(detail);
         }
 
-        // 6. 提交 OA 审批（非关键步骤，失败不回滚）
+        // 6. 提交审批（非关键步骤，失败不回滚）
         try {
-            String approvalId = oaApprovalAdapter.submitApproval(
-                    "FIN_WRITE_OFF",
-                    writeOff.getId(),
-                    "核销单审批-" + writeOff.getWriteOffCode()
-            );
+            ApprovalSubmitDTO submitDTO = new ApprovalSubmitDTO();
+            submitDTO.setBusinessType("FIN_WRITE_OFF");
+            submitDTO.setBusinessId(writeOff.getId());
+            submitDTO.setTitle("核销单审批-" + writeOff.getWriteOffCode());
+            submitDTO.setProjectId(writeOff.getProjectId());
+            String approvalId = approvalService.submit(submitDTO);
             writeOff.setApprovalId(approvalId);
             updateById(writeOff);
         } catch (Exception e) {
-            log.warn("[核销] OA提交失败，核销单 {} 将手动推进审批", writeOff.getWriteOffCode(), e);
+            log.warn("[核销] 审批提交失败，核销单 {} 将手动推进审批", writeOff.getWriteOffCode(), e);
         }
 
         return writeOff.getId();

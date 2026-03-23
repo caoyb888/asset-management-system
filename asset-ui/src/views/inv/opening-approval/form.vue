@@ -195,8 +195,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, Plus } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 
-import ApprovalDialog from '@/components/inv/ApprovalDialog.vue'
-import ApprovalTimeline from '@/components/inv/ApprovalTimeline.vue'
+import ApprovalDialog from '@/components/workflow/ApprovalDialog.vue'
+import ApprovalTimeline from '@/components/workflow/ApprovalTimeline.vue'
 import { getContractPage, type ContractVO } from '@/api/inv/contract'
 import {
   createOpeningApproval, updateOpeningApproval, getOpeningApprovalDetail,

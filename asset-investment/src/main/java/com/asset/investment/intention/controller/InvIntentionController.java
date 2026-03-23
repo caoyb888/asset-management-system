@@ -1,7 +1,6 @@
 package com.asset.investment.intention.controller;
 
 import com.asset.common.model.R;
-import com.asset.investment.intention.dto.ApprovalCallbackDTO;
 import com.asset.investment.intention.dto.IntentionFeeItemDTO;
 import com.asset.investment.intention.dto.IntentionFeeStageItemDTO;
 import com.asset.investment.intention.dto.IntentionQueryDTO;
@@ -167,8 +166,9 @@ public class InvIntentionController {
     @Operation(summary = "审批回调（审批中 → 通过/驳回）")
     @PostMapping("/{id}/approval-callback")
     public R<Void> approvalCallback(@PathVariable Long id,
-                                    @Valid @RequestBody ApprovalCallbackDTO dto) {
-        intentionService.handleApprovalCallback(id, dto);
+                                    @RequestParam int result,
+                                    @RequestParam(required = false) String comment) {
+        intentionService.handleApprovalCallback(id, result, comment);
         return R.ok(null);
     }
 
