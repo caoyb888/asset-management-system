@@ -110,6 +110,17 @@
 - [系统管理 — 汇总统计](#系统管理--汇总统计)
 - [系统管理 — 代码 vs 技术分析报告差异](#系统管理--代码-vs-技术分析报告差异)
 
+### 七、工作流管理（asset-workflow，端口 8010）
+
+- [工作流管理 — 状态枚举字典](#工作流管理--状态枚举字典)
+- [工作流管理 — 架构说明](#工作流管理--架构说明)
+- [56. 审批操作 /wf/approvals](#56-审批操作--wfapprovalcontroller-wfapprovals)
+- [57. 待办任务 /wf/tasks](#57-待办任务--wftaskcontroller-wftasks)
+- [58. 流程监控 /wf/processes](#58-流程监控--wfprocesscontroller-wfprocesses)
+- [59. 流程定义 /wf/definitions](#59-流程定义--wfdefinitioncontroller-wfdefinitions)
+- [工作流管理 — 数据表清单](#工作流管理--数据表清单)
+- [工作流管理 — 汇总统计](#工作流管理--汇总统计)
+
 ---
 
 ## 统一响应格式
@@ -9854,3 +9865,603 @@
 | **操作日志** | 报告设计 `@OperLog` 全接口覆盖 | 代码仅在部分重要接口标注 `@OperLog`（系统配置、在线用户管理等） |
 | **登录失败锁定** | 报告设计 sys_user.login_fail_count + lock_time 字段 | 代码使用 Redis 计数器（TTL 15 分钟自动过期），不持久化到数据库 |
 | **DataScope 调试** | 报告未提及 | 代码新增 DataScopeController（DS-01），方便运维查看当前用户权限解析结果 |
+
+---
+
+# 七、工作流管理（asset-workflow，端口 8010）
+
+> **Knife4j 分组：** 01-审批操作 / 02-待办任务 / 03-流程监控 / 04-流程定义
+> **Vite 代理：** `/api/wf/*` → `http://localhost:8010`（rewrite 去掉 `/api`）
+> **审批引擎：** 由 `approval.engine` 配置决定，`mock`（默认，自动通过）或 `flowable`（Flowable 真实引擎）
+
+---
+
+## 工作流管理 — 状态枚举字典
+
+### ProcessStatus 流程状态
+
+| code | 名称 | 说明 |
+|------|------|------|
+| 0 | 待审批 | 流程已创建但审批人尚未操作 |
+| 1 | 审批中 | 存在多级审批节点，部分已通过 |
+| 2 | 已通过 | 全部审批节点通过 |
+| 3 | 已驳回 | 审批人驳回 |
+| 4 | 已撤回 | 发起人撤回 |
+| 5 | 已作废 | 管理员强制终止 |
+
+### ApprovalAction 审批动作
+
+| code | 名称 | 说明 |
+|------|------|------|
+| 1 | 通过 | 审批人同意 |
+| 2 | 驳回 | 审批人拒绝 |
+| 3 | 转办 | 将任务转给其他用户处理 |
+| 4 | 加签 | 增加审批人 |
+| 5 | 撤回 | 发起人撤回已提交的审批 |
+| 6 | 催办 | 发起人催促当前审批人加快处理 |
+
+### ApprovalBusinessType 审批业务类型
+
+| 枚举值 | 描述 | 回调目标服务 | BPMN 流程文件 |
+|--------|------|------------|--------------|
+| INV_INTENTION | 意向协议审批 | asset-investment | inv_intention_approval.bpmn20.xml |
+| INV_OPENING | 开业审批 | asset-investment | inv_opening_approval.bpmn20.xml |
+| INV_RENT_DECOMP | 租金分解审批 | asset-investment | inv_rent_decomp_approval.bpmn20.xml |
+| OPR_CONTRACT_CHANGE | 合同变更审批 | asset-operation | opr_contract_change_approval.bpmn20.xml |
+| OPR_TERMINATION | 合同解约审批 | asset-operation | opr_termination_approval.bpmn20.xml |
+| FIN_WRITE_OFF | 核销审批 | asset-finance | fin_write_off_approval.bpmn20.xml |
+| FIN_DEDUCTION | 减免审批 | asset-finance | fin_deduction_approval.bpmn20.xml |
+| FIN_ADJUSTMENT | 调整审批 | asset-finance | fin_adjustment_approval.bpmn20.xml |
+
+---
+
+## 工作流管理 — 架构说明
+
+### 统一审批服务接口
+
+业务模块通过注入 `ApprovalService` 接口提交审批，由 `approval.engine` 配置决定具体实现：
+
+| 实现类 | 配置值 | 行为 |
+|--------|--------|------|
+| MockApprovalService | `mock`（默认） | 生成 `MOCK-{type}-{id}-{timestamp}` 的流程实例 ID，自动触发回调（result=2 通过） |
+| FlowableApprovalService | `flowable` | 调用 asset-workflow 服务启动 Flowable 引擎流程 |
+
+### 多级审批流程
+
+所有 8 个 BPMN 流程均采用统一的三级金额网关审批模式：
+
+```
+发起 → 部门领导审批 → [金额 >= 10万？] → 副总裁审批 → [金额 >= 50万？] → 总经理审批 → 结束
+                      ↓ 否                             ↓ 否
+                    结束                              结束
+```
+
+- 部门领导：`${deptLeaderId}`（流程变量指定）
+- 副总裁：`ROLE_VP`（候选组）
+- 总经理：`ROLE_GM`（候选组）
+- 金额通过 `variables.amount` 传入
+
+### 审批回调机制
+
+审批完成后，asset-workflow 通过 Feign 回调业务模块：
+
+| 业务模块 | 回调控制器 | 回调路径 |
+|----------|-----------|---------|
+| asset-investment | InvApprovalCallbackController | `/inv/approval-callback` |
+| asset-operation | OprApprovalCallbackController | `/opr/approval-callback` |
+| asset-finance | FinApprovalCallbackController | `/fin/approval-callback` |
+
+回调请求体 `ApprovalCallbackDTO`：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| processInstanceId | String | 流程实例 ID |
+| businessType | String | 业务类型枚举值 |
+| businessId | Long | 业务单据 ID |
+| result | Integer | 审批结果：2=通过，3=驳回 |
+| comment | String | 最终审批意见 |
+| approverId | Long | 审批人 ID |
+| approverName | String | 审批人姓名 |
+
+---
+
+## 56. 审批操作 — WfApprovalController `/wf/approvals`
+
+> **端点前缀编码：** WA-
+> **认证要求：** 全部需 JWT
+
+### WA-01 发起审批
+
+| 项 | 值 |
+|---|---|
+| **方法** | `POST` |
+| **路径** | `/wf/approvals/submit` |
+| **认证** | 是 |
+
+**请求体 ApprovalSubmitDTO：**
+
+| 字段 | 类型 | 必填 | 校验 | 说明 |
+|------|------|------|------|------|
+| businessType | String | **是** | @NotBlank | 业务类型（见 ApprovalBusinessType 枚举） |
+| businessId | Long | **是** | @NotNull | 业务单据 ID |
+| title | String | **是** | @NotBlank | 审批标题 |
+| initiatorId | Long | 否 | - | 发起人用户 ID（可从 SecurityContext 自动获取） |
+| initiatorName | String | 否 | - | 发起人姓名（冗余） |
+| projectId | Long | 否 | - | 所属项目 ID（数据权限过滤） |
+| priority | Integer | 否 | - | 优先级：0=普通 1=紧急 2=加急，默认 0 |
+| variables | Map\<String, Object\> | 否 | - | 扩展变量（如 `amount` 金额，供流程网关条件判断） |
+
+**响应 `R<String>`** — 返回流程实例 ID
+
+> **业务规则：**
+> 1. Mock 模式下返回 `MOCK-{type}-{id}-{timestamp}` 格式的 ID，自动异步触发通过回调
+> 2. Flowable 模式下启动 BPMN 流程实例，分配第一个审批节点任务
+> 3. variables 中的 `amount` 字段决定多级审批路径（< 10万 / 10万~50万 / ≥ 50万）
+
+---
+
+### WA-02 通过审批
+
+| 项 | 值 |
+|---|---|
+| **方法** | `POST` |
+| **路径** | `/wf/approvals/{id}/approve` |
+| **认证** | 是 |
+| **路径参数** | `id` — 流程实例 ID（wf_process_instance.id） |
+
+**请求体 ApprovalActionDTO：**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| taskId | Long | **是** | 待办任务 ID |
+| action | Integer | **是** | 审批动作（此处固定 1=通过） |
+| comment | String | 否 | 审批意见 |
+
+**响应 `R<Void>`**
+
+> **业务规则：** 通过当前节点后，若存在下一级网关且金额达到阈值，流程自动流转到下一审批人；若已是最后一个节点，标记流程为已通过并触发业务回调。
+
+---
+
+### WA-03 驳回审批
+
+| 项 | 值 |
+|---|---|
+| **方法** | `POST` |
+| **路径** | `/wf/approvals/{id}/reject` |
+| **认证** | 是 |
+| **路径参数** | `id` — 流程实例 ID |
+
+**请求体 ApprovalActionDTO（同 WA-02）**
+
+**响应 `R<Void>`**
+
+> **业务规则：** 驳回直接终止流程，标记状态为已驳回（3），触发业务回调（result=3）。
+
+---
+
+### WA-04 撤回审批
+
+| 项 | 值 |
+|---|---|
+| **方法** | `POST` |
+| **路径** | `/wf/approvals/{id}/revoke` |
+| **认证** | 是 |
+| **路径参数** | `id` — 流程实例 ID |
+
+**响应 `R<Void>`**
+
+> **业务规则：**
+> 1. 仅发起人可撤回自己发起的流程
+> 2. 仅待审批（0）或审批中（1）状态的流程可撤回
+> 3. 撤回后状态变为已撤回（4），创建 action=5 的审批记录
+
+---
+
+### WA-05 转办
+
+| 项 | 值 |
+|---|---|
+| **方法** | `POST` |
+| **路径** | `/wf/approvals/{id}/reassign` |
+| **认证** | 是 |
+| **路径参数** | `id` — 流程实例 ID |
+
+**请求体 ApprovalActionDTO：**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| taskId | Long | **是** | 待办任务 ID |
+| action | Integer | **是** | 审批动作（此处固定 3=转办） |
+| comment | String | 否 | 转办说明 |
+| reassignUserId | Long | **是** | 转办目标用户 ID |
+
+**响应 `R<Void>`**
+
+---
+
+### WA-06 查询流程详情
+
+| 项 | 值 |
+|---|---|
+| **方法** | `GET` |
+| **路径** | `/wf/approvals/{id}` |
+| **认证** | 是 |
+| **路径参数** | `id` — 流程实例 ID |
+
+**响应 `R<ProcessInstanceVO>`：**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | Long | 流程实例 ID |
+| processKey | String | 流程定义 key |
+| flowableInstanceId | String | Flowable 引擎流程实例 ID |
+| businessType | String | 业务类型 |
+| businessTypeName | String | 业务类型名称 |
+| businessId | Long | 业务单据 ID |
+| title | String | 审批标题 |
+| initiatorId | Long | 发起人 ID |
+| initiatorName | String | 发起人姓名 |
+| projectId | Long | 所属项目 ID |
+| currentAssigneeId | Long | 当前待审批人 ID |
+| currentNodeName | String | 当前审批节点名称 |
+| status | Integer | 状态（见 ProcessStatus 枚举） |
+| statusName | String | 状态名称 |
+| resultComment | String | 最终审批意见 |
+| priority | Integer | 优先级 |
+| variables | Map | 扩展变量 |
+| startedAt | LocalDateTime | 流程发起时间 |
+| finishedAt | LocalDateTime | 流程完成时间 |
+| durationMs | Long | 总耗时（毫秒） |
+| createdAt | LocalDateTime | 创建时间 |
+
+---
+
+### WA-07 查询审批记录（Timeline）
+
+| 项 | 值 |
+|---|---|
+| **方法** | `GET` |
+| **路径** | `/wf/approvals/{id}/records` |
+| **认证** | 是 |
+| **路径参数** | `id` — 流程实例 ID |
+
+**响应 `R<List<ApprovalRecordVO>>`：**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | Long | 记录 ID |
+| instanceId | Long | 关联流程实例 ID |
+| flowableTaskId | String | Flowable 任务 ID |
+| nodeName | String | 审批节点名称 |
+| nodeOrder | Integer | 节点序号（用于排序展示） |
+| approverId | Long | 审批人 ID |
+| approverName | String | 审批人姓名 |
+| action | Integer | 动作（见 ApprovalAction 枚举） |
+| actionName | String | 动作名称 |
+| comment | String | 审批意见 |
+| attachmentUrls | String | 附件 URL（JSON 数组） |
+| durationMs | Long | 该节点处理耗时（毫秒） |
+| createdAt | LocalDateTime | 操作时间 |
+
+---
+
+### WA-08 按业务单据查流程
+
+| 项 | 值 |
+|---|---|
+| **方法** | `GET` |
+| **路径** | `/wf/approvals/by-business` |
+| **认证** | 是 |
+
+**查询参数：**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| businessType | String | **是** | 业务类型枚举值 |
+| businessId | Long | **是** | 业务单据 ID |
+
+**响应 `R<ProcessInstanceVO>`** — 结构同 WA-06
+
+> **用途：** 前端业务页面通过 businessType + businessId 查询关联的审批流程，展示审批状态和 Timeline。
+
+---
+
+### WA-09 催办
+
+| 项 | 值 |
+|---|---|
+| **方法** | `POST` |
+| **路径** | `/wf/approvals/{id}/urge` |
+| **认证** | 是 |
+| **路径参数** | `id` — 流程实例 ID |
+
+**响应 `R<Void>`**
+
+> **业务规则：**
+> 1. 仅审批中（1）状态的流程可催办
+> 2. 催办后创建 action=6 的审批记录
+> 3. 后续可扩展为发送消息通知当前审批人
+
+---
+
+## 57. 待办任务 — WfTaskController `/wf/tasks`
+
+> **端点前缀编码：** WT-
+> **认证要求：** 全部需 JWT
+
+### WT-01 我的待办（分页）
+
+| 项 | 值 |
+|---|---|
+| **方法** | `GET` |
+| **路径** | `/wf/tasks/todo` |
+| **认证** | 是 |
+
+**查询参数：**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| userId | Long | **是** | 当前用户 ID |
+| businessType | String | 否 | 业务类型过滤 |
+| title | String | 否 | 审批标题模糊搜索 |
+| status | Integer | 否 | 状态过滤 |
+| projectId | Long | 否 | 所属项目 ID |
+| pageNum | int | 否 | 页码，默认 1 |
+| pageSize | int | 否 | 每页条数，默认 20 |
+
+**响应 `R<IPage<ProcessInstanceVO>>`** — 分页结构，records 为流程实例列表
+
+> **说明：** 返回当前用户作为 `currentAssigneeId` 且状态为审批中/待审批的流程实例。
+
+---
+
+### WT-02 我的已办（分页）
+
+| 项 | 值 |
+|---|---|
+| **方法** | `GET` |
+| **路径** | `/wf/tasks/done` |
+| **认证** | 是 |
+
+**查询参数（同 WT-01）**
+
+**响应 `R<IPage<ProcessInstanceVO>>`**
+
+> **说明：** 返回当前用户参与审批过（wf_approval_record.approver_id = userId）的已完成流程。
+
+---
+
+### WT-03 我发起的（分页）
+
+| 项 | 值 |
+|---|---|
+| **方法** | `GET` |
+| **路径** | `/wf/tasks/initiated` |
+| **认证** | 是 |
+
+**查询参数（同 WT-01）**
+
+**响应 `R<IPage<ProcessInstanceVO>>`**
+
+> **说明：** 返回当前用户作为 `initiatorId` 发起的所有流程实例。
+
+---
+
+### WT-04 待办数量统计（Badge）
+
+| 项 | 值 |
+|---|---|
+| **方法** | `GET` |
+| **路径** | `/wf/tasks/count` |
+| **认证** | 是 |
+
+**查询参数：**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| userId | Long | **是** | 当前用户 ID |
+
+**响应 `R<Integer>`** — 待办数量
+
+> **前端用途：** Pinia workflowStore 每 60 秒轮询此接口，更新侧边栏 Badge 显示。
+
+---
+
+## 58. 流程监控 — WfProcessController `/wf/processes`
+
+> **端点前缀编码：** WP-
+> **认证要求：** 全部需 JWT（管理员接口）
+
+### WP-01 流程实例分页查询
+
+| 项 | 值 |
+|---|---|
+| **方法** | `GET` |
+| **路径** | `/wf/processes` |
+| **认证** | 是 |
+
+**查询参数 ProcessPageQuery：**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| businessType | String | 否 | 业务类型过滤 |
+| title | String | 否 | 审批标题模糊搜索 |
+| status | Integer | 否 | 状态过滤 |
+| initiatorId | Long | 否 | 发起人 ID |
+| projectId | Long | 否 | 所属项目 ID |
+| pageNum | int | 否 | 页码，默认 1 |
+| pageSize | int | 否 | 每页条数，默认 20 |
+
+**响应 `R<IPage<ProcessInstanceVO>>`**
+
+---
+
+### WP-02 审批效率统计
+
+| 项 | 值 |
+|---|---|
+| **方法** | `GET` |
+| **路径** | `/wf/processes/statistics` |
+| **认证** | 是 |
+
+**响应 `R<Map<String, Object>>`：**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| total | Integer | 流程总数 |
+| pending | Integer | 待审批/审批中数量 |
+| approved | Integer | 已通过数量 |
+| rejected | Integer | 已驳回数量 |
+| revoked | Integer | 已撤回数量 |
+| cancelled | Integer | 已作废数量 |
+| approvalRate | Double | 通过率（已通过 / 已结束流程数） |
+| avgDurationMs | Long | 平均审批耗时（毫秒） |
+
+> **前端用途：** 审批效率报表页展示统计卡片、ECharts 饼图（状态分布）和仪表盘（通过率）。
+
+---
+
+### WP-03 作废流程（管理员强制终止）
+
+| 项 | 值 |
+|---|---|
+| **方法** | `POST` |
+| **路径** | `/wf/processes/{id}/cancel` |
+| **认证** | 是 |
+| **路径参数** | `id` — 流程实例 ID |
+
+**响应 `R<Void>`**
+
+> **业务规则：**
+> 1. 仅待审批（0）或审批中（1）状态的流程可作废
+> 2. 作废时终止 Flowable 引擎中的流程实例
+> 3. 状态变为已作废（5），resultComment 设为"管理员强制作废"
+
+---
+
+## 59. 流程定义 — WfDefinitionController `/wf/definitions`
+
+> **端点前缀编码：** WD-
+> **认证要求：** 全部需 JWT（管理员接口）
+
+### WD-01 查询流程定义列表
+
+| 项 | 值 |
+|---|---|
+| **方法** | `GET` |
+| **路径** | `/wf/definitions` |
+| **认证** | 是 |
+
+**响应 `R<List<WfProcessDefinition>>`：**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | Long | 主键 |
+| processKey | String | 流程 key（与 BPMN process id 对应） |
+| processName | String | 流程名称 |
+| businessType | String | 对应业务类型枚举 |
+| bpmnXml | String | BPMN 2.0 XML 定义 |
+| approverStrategy | String | 审批人策略：ROLE / DEPT_LEADER / SPECIFIC_USER / INITIATOR_LEADER |
+| approverConfig | String | 策略参数 JSON |
+| isEnabled | Integer | 是否启用：0=禁用 1=启用 |
+| version | Integer | 版本号（乐观锁） |
+| createdBy | String | 创建人 |
+| createdAt | LocalDateTime | 创建时间 |
+| updatedBy | String | 更新人 |
+| updatedAt | LocalDateTime | 更新时间 |
+
+> **排序：** 按 processKey 升序
+
+---
+
+### WD-02 新增/更新流程定义
+
+| 项 | 值 |
+|---|---|
+| **方法** | `POST` |
+| **路径** | `/wf/definitions` |
+| **认证** | 是 |
+
+**请求体 WfProcessDefinition：**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| id | Long | 否 | 为空时新增，非空时更新 |
+| processKey | String | **是** | 流程 key（唯一约束 uk_key） |
+| processName | String | **是** | 流程名称 |
+| businessType | String | **是** | 业务类型枚举值 |
+| approverStrategy | String | **是** | 审批人策略 |
+| approverConfig | String | 否 | 策略参数 JSON |
+| bpmnXml | String | 否 | BPMN 2.0 XML 定义 |
+| isEnabled | Integer | 否 | 是否启用，默认 1 |
+
+**响应 `R<Long>`** — 返回流程定义 ID
+
+---
+
+### WD-03 启用/禁用流程定义
+
+| 项 | 值 |
+|---|---|
+| **方法** | `PUT` |
+| **路径** | `/wf/definitions/{id}/toggle` |
+| **认证** | 是 |
+| **路径参数** | `id` — 流程定义 ID |
+
+**响应 `R<Void>`**
+
+> **业务规则：** 切换 isEnabled（1→0 或 0→1），禁用后该业务类型的审批将无法发起。
+
+---
+
+### WD-04 预览 BPMN 流程图 XML
+
+| 项 | 值 |
+|---|---|
+| **方法** | `GET` |
+| **路径** | `/wf/definitions/{key}/preview` |
+| **认证** | 是 |
+| **路径参数** | `key` — 流程定义 processKey（如 `OPR_CONTRACT_CHANGE`） |
+
+**响应 `R<String>`** — BPMN 2.0 XML 字符串
+
+> **前端用途：** 前端 BpmnViewer 组件接收 XML，优先使用 bpmn-js 渲染，降级为 DOM 解析可视化节点流。
+
+---
+
+## 工作流管理 — 数据表清单
+
+| 表名 | 说明 | 关键字段 |
+|------|------|---------|
+| wf_process_definition | 流程定义配置表 | process_key(UK), business_type, approver_strategy, bpmn_xml, is_enabled |
+| wf_process_instance | 流程实例表 | process_key, flowable_instance_id, business_type+business_id(UK), initiator_id, current_assignee_id, status |
+| wf_approval_record | 审批操作记录表 | instance_id(FK), approver_id, action, node_name, node_order, comment |
+| ACT_* / FLW_* | Flowable 引擎自动建表（约40张） | 由 Flowable 管理，应用层不直接操作 |
+
+> **初始化脚本：** `sql/workflow_init.sql`（3张业务表 + 8条种子数据）
+> **Flowable 表：** 首次启动 asset-workflow 时自动创建（`flowable.database-schema-update: true`）
+
+---
+
+## 工作流管理 — 汇总统计
+
+| 维度 | 数量 |
+|------|------|
+| 控制器 | 4个（WfApprovalController / WfTaskController / WfProcessController / WfDefinitionController） |
+| API 端点 | 17个（WA-01~09 + WT-01~04 + WP-01~03 + WD-01~04） |
+| 业务表 | 3张（wf_process_definition / wf_process_instance / wf_approval_record） |
+| 实体类 | 3个 |
+| DTO/VO | 7个（ApprovalSubmitDTO / ApprovalActionDTO / ApprovalCallbackDTO / ApprovalRecordVO / ProcessInstanceVO / ProcessPageQuery / TaskPageQuery） |
+| 枚举 | 3个（ProcessStatus / ApprovalAction / ApprovalBusinessType） |
+| BPMN 流程文件 | 8个（对应 8 种业务类型） |
+| 种子数据 | 8条流程定义 |
+
+| 控制器 | 路径前缀 | 端点数 |
+|--------|---------|--------|
+| WfApprovalController | /wf/approvals | 9 |
+| WfTaskController | /wf/tasks | 4 |
+| WfProcessController | /wf/processes | 3 |
+| WfDefinitionController | /wf/definitions | 4 |
+
+> **注：** 业务模块（招商/营运/财务）各有 1 个回调控制器（InvApprovalCallbackController / OprApprovalCallbackController / FinApprovalCallbackController），接收 asset-workflow 的审批结果回调，不对外暴露，属于服务间内部通信。
