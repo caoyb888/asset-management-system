@@ -2,6 +2,7 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import NProgress from 'nprogress'
 import { getToken } from '@/utils/auth'
 import { useUserStore } from '@/store/modules/user'
+import { useAppStore } from '@/store/modules/app'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -525,8 +526,10 @@ router.beforeEach(async (to, _from, next) => {
 
 router.afterEach((to) => {
   NProgress.done()
-  if (to.meta?.title) {
-    document.title = `${to.meta.title} - 资产管理系统`
+  const title = to.meta?.title as string | undefined
+  if (title) {
+    document.title = `${title} - 资产管理系统`
+    useAppStore().setPageTitle(title)
   }
 })
 
