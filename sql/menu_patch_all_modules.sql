@@ -189,17 +189,19 @@ INSERT IGNORE INTO sys_menu (id, parent_id, menu_name, menu_type, path, componen
 
 -- ============================================================
 -- 7. 系统管理 - 补全缺失菜单项
---    （100-107 已在 system_init.sql 中存在，补充 108-113）
+--    （100-107 已在 system_init.sql 中存在，补充 108-110, 180, 185, 186）
+-- ID 规划说明：
+--   111-183 已被基础数据管理按钮占用，故系统管理补充菜单改用：
+--   180=系统配置, 185=扩展字段, 186=在线用户
 -- ============================================================
 INSERT IGNORE INTO sys_menu (id, parent_id, menu_name, menu_type, path, component, perms, icon, sort_order) VALUES
-(108, 100, '编码规则',   'C', '/sys/code-rules',    'sys/code/index',       'sys:codeRule:list',    'Tickets',      8),
-(109, 100, '分类管理',   'C', '/sys/categories',   'sys/category/index',   'sys:category:list',    'FolderOpened', 9),
-(110, 100, '租费算法',   'C', '/sys/fee-algorithms','sys/algorithm/index',  'sys:algorithm:list',   'Coin',         10),
--- 注意：180/185/186 避开了 基础数据管理按钮 id 段（111-183）
-(180, 100, '系统配置',   'C', '/sys/config',        'sys/config/index',     'sys:config:list',      'Setting',      11),
-(185, 100, '扩展字段',   'C', '/sys/ext-fields',    'sys/ext-field/index',  'sys:extField:list',    'Setting',      12),
-(186, 100, '在线用户',   'C', '/sys/online',         'sys/online/index',     'sys:online:list',      'Monitor',      13),
--- 按钮权限
+(108, 100, '编码规则', 'C', '/sys/code-rules',     'sys/code/index',      'sys:codeRule:list',    'Tickets',      8),
+(109, 100, '分类管理', 'C', '/sys/categories',     'sys/category/index',  'sys:category:list',    'FolderOpened', 9),
+(110, 100, '租费算法', 'C', '/sys/fee-algorithms', 'sys/algorithm/index', 'sys:algorithm:list',   'Coin',         10),
+(180, 100, '系统配置', 'C', '/sys/config',          'sys/config/index',    'sys:config:list',      'Setting',      11),
+(185, 100, '扩展字段', 'C', '/sys/ext-fields',      'sys/ext-field/index', 'sys:extField:list',    'Setting',      12),
+(186, 100, '在线用户', 'C', '/sys/online',           'sys/online/index',    'sys:online:list',      'Monitor',      13),
+-- 按钮权限（父ID对应上方菜单ID）
 (1081, 108, '新增规则', 'F', '', '', 'sys:codeRule:create',  '', 1),
 (1082, 108, '编辑规则', 'F', '', '', 'sys:codeRule:update',  '', 2),
 (1083, 108, '删除规则', 'F', '', '', 'sys:codeRule:delete',  '', 3),
