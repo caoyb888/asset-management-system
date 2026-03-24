@@ -85,6 +85,7 @@ declare module 'vue' {
     ExtFieldColumns: typeof import('./src/components/ExtFieldColumns.vue')['default']
     ExtFieldRenderer: typeof import('./src/components/ExtFieldRenderer.vue')['default']
     FeeItemSelector: typeof import('./src/components/inv/FeeItemSelector.vue')['default']
+    FlowNodeDesigner: typeof import('./src/components/workflow/FlowNodeDesigner.vue')['default']
     MetricCard: typeof import('./src/components/rpt/MetricCard.vue')['default']
     ReceivableCalendar: typeof import('./src/components/opr/ReceivableCalendar.vue')['default']
     RentSchemeSelector: typeof import('./src/components/inv/RentSchemeSelector.vue')['default']
