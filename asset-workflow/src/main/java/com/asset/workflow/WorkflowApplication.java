@@ -7,7 +7,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 
 @SpringBootApplication(scanBasePackages = "com.asset")
 @EnableDiscoveryClient
-@EnableFeignClients(basePackages = "com.asset.api.workflow.client")
+@EnableFeignClients(basePackages = {"com.asset.api.workflow.client", "com.asset.workflow.feign"})
 public class WorkflowApplication {
     public static void main(String[] args) {
         SpringApplication.run(WorkflowApplication.class, args);

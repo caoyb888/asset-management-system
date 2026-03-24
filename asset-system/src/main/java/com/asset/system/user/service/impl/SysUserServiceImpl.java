@@ -333,4 +333,14 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
 
         return vo;
     }
+
+    @Override
+    public Long getDeptLeaderId(Long userId) {
+        SysUser user = getById(userId);
+        if (user == null || user.getDeptId() == null) {
+            return null;
+        }
+        SysDept dept = deptMapper.selectById(user.getDeptId());
+        return dept != null ? dept.getLeaderId() : null;
+    }
 }

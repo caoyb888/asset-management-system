@@ -47,6 +47,7 @@ public class WorkflowApprovalServiceImpl implements WorkflowApprovalService {
     private final ApprovalCallbackDispatcher callbackDispatcher;
     private final WfProcessInstanceServiceImpl instanceServiceImpl;
     private final ObjectMapper objectMapper;
+    private final ApproverResolveService approverResolveService;
 
     // ==================== 发起审批 ====================
 
@@ -71,6 +72,8 @@ public class WorkflowApprovalServiceImpl implements WorkflowApprovalService {
         if (dto.getVariables() != null) {
             variables.putAll(dto.getVariables());
         }
+        // 自动解析审批人（DEPT_LEADER / INITIATOR_LEADER 策略）
+        approverResolveService.resolveAndFill(dto.getInitiatorId(), variables);
         ProcessInstance processInstance = runtimeService.startProcessInstanceByKey(
                 def.getProcessKey(), dto.getBusinessType() + ":" + dto.getBusinessId(), variables);
 

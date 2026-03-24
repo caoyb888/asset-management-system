@@ -13,6 +13,7 @@ public class DeptTreeVO {
     private String deptCode;
     private Integer sortOrder;
     private String leader;
+    private Long leaderId;
     private Integer status;
     private List<DeptTreeVO> children;
 }

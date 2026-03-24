@@ -89,6 +89,7 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept>
         dept.setDeptCode(dto.getDeptCode());
         dept.setSortOrder(dto.getSortOrder() != null ? dto.getSortOrder() : 0);
         dept.setLeader(dto.getLeader());
+        dept.setLeaderId(dto.getLeaderId());
         dept.setPhone(dto.getPhone());
         dept.setEmail(dto.getEmail());
         dept.setStatus(dto.getStatus() != null ? dto.getStatus() : 1);
@@ -113,6 +114,7 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept>
                 .set(dto.getDeptCode() != null, SysDept::getDeptCode, dto.getDeptCode())
                 .set(dto.getSortOrder() != null, SysDept::getSortOrder, dto.getSortOrder())
                 .set(dto.getLeader() != null, SysDept::getLeader, dto.getLeader())
+                .set(dto.getLeaderId() != null, SysDept::getLeaderId, dto.getLeaderId())
                 .set(dto.getPhone() != null, SysDept::getPhone, dto.getPhone())
                 .set(dto.getEmail() != null, SysDept::getEmail, dto.getEmail())
                 .set(dto.getStatus() != null, SysDept::getStatus, dto.getStatus());
@@ -254,6 +256,7 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept>
         vo.setDeptCode(dept.getDeptCode());
         vo.setSortOrder(dept.getSortOrder());
         vo.setLeader(dept.getLeader());
+        vo.setLeaderId(dept.getLeaderId());
         vo.setStatus(dept.getStatus());
         return vo;
     }

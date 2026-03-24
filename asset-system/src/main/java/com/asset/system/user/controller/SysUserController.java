@@ -99,4 +99,12 @@ public class SysUserController {
     public R<?> forceOffline(@PathVariable Long id) {
         userService.forceOffline(id); return R.ok();
     }
+
+    // ─── 审批人解析（内部接口，供工作流模块调用） ───────────────────────────────
+
+    @Operation(summary = "获取用户所在部门的负责人用户ID（工作流审批人解析）")
+    @GetMapping("/{id}/dept-leader-id")
+    public R<?> getDeptLeaderId(@PathVariable Long id) {
+        return R.ok(userService.getDeptLeaderId(id));
+    }
 }

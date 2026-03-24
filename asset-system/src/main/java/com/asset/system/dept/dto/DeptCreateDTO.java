@@ -13,6 +13,7 @@ public class DeptCreateDTO {
     private String deptCode;
     private Integer sortOrder;
     private String leader;
+    private Long leaderId;
     private String phone;
     private String email;
     private Integer status;

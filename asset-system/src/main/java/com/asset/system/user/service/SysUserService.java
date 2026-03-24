@@ -50,4 +50,11 @@ public interface SysUserService extends IService<SysUser> {
 
     /** 强制下线（清除 Redis 中的 refresh token） */
     void forceOffline(Long userId);
+
+    /**
+     * 获取指定用户所在部门的负责人用户ID（用于审批人自动解析）
+     *
+     * @return 部门负责人 userId，若部门未配置则返回 null
+     */
+    Long getDeptLeaderId(Long userId);
 }

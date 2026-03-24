@@ -29,8 +29,11 @@ public class SysDept extends BaseEntity {
     /** 排序 */
     private Integer sortOrder;
 
-    /** 负责人 */
+    /** 负责人姓名 */
     private String leader;
+
+    /** 负责人用户ID（关联 sys_user.id，用于审批人解析） */
+    private Long leaderId;
 
     /** 联系电话 */
     private String phone;
