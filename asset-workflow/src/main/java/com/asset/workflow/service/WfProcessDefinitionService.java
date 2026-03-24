@@ -34,4 +34,14 @@ public interface WfProcessDefinitionService extends IService<WfProcessDefinition
      * WD-06 根据节点配置预览生成的 BPMN XML（不保存）
      */
     String previewBpmn(String processKey, String processName, List<NodeConfigDTO> nodeConfigs);
+
+    /**
+     * WD-07 手动触发流程重新部署到 Flowable 引擎
+     * <p>
+     * 适用场景：热部署失败后管理员手动重试，或引擎重启后强制同步最新 XML
+     *
+     * @param id 流程定义 ID
+     * @return Flowable 部署 ID
+     */
+    String redeployById(Long id);
 }

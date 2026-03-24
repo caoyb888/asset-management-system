@@ -70,4 +70,11 @@ public class WfDefinitionController {
                 dto.getProcessKey(), dto.getProcessName(), dto.getNodeConfigs());
         return R.ok(xml);
     }
+
+    @Operation(summary = "WD-07 手动重新部署到 Flowable 引擎（部署失败后重试）")
+    @PostMapping("/{id}/redeploy")
+    public R<?> redeploy(@PathVariable Long id) {
+        String deploymentId = definitionService.redeployById(id);
+        return R.ok(deploymentId);
+    }
 }
