@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.asset.workflow.mapper.WfNodeConfigMapper">
+
+    <resultMap id="BaseResultMap" type="com.asset.workflow.entity.WfNodeConfig">
+        <id     column="id"               property="id"/>
+        <result column="definition_id"    property="definitionId"/>
+        <result column="node_id"          property="nodeId"/>
+        <result column="node_type"        property="nodeType"/>
+        <result column="node_name"        property="nodeName"/>
+        <result column="node_order"       property="nodeOrder"/>
+        <result column="approver_strategy" property="approverStrategy"/>
+        <result column="role_code"        property="roleCode"/>
+        <result column="user_id"          property="userId"/>
+        <result column="timeout_hours"    property="timeoutHours"/>
+        <result column="condition_type"   property="conditionType"/>
+        <result column="condition_op"     property="conditionOp"/>
+        <result column="condition_value"  property="conditionValue"/>
+        <result column="condition_expr"   property="conditionExpr"/>
+        <result column="remark"           property="remark"/>
+        <result column="created_by"       property="createdBy"/>
+        <result column="created_at"       property="createdAt"/>
+        <result column="updated_by"       property="updatedBy"/>
+        <result column="updated_at"       property="updatedAt"/>
+        <result column="is_deleted"       property="isDeleted"/>
+    </resultMap>
+
+    <!-- 按 definition_id 查询节点列表，按 node_order 升序 -->
+    <select id="selectByDefinitionId" resultMap="BaseResultMap">
+        SELECT *
+        FROM wf_node_config
+        WHERE definition_id = #{definitionId}
+          AND is_deleted = 0
+        ORDER BY node_order ASC
+    </select>
+
+    <!-- 按 definition_id 逻辑删除所有节点 -->
+    <update id="deleteByDefinitionId">
+        UPDATE wf_node_config
+        SET is_deleted = 1
+        WHERE definition_id = #{definitionId}
+          AND is_deleted = 0
+    </update>
+
+</mapper>
