@@ -80,7 +80,7 @@
         <!-- 审批链路配置（Tab 切换） -->
         <el-form-item label="审批链路">
           <div style="width: 100%">
-            <el-tabs v-model="editDialog.configMode" type="border-card" style="width: 100%">
+            <el-tabs v-model="editDialog.configMode" type="border-card" style="width: 100%" @tab-change="handleTabChange">
               <!-- 可视化模式 -->
               <el-tab-pane label="可视化配置" name="visual">
                 <div style="padding: 8px 0">
@@ -102,16 +102,22 @@
 
               <!-- XML 源码模式 -->
               <el-tab-pane label="XML 源码" name="xml">
-                <el-input
-                  v-model="editDialog.form.bpmnXml"
-                  type="textarea"
-                  :rows="10"
-                  placeholder="粘贴 BPMN 2.0 XML 定义（将覆盖可视化配置）"
-                  style="font-family: monospace; font-size: 12px"
-                />
-                <div style="margin-top: 6px; color: var(--el-text-color-secondary); font-size: 12px">
-                  提示：直接输入 XML 时，可视化配置将被忽略，以此处内容为准。
+                <div v-if="xmlGenerating" style="padding: 40px 0; text-align: center; color: var(--el-text-color-secondary)">
+                  <el-icon class="is-loading" style="font-size: 20px"><Loading /></el-icon>
+                  <div style="margin-top: 8px; font-size: 13px">正在根据可视化配置生成 BPMN XML…</div>
                 </div>
+                <template v-else>
+                  <el-input
+                    v-model="editDialog.form.bpmnXml"
+                    type="textarea"
+                    :rows="12"
+                    placeholder="粘贴 BPMN 2.0 XML 定义，或切换到「可视化配置」Tab 后再切回此处自动生成"
+                    style="font-family: monospace; font-size: 12px"
+                  />
+                  <div style="margin-top: 6px; color: var(--el-text-color-secondary); font-size: 12px">
+                    提示：手动修改此处 XML 后保存时将以 XML 内容为准，忽略可视化配置。
+                  </div>
+                </template>
               </el-tab-pane>
             </el-tabs>
           </div>
@@ -139,7 +145,8 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import type { FormInstance, FormRules } from 'element-plus'
+import { Loading } from '@element-plus/icons-vue'
+import type { FormInstance, FormRules, TabPaneName } from 'element-plus'
 import {
   listDefinitions,
   saveDefinition,
@@ -301,6 +308,30 @@ const previewDialog = reactive({
 })
 
 const previewLoading = ref(false)
+const xmlGenerating = ref(false)
+
+/**
+ * Tab 切换处理：从"可视化配置"切到"XML 源码"时，
+ * 若当前有节点配置则自动调用 previewBpmnByNodes 生成 XML 填入 textarea。
+ */
+async function handleTabChange(tabName: TabPaneName) {
+  if (tabName !== 'xml') return
+  const { processKey, processName, nodeConfigs } = editDialog.form
+  const coreNodes = nodeConfigs.filter(n => n.nodeType !== 'START' && n.nodeType !== 'END')
+  if (!processKey || coreNodes.length === 0) return
+
+  xmlGenerating.value = true
+  try {
+    const xml = await previewBpmnByNodes({ processKey, processName, nodeConfigs })
+    if (xml) {
+      editDialog.form.bpmnXml = xml
+    }
+  } catch {
+    // 生成失败时保留原有 XML，不覆盖
+  } finally {
+    xmlGenerating.value = false
+  }
+}
 
 async function handlePreview(row: WfProcessDefinition) {
   previewDialog.processName = row.processName

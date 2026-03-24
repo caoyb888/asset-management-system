@@ -32,7 +32,7 @@
             :class="[`node-type-${node.nodeType.toLowerCase()}`, { selected: selectedId === node.nodeId }]"
             @click.stop="selectedId = node.nodeId"
           >
-            <!-- 卡片头部 -->
+            <!-- 卡片头部：图标 + 节点名 -->
             <div class="node-card-header">
               <el-icon class="node-icon"><component :is="nodeIcon(node.nodeType)" /></el-icon>
               <input
@@ -44,20 +44,21 @@
               />
             </div>
 
-            <!-- 卡片体：各节点类型专属配置 -->
+            <!-- 卡片体：节点类型专属配置 -->
             <div class="node-card-body">
-              <!-- START：展示提示 -->
+              <!-- START -->
               <template v-if="node.nodeType === 'START'">
                 <div class="node-hint">流程发起</div>
               </template>
 
-              <!-- END：展示提示 -->
+              <!-- END -->
               <template v-else-if="node.nodeType === 'END'">
                 <div class="node-hint">流程结束</div>
               </template>
 
-              <!-- APPROVER：审批人配置 -->
+              <!-- APPROVER -->
               <template v-else-if="node.nodeType === 'APPROVER'">
+                <!-- 审批策略 -->
                 <el-select
                   v-model="node.approverStrategy"
                   size="small"
@@ -74,27 +75,50 @@
                   />
                 </el-select>
 
-                <!-- 指定角色 -->
-                <el-input
+                <!-- ROLE → 角色下拉（从系统加载） -->
+                <el-select
                   v-if="node.approverStrategy === 'ROLE'"
                   v-model="node.roleCode"
                   size="small"
-                  placeholder="角色编码，如 ROLE_VP"
-                  style="margin-top: 4px"
+                  placeholder="选择角色"
+                  filterable
+                  style="width: 100%; margin-top: 4px"
                   @change="emit('update:modelValue', exportNodes())"
                   @click.stop
-                />
+                  @visible-change="(v: boolean) => v && loadRoles()"
+                >
+                  <el-option
+                    v-for="r in roleOptions"
+                    :key="r.roleCode"
+                    :label="r.roleName"
+                    :value="r.roleCode"
+                  >
+                    <span>{{ r.roleName }}</span>
+                    <span style="color: var(--el-text-color-placeholder); font-size: 11px; margin-left: 6px">{{ r.roleCode }}</span>
+                  </el-option>
+                </el-select>
 
-                <!-- 指定用户 -->
-                <el-input
+                <!-- SPECIFIC_USER → 用户远程搜索 -->
+                <el-select
                   v-if="node.approverStrategy === 'SPECIFIC_USER'"
-                  v-model="node.userDisplayName"
+                  v-model="node.userId"
                   size="small"
-                  placeholder="用户ID（数字）"
-                  style="margin-top: 4px"
-                  @change="onUserIdChange(node); emit('update:modelValue', exportNodes())"
+                  placeholder="搜索用户姓名"
+                  filterable
+                  remote
+                  :remote-method="(q: string) => searchUsers(q, node)"
+                  :loading="userSearchLoading"
+                  style="width: 100%; margin-top: 4px"
+                  @change="onUserSelect(node); emit('update:modelValue', exportNodes())"
                   @click.stop
-                />
+                >
+                  <el-option
+                    v-for="u in userOptions"
+                    :key="u.id"
+                    :label="`${u.realName}（${u.username}）`"
+                    :value="u.id"
+                  />
+                </el-select>
 
                 <!-- 超时小时 -->
                 <el-input-number
@@ -111,7 +135,7 @@
                 />
               </template>
 
-              <!-- CONDITION：条件配置 -->
+              <!-- CONDITION -->
               <template v-else-if="node.nodeType === 'CONDITION'">
                 <el-select
                   v-model="node.conditionType"
@@ -125,7 +149,7 @@
                   <el-option value="CUSTOM" label="自定义 EL 表达式" />
                 </el-select>
 
-                <!-- 金额条件 -->
+                <!-- AMOUNT: 运算符 + 阈值 -->
                 <template v-if="node.conditionType === 'AMOUNT'">
                   <el-select
                     v-model="node.conditionOp"
@@ -147,7 +171,7 @@
                     size="small"
                     :min="0"
                     :precision="2"
-                    placeholder="金额阈值"
+                    placeholder="金额阈值（元）"
                     controls-position="right"
                     style="width: 100%; margin-top: 4px"
                     @change="emit('update:modelValue', exportNodes())"
@@ -155,7 +179,7 @@
                   />
                 </template>
 
-                <!-- 自定义 EL -->
+                <!-- CUSTOM: EL 表达式 -->
                 <el-input
                   v-else-if="node.conditionType === 'CUSTOM'"
                   v-model="node.conditionExpr"
@@ -170,11 +194,11 @@
               </template>
             </div>
 
-            <!-- 节点序号徽章 -->
+            <!-- 序号徽章 -->
             <div class="node-order-badge">{{ nodeOrderLabel(node) }}</div>
           </div>
 
-          <!-- 箭头连接线（最后一个节点后不显示） -->
+          <!-- 箭头连接线 -->
           <div v-if="idx < sortedNodes.length - 1" class="node-arrow">
             <el-icon><ArrowRight /></el-icon>
           </div>
@@ -191,54 +215,83 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { Plus, Filter, Delete, ArrowRight, UserFilled, SetUp, CircleCheckFilled, Edit } from '@element-plus/icons-vue'
+import {
+  Plus, Filter, Delete, ArrowRight,
+  UserFilled, SetUp, CircleCheckFilled, Edit,
+} from '@element-plus/icons-vue'
 import {
   type NodeConfigDTO,
   APPROVER_STRATEGY_OPTIONS,
   CONDITION_OP_OPTIONS,
 } from '@/api/workflow/definition'
+import { roleApi, type SysRole } from '@/api/sys/role'
+import { userApi, type UserDetailVO } from '@/api/sys/user'
 
 // ─── Props & Emits ────────────────────────────────────────
 
-const props = defineProps<{
-  modelValue: NodeConfigDTO[]
-}>()
-
-const emit = defineEmits<{
-  (e: 'update:modelValue', nodes: NodeConfigDTO[]): void
-}>()
+const props = defineProps<{ modelValue: NodeConfigDTO[] }>()
+const emit = defineEmits<{ (e: 'update:modelValue', nodes: NodeConfigDTO[]): void }>()
 
 // ─── 内部状态 ──────────────────────────────────────────────
 
-/** 内部节点列表（含 START/END） */
 const nodes = ref<NodeConfigDTO[]>([])
-/** 当前选中节点 ID */
 const selectedId = ref('')
 
-/** 已按 nodeOrder 排序的节点 */
 const sortedNodes = computed(() =>
   [...nodes.value].sort((a, b) => a.nodeOrder - b.nodeOrder),
 )
-
-/** 非 START/END 的核心节点（用于统计） */
 const coreNodes = computed(() =>
   nodes.value.filter(n => n.nodeType !== 'START' && n.nodeType !== 'END'),
 )
-
-/** 是否可删除（选中节点存在且不是 START/END） */
 const canDelete = computed(() => {
   const node = nodes.value.find(n => n.nodeId === selectedId.value)
   return !!node && node.nodeType !== 'START' && node.nodeType !== 'END'
 })
 
+// ─── 角色 & 用户数据源 ─────────────────────────────────────
+
+const roleOptions = ref<SysRole[]>([])
+const rolesLoaded = ref(false)
+const userOptions = ref<UserDetailVO[]>([])
+const userSearchLoading = ref(false)
+
+async function loadRoles() {
+  if (rolesLoaded.value) return
+  try {
+    const res = await roleApi.dropdown() as any
+    roleOptions.value = (Array.isArray(res) ? res : (res?.records ?? [])).filter(
+      (r: SysRole) => r.status === 1,
+    )
+    rolesLoaded.value = true
+  } catch {
+    // 加载失败不阻断用户操作
+  }
+}
+
+async function searchUsers(keyword: string, _node: NodeConfigDTO) {
+  if (!keyword.trim()) return
+  userSearchLoading.value = true
+  try {
+    const res = await userApi.page({ realName: keyword, pageSize: 20 }) as any
+    userOptions.value = res?.records ?? []
+  } catch {
+    userOptions.value = []
+  } finally {
+    userSearchLoading.value = false
+  }
+}
+
+function onUserSelect(node: NodeConfigDTO) {
+  const found = userOptions.value.find(u => u.id === node.userId)
+  node.userDisplayName = found ? `${found.realName}（${found.username}）` : String(node.userId)
+}
+
 // ─── 初始化 & 同步 ─────────────────────────────────────────
 
-/** 从外部 modelValue 初始化节点 */
 function initFromProps(vals: NodeConfigDTO[]) {
   if (vals.length === 0) {
     nodes.value = [makeStart(), makeEnd()]
   } else {
-    // 深拷贝，避免直接改 props
     nodes.value = vals.map(n => ({ ...n }))
     ensureStartEnd()
   }
@@ -247,7 +300,6 @@ function initFromProps(vals: NodeConfigDTO[]) {
 watch(
   () => props.modelValue,
   (vals) => {
-    // 仅当外部有实质变化时才重置（避免循环触发）
     if (JSON.stringify(vals) !== JSON.stringify(exportNodes())) {
       initFromProps(vals)
     }
@@ -260,7 +312,6 @@ watch(
 function addNode(type: 'APPROVER' | 'CONDITION') {
   const id = `node_${Date.now()}`
   const insertAfterOrder = insertPosition()
-  // 把插入位置之后的核心节点后移一位
   nodes.value
     .filter(n => n.nodeType !== 'START' && n.nodeType !== 'END' && n.nodeOrder > insertAfterOrder)
     .forEach(n => n.nodeOrder++)
@@ -287,22 +338,17 @@ function deleteSelected() {
   emit('update:modelValue', exportNodes())
 }
 
-/** 计算新节点应插在哪个 order 之后 */
 function insertPosition(): number {
   if (!selectedId.value) {
-    // 没有选中：插在 END 之前（即最后一个核心节点之后）
-    const maxCoreOrder = Math.max(0, ...coreNodes.value.map(n => n.nodeOrder))
-    return maxCoreOrder
+    return Math.max(0, ...coreNodes.value.map(n => n.nodeOrder))
   }
   const sel = nodes.value.find(n => n.nodeId === selectedId.value)
   if (!sel || sel.nodeType === 'END') {
-    const maxCoreOrder = Math.max(0, ...coreNodes.value.map(n => n.nodeOrder))
-    return maxCoreOrder
+    return Math.max(0, ...coreNodes.value.map(n => n.nodeOrder))
   }
   return sel.nodeOrder
 }
 
-/** 重新对核心节点排序（order 1..N） */
 function reorderCore() {
   const core = nodes.value
     .filter(n => n.nodeType !== 'START' && n.nodeType !== 'END')
@@ -310,14 +356,9 @@ function reorderCore() {
   core.forEach((n, i) => (n.nodeOrder = i + 1))
 }
 
-/** 确保 START(0) / END(99) 存在 */
 function ensureStartEnd() {
-  if (!nodes.value.find(n => n.nodeType === 'START')) {
-    nodes.value.unshift(makeStart())
-  }
-  if (!nodes.value.find(n => n.nodeType === 'END')) {
-    nodes.value.push(makeEnd())
-  }
+  if (!nodes.value.find(n => n.nodeType === 'START')) nodes.value.unshift(makeStart())
+  if (!nodes.value.find(n => n.nodeType === 'END')) nodes.value.push(makeEnd())
 }
 
 function makeStart(): NodeConfigDTO {
@@ -350,7 +391,7 @@ function exportNodes(): NodeConfigDTO[] {
   })
 }
 
-// ─── 事件处理 ──────────────────────────────────────────────
+// ─── 策略切换清空无关字段 ─────────────────────────────────
 
 function onStrategyChange(node: NodeConfigDTO) {
   node.roleCode = undefined
@@ -358,23 +399,17 @@ function onStrategyChange(node: NodeConfigDTO) {
   node.userDisplayName = undefined
 }
 
-function onUserIdChange(node: NodeConfigDTO) {
-  const num = Number(node.userDisplayName)
-  node.userId = isNaN(num) ? undefined : num
-}
-
 // ─── 展示辅助 ──────────────────────────────────────────────
 
 function nodeIcon(type: string) {
   switch (type) {
     case 'START': return CircleCheckFilled
-    case 'END': return CircleCheckFilled
+    case 'END':   return CircleCheckFilled
     case 'APPROVER': return UserFilled
     case 'CONDITION': return SetUp
     default: return Edit
   }
 }
-
 function nodeOrderLabel(node: NodeConfigDTO): string {
   if (node.nodeType === 'START') return 'S'
   if (node.nodeType === 'END') return 'E'
@@ -404,10 +439,7 @@ function nodeOrderLabel(node: NodeConfigDTO): string {
   color: var(--el-text-color-secondary);
   font-weight: 500;
 }
-.toolbar-actions {
-  display: flex;
-  gap: 8px;
-}
+.toolbar-actions { display: flex; gap: 8px; }
 
 /* ── 画布 ── */
 .designer-canvas {
@@ -418,7 +450,6 @@ function nodeOrderLabel(node: NodeConfigDTO): string {
 .node-row {
   display: flex;
   align-items: center;
-  gap: 0;
   width: max-content;
   min-width: 100%;
 }
@@ -436,7 +467,7 @@ function nodeOrderLabel(node: NodeConfigDTO): string {
 /* ── 节点卡片通用 ── */
 .node-card {
   position: relative;
-  width: 168px;
+  width: 172px;
   flex-shrink: 0;
   border-radius: 8px;
   border: 2px solid transparent;
@@ -446,22 +477,18 @@ function nodeOrderLabel(node: NodeConfigDTO): string {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   user-select: none;
 }
-.node-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
-}
-.node-card.selected {
-  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.25);
-}
+.node-card:hover { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14); }
 
-/* ── 节点类型颜色 ── */
-.node-type-start { border-color: #67c23a; }
-.node-type-start.selected { border-color: #67c23a; box-shadow: 0 0 0 3px rgba(103, 194, 58, 0.25); }
-.node-type-end { border-color: #909399; }
-.node-type-end.selected { border-color: #909399; box-shadow: 0 0 0 3px rgba(144, 147, 153, 0.25); }
+/* 颜色主题 */
+.node-type-start   { border-color: #67c23a; }
+.node-type-end     { border-color: #909399; }
 .node-type-approver { border-color: #409eff; }
-.node-type-approver.selected { border-color: #409eff; box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.3); }
 .node-type-condition { border-color: #e6a23c; }
-.node-type-condition.selected { border-color: #e6a23c; box-shadow: 0 0 0 3px rgba(230, 162, 60, 0.3); }
+
+.node-type-start.selected   { box-shadow: 0 0 0 3px rgba(103,194,58,0.25); }
+.node-type-end.selected     { box-shadow: 0 0 0 3px rgba(144,147,153,0.25); }
+.node-type-approver.selected { box-shadow: 0 0 0 3px rgba(64,158,255,0.3); }
+.node-type-condition.selected { box-shadow: 0 0 0 3px rgba(230,162,60,0.3); }
 
 /* ── 卡片头部 ── */
 .node-card-header {
@@ -471,18 +498,15 @@ function nodeOrderLabel(node: NodeConfigDTO): string {
   padding: 8px 10px 6px;
   border-bottom: 1px solid var(--el-border-color-lighter);
 }
-.node-type-start .node-card-header { background: rgba(103, 194, 58, 0.08); }
-.node-type-end .node-card-header { background: rgba(144, 147, 153, 0.08); }
-.node-type-approver .node-card-header { background: rgba(64, 158, 255, 0.08); }
-.node-type-condition .node-card-header { background: rgba(230, 162, 60, 0.08); }
+.node-type-start .node-card-header     { background: rgba(103,194,58,0.08); }
+.node-type-end .node-card-header       { background: rgba(144,147,153,0.08); }
+.node-type-approver .node-card-header  { background: rgba(64,158,255,0.08); }
+.node-type-condition .node-card-header { background: rgba(230,162,60,0.08); }
 
-.node-icon {
-  flex-shrink: 0;
-  font-size: 14px;
-}
-.node-type-start .node-icon { color: #67c23a; }
-.node-type-end .node-icon { color: #909399; }
-.node-type-approver .node-icon { color: #409eff; }
+.node-icon { flex-shrink: 0; font-size: 14px; }
+.node-type-start .node-icon     { color: #67c23a; }
+.node-type-end .node-icon       { color: #909399; }
+.node-type-approver .node-icon  { color: #409eff; }
 .node-type-condition .node-icon { color: #e6a23c; }
 
 .node-name-input {
@@ -531,10 +555,9 @@ function nodeOrderLabel(node: NodeConfigDTO): string {
   display: flex;
   align-items: center;
   justify-content: center;
-  line-height: 1;
 }
-.node-type-start .node-order-badge { background: #67c23a; }
-.node-type-end .node-order-badge { background: #909399; }
+.node-type-start .node-order-badge    { background: #67c23a; }
+.node-type-end .node-order-badge      { background: #909399; }
 .node-type-condition .node-order-badge { background: #e6a23c; }
 
 /* ── 空状态 ── */
