@@ -163,6 +163,8 @@ import { getNoticePage } from '@/api/base/notice'
 import { getProjectPage } from '@/api/base/project'
 import { getShopPage } from '@/api/base/shop'
 import { getDashboardSummary } from '@/api/fin/dashboard'
+import { getLedgerPage } from '@/api/opr/ledger'
+import { getStatistics } from '@/api/workflow/process'
 
 const appStore = useAppStore()
 const userStore = useUserStore()
@@ -273,6 +275,7 @@ onMounted(async () => {
   }
 
   // 在租商铺数 + 综合出租率
+  let shopRentalRate = 0
   try {
     const [rentedRes, totalRes] = await Promise.all([
       getShopPage({ pageNum: 1, pageSize: 1, shopStatus: 1 }) as any,
@@ -282,35 +285,75 @@ onMounted(async () => {
     const totalCount = totalRes.total ?? 0
     statCards[1].value = String(rentedCount)
     if (totalCount > 0) {
-      const rate = Math.round((rentedCount / totalCount) * 100)
-      statCards[3].value = rate + '%'
+      shopRentalRate = Math.round((rentedCount / totalCount) * 100)
+      statCards[3].value = shopRentalRate + '%'
     }
   } catch {
     // 保持 '--'
   }
 
-  // 本月应收
+  // 本月应收 + 本月回款率
+  let monthlyCollectionRate = 0
   try {
     const summary = await getDashboardSummary() as any
-    const amount = summary?.monthReceivable ?? 0
-    // 金额超过万元时显示"x.xx万"，否则显示原值
+    const receivable = summary?.monthReceivable ?? 0
+    const received = summary?.monthReceived ?? 0
+    const amount = receivable
     if (amount >= 10000) {
       statCards[2].value = (amount / 10000).toFixed(2) + '万'
     } else {
       statCards[2].value = String(amount)
     }
+    if (receivable > 0) {
+      monthlyCollectionRate = Math.round((received / receivable) * 100)
+    }
   } catch {
     // 保持 '--'
   }
+
+  // 合同履约率
+  let contractComplianceRate = 0
+  try {
+    const [activeRes, totalRes] = await Promise.all([
+      getLedgerPage({ pageNum: 1, pageSize: 1, status: 0 }),
+      getLedgerPage({ pageNum: 1, pageSize: 1 }),
+    ])
+    const activeCount = (activeRes as any).total ?? 0
+    const totalCount = (totalRes as any).total ?? 0
+    if (totalCount > 0) {
+      contractComplianceRate = Math.round((activeCount / totalCount) * 100)
+    }
+  } catch {
+    // 保持 0
+  }
+
+  // 审批通过率
+  let approvalPassRate = 0
+  try {
+    const stats = await getStatistics() as any
+    approvalPassRate = stats?.approvalRate ?? 0
+  } catch {
+    // 保持 0
+  }
+
+  // 更新系统概览
+  overview[0].val = shopRentalRate + '%'
+  overview[0].percent = Math.min(shopRentalRate, 100)
+  overview[1].val = contractComplianceRate + '%'
+  overview[1].percent = Math.min(contractComplianceRate, 100)
+  overview[2].val = monthlyCollectionRate + '%'
+  overview[2].percent = Math.min(monthlyCollectionRate, 100)
+  overview[3].val = approvalPassRate + '%'
+  overview[3].percent = Math.min(approvalPassRate, 100)
 })
 
 // 系统概览
-const overview = [
+const overview = reactive([
   { label: '商铺出租率', val: '--%', percent: 0, color: '#3b82f6' },
   { label: '合同履约率', val: '--%', percent: 0, color: '#10b981' },
   { label: '本月回款率', val: '--%', percent: 0, color: '#f59e0b' },
   { label: '审批通过率', val: '--%', percent: 0, color: '#8b5cf6' },
-]
+])
 </script>
 
 <style scoped lang="scss">
