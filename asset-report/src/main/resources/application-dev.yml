@@ -69,6 +69,11 @@ report:
     # 连续失败 N 次后自动禁用任务
     disable-threshold: 3
 
+management:
+  health:
+    mail:
+      enabled: false
+
 logging:
   level:
     com.asset: debug
